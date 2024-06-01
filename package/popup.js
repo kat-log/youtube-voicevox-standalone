@@ -1,12 +1,12 @@
 // popup.js
 document.getElementById("play").addEventListener("click", () => {
-  const apiKey = document.getElementById("apikey").value;
+  const apiKeyVOICEVOX = document.getElementById("apiKeyVOICEVOX").value;
   // APIキーを保存
-  chrome.storage.sync.set({ apiKey: apiKey }, function () {
+  chrome.storage.sync.set({ apiKeyVOICEVOX: apiKeyVOICEVOX }, function () {
     console.log("API key saved");
   });
 
-  // 現在のタブでスクリプトを実行してタイトルを取得
+  // 現在のタブでスクリプトを実行してタイトルとメッセージを取得
   chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     chrome.scripting.executeScript(
       {
@@ -15,18 +15,36 @@ document.getElementById("play").addEventListener("click", () => {
           let titleElement = document.querySelector(
             ".style-scope ytd-watch-metadata h1"
           );
-          return titleElement
+          let title = titleElement
             ? titleElement.textContent
             : "タイトル要素が見つかりません";
+
+          console.log("titleElement : ", titleElement);
+          // 「style-scope yt-live-chat-item-list-renderer」内の「style-scope yt-live-chat-text-message-renderer」の要素を取得
+          let messageElements = document.querySelectorAll(
+            ".style-scope.yt-live-chat-item-list-renderer .style-scope.yt-live-chat-text-message-renderer"
+          );
+          console.log("コンソールです");
+          console.log("messageElements : ", messageElements);
+          let messages = Array.from(messageElements).map(
+            (el) => el.textContent
+          );
+
+          return { title: title, messages: messages };
         },
       },
       function (result) {
         // スクリプトの実行結果を取得
-        let pageTitle = result[0].result;
+        let pageTitle = result[0].result.title;
+        let pageMessages = result[0].result.messages;
 
-        // メッセージにタイトルを含めて送信
+        // メッセージにタイトルとメッセージを含めて送信
         chrome.runtime.sendMessage(
-          { apiKey: apiKey, title: pageTitle },
+          {
+            apiKeyVOICEVOX: apiKeyVOICEVOX,
+            title: pageTitle,
+            messages: pageMessages,
+          },
           function (response) {
             if (response.status === "success") {
               let audio = new Audio(response.audioUrl);
@@ -39,8 +57,9 @@ document.getElementById("play").addEventListener("click", () => {
           }
         );
 
-        // デバッグのためにタイトルを出力
-        document.getElementById("debug").textContent = "Title: " + pageTitle;
+        // デバッグのためにタイトルとメッセージを出力
+        document.getElementById("debug").textContent =
+          "Title: " + pageTitle + ", Messages: " + pageMessages.join(", ");
       }
     );
   });

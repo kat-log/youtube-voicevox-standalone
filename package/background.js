@@ -1,13 +1,13 @@
 // background.js
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-  if (!request.apiKey) {
+  if (!request.apiKeyVOICEVOX) {
     sendResponse({ status: "error", message: "APIキーが入力されていません。" });
     return true; // Will respond asynchronously.
   }
 
   let text = encodeURIComponent(request.title); // ページのタイトルをエンコード
 
-  let url = `https://deprecatedapis.tts.quest/v2/voicevox/audio/?key=${request.apiKey}&speaker=0&pitch=0&intonationScale=1&speed=1&text=${text}`;
+  let url = `https://deprecatedapis.tts.quest/v2/voicevox/audio/?key=${request.apiKeyVOICEVOX}&speaker=0&pitch=0&intonationScale=1&speed=1&text=${text}`;
 
   // APIリクエストを行う
   fetch(url)
