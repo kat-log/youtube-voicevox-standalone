@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Hello Voice",
   "version": "1.0",
-  "permissions": ["activeTab"],
+  "permissions": ["activeTab", "storage"],
   "action": {
     "default_popup": "popup.html"
   },
