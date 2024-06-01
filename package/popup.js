@@ -1,13 +1,4 @@
 // popup.js
-document.addEventListener("DOMContentLoaded", () => {
-  // ページが読み込まれたら、保存されたAPIキーを取得
-  chrome.storage.sync.get(["apiKey"], function (result) {
-    if (result.apiKey) {
-      document.getElementById("apikey").value = result.apiKey;
-    }
-  });
-});
-
 document.getElementById("play").addEventListener("click", () => {
   const apiKey = document.getElementById("apikey").value;
   // APIキーを保存
@@ -15,15 +6,42 @@ document.getElementById("play").addEventListener("click", () => {
     console.log("API key saved");
   });
 
-  chrome.runtime.sendMessage({ apiKey: apiKey }, function (response) {
-    if (response.status === "success") {
-      let audio = new Audio(response.audioUrl);
-      audio.play();
-      document.getElementById("error").textContent =
-        "APIキーの入力を確認しました"; // エラーメッセージなしの場合
-    } else {
-      document.getElementById("error").textContent =
-        "Error: " + response.message; // エラーメッセージを表示
-    }
+  // 現在のタブでスクリプトを実行してタイトルを取得
+  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+    chrome.scripting.executeScript(
+      {
+        target: { tabId: tabs[0].id },
+        function: function () {
+          let titleElement = document.querySelector(
+            ".style-scope ytd-watch-metadata h1"
+          );
+          return titleElement
+            ? titleElement.textContent
+            : "タイトル要素が見つかりません";
+        },
+      },
+      function (result) {
+        // スクリプトの実行結果を取得
+        let pageTitle = result[0].result;
+
+        // メッセージにタイトルを含めて送信
+        chrome.runtime.sendMessage(
+          { apiKey: apiKey, title: pageTitle },
+          function (response) {
+            if (response.status === "success") {
+              let audio = new Audio(response.audioUrl);
+              audio.play();
+              document.getElementById("error").textContent = "エラーなし"; // エラーメッセージなしの場合
+            } else {
+              document.getElementById("error").textContent =
+                "Error: " + response.message; // エラーメッセージを表示
+            }
+          }
+        );
+
+        // デバッグのためにタイトルを出力
+        document.getElementById("debug").textContent = "Title: " + pageTitle;
+      }
+    );
   });
 });
