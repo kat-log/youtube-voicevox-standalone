@@ -50,37 +50,59 @@ document.getElementById("play").addEventListener("click", () => {
         const requestUrl = `https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId=${liveChatId}&part=snippet,authorDetails&key=${apiKeyYoutube}`;
         console.log("投げているリクエストURL: ", requestUrl);
 
-        return fetch(requestUrl);
-      })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("YouTube APIリクエストに失敗しました。");
-        }
-        return response.json();
-      })
-      .then((data) => {
-        console.log("data : ", data);
-        // 最新のメッセージのみを取得
-        let latestMessage =
-          data.items[data.items.length - 1].snippet.displayMessage;
-        document.getElementById("debug").textContent =
-          "Latest message: " + latestMessage;
+        // 最新のメッセージを保存するための変数
+        let latestMessage = "";
 
-        // メッセージにタイトルとメッセージを含めて送信
-        chrome.runtime.sendMessage(
-          { apiKeyVOICEVOX: apiKeyVOICEVOX, messages: [latestMessage] },
-          function (response) {
-            if (response.status === "success") {
-              let audio = new Audio(response.audioUrl);
-              audio.play();
-              document.getElementById("error").textContent = "エラーなし"; // エラーメッセージなしの場合
-            } else {
-              document.getElementById("error").textContent =
-                "response.status === success じゃないです。 Error: " +
-                response.message; // エラーメッセージを表示
-            }
-          }
-        );
+        // 2秒おきに新たなコメントが無いか確認する関数
+        const checkNewComments = () => {
+          fetch(requestUrl)
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error("YouTube APIリクエストに失敗しました。");
+              }
+              return response.json();
+            })
+            .then((data) => {
+              console.log("data : ", data);
+              // 最新のメッセージを取得
+              let newMessage =
+                data.items[data.items.length - 1].snippet.displayMessage;
+
+              // 新たなコメントがあれば処理を行う
+              if (newMessage !== latestMessage) {
+                latestMessage = newMessage;
+                document.getElementById("debug").textContent =
+                  "Latest message: " + latestMessage;
+
+                // メッセージにタイトルとメッセージを含めて送信
+                chrome.runtime.sendMessage(
+                  { apiKeyVOICEVOX: apiKeyVOICEVOX, messages: [latestMessage] },
+                  function (response) {
+                    if (response.status === "success") {
+                      let audio = new Audio(response.audioUrl);
+                      audio.play();
+                      document.getElementById("error").textContent =
+                        "エラーなし"; // エラーメッセージなしの場合
+                    } else {
+                      document.getElementById("error").textContent =
+                        "response.status === success じゃないです。 Error: " +
+                        response.message; // エラーメッセージを表示
+                    }
+                  }
+                );
+              }
+
+              // 2秒後に再確認
+              setTimeout(checkNewComments, 2000);
+            })
+            .catch((error) => {
+              console.error("エラーをキャッチ　Error:", error);
+              document.getElementById("error").textContent = error.message;
+            });
+        };
+
+        // 初回のコメント確認を行う
+        checkNewComments();
       })
       .catch((error) => {
         console.error("エラーをキャッチ　Error:", error);
