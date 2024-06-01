@@ -5,7 +5,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     return true; // Will respond asynchronously.
   }
 
-  let text = encodeURIComponent(request.title); // ページのタイトルをエンコード
+  let text = encodeURIComponent(request.messages.join(" ")); // メッセージをエンコード
 
   let url = `https://deprecatedapis.tts.quest/v2/voicevox/audio/?key=${request.apiKeyVOICEVOX}&speaker=0&pitch=0&intonationScale=1&speed=1&text=${text}`;
 
