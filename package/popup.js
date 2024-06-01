@@ -2,6 +2,7 @@ document.getElementById("play").addEventListener("click", () => {
   console.log("クリックされました！");
   const apiKeyVOICEVOX = document.getElementById("apiKeyVOICEVOX").value;
   const apiKeyYoutube = document.getElementById("apiKeyYoutube").value; // YouTube APIキーを取得
+  const videoId = "xSjK94lmRRQ"; // ビデオIDを設定
 
   // APIキーが空かどうかをチェック
   if (!apiKeyYoutube) {
@@ -11,75 +12,39 @@ document.getElementById("play").addEventListener("click", () => {
     return; // 処理を中断
   }
 
-  const liveChatId = "KgvMZqlKu_c"; // ライブチャットIDを設定
-
-  // APIキーを保存
-  chrome.storage.sync.set({ apiKeyVOICEVOX: apiKeyVOICEVOX }, function () {
-    console.log("VOICEVOX API key saved");
-  });
-
-  const requestUrl = `https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId=${liveChatId}&part=snippet,authorDetails&key=${apiKeyYoutube}`;
-  console.log("投げているリクエストURL: ", requestUrl); // リクエストURLをログに出力
-
-  // YouTube Data APIを呼び出してライブチャットのメッセージを取得
+  // ライブチャットIDを取得するためのリクエストを実行
   fetch(
-    `https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId=${liveChatId}&part=snippet,authorDetails&key=${apiKeyYoutube}`
+    `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=liveStreamingDetails&key=${apiKeyYoutube}`
   )
+    .then((response) => response.json())
+    .then((data) => {
+      const liveChatId = data.items[0].liveStreamingDetails.activeLiveChatId;
+      if (!liveChatId) {
+        throw new Error("ライブチャットIDが見つかりません。");
+      }
+      console.log("Live Chat ID:", liveChatId);
+
+      // ライブチャットのメッセージを取得するリクエスト
+      const requestUrl = `https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId=${liveChatId}&part=snippet,authorDetails&key=${apiKeyYoutube}`;
+      console.log("投げているリクエストURL: ", requestUrl);
+
+      return fetch(requestUrl);
+    })
     .then((response) => {
-      console.log("response : ", response);
-      console.log("response status: ", response.status); // ステータスコードをログに出力
-
       if (!response.ok) {
-        console.error("投げているリクエストURL: ", requestUrl); // リクエストURLをログに出力
-        console.error("エラーでございます。 response : ", response);
-        console.error("response status: ", response.status); // ステータスコードをログに出力
-
-        return response.json().then((errorData) => {
-          console.error("エラー詳細: ", errorData);
-          throw new Error(
-            "YouTube APIキーが無効か、リクエストが拒否されました。"
-          );
-        });
+        throw new Error("YouTube APIリクエストに失敗しました。");
       }
       return response.json();
     })
     .then((data) => {
-      console.log("data : ", data); // レスポンスデータを出力
-
-      let messages = []; // ここでmessagesを定義
-
-      if (data.items) {
-        messages = data.items.map((item) => item.snippet.displayMessage);
-        // 以降のコード...
-      } else {
-        console.error(
-          "Error: items property is missing in the responseでございます"
-        );
-        document.getElementById("error").textContent =
-          "ライブチャットデータが見つかりません。";
-      }
-
-      // メッセージにタイトルとメッセージを含めて送信
-      chrome.runtime.sendMessage(
-        { apiKeyVOICEVOX: apiKeyVOICEVOX, messages: messages },
-        function (response) {
-          if (response.status === "success") {
-            let audio = new Audio(response.audioUrl);
-            audio.play();
-            document.getElementById("error").textContent = "エラーなし"; // エラーメッセージなしの場合
-          } else {
-            document.getElementById("error").textContent =
-              "Error: " + response.message; // エラーメッセージを表示
-          }
-        }
-      );
-
-      // デバッグのためにメッセージを出力
+      console.log("data : ", data);
+      let messages = data.items.map((item) => item.snippet.displayMessage);
       document.getElementById("debug").textContent =
         "Messages: " + messages.join(", ");
+      // 以降のメッセージ処理やエラーハンドリング
     })
     .catch((error) => {
       console.error("Error:", error);
-      document.getElementById("error").textContent = error.message; // エラーメッセージを表示
+      document.getElementById("error").textContent = error.message;
     });
 });
