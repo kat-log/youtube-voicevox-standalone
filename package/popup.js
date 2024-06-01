@@ -1,3 +1,13 @@
+// ページの読み込み時に実行される関数
+window.onload = function () {
+  // ストレージから保存された値を取得
+  chrome.storage.sync.get(["apiKeyVOICEVOX", "apiKeyYoutube"], function (data) {
+    // 取得した値をフォームフィールドに設定
+    document.getElementById("apiKeyVOICEVOX").value = data.apiKeyVOICEVOX || "";
+    document.getElementById("apiKeyYoutube").value = data.apiKeyYoutube || "";
+  });
+};
+
 document.getElementById("play").addEventListener("click", () => {
   console.log("クリックされました！");
   const apiKeyVOICEVOX = document.getElementById("apiKeyVOICEVOX").value;
@@ -14,6 +24,9 @@ document.getElementById("play").addEventListener("click", () => {
   // APIキーを保存
   chrome.storage.sync.set({ apiKeyVOICEVOX: apiKeyVOICEVOX }, function () {
     console.log("VOICEVOX API key saved");
+  });
+  chrome.storage.sync.set({ apiKeyYoutube: apiKeyYoutube }, function () {
+    console.log("YouTube API key saved");
   });
 
   // 現在アクティブなタブのURLを取得
