@@ -12,6 +12,11 @@ document.getElementById("play").addEventListener("click", () => {
     return; // 処理を中断
   }
 
+  // APIキーを保存
+  chrome.storage.sync.set({ apiKeyVOICEVOX: apiKeyVOICEVOX }, function () {
+    console.log("VOICEVOX API key saved");
+  });
+
   // ライブチャットIDを取得するためのリクエストを実行
   fetch(
     `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=liveStreamingDetails&key=${apiKeyYoutube}`
@@ -41,7 +46,21 @@ document.getElementById("play").addEventListener("click", () => {
       let messages = data.items.map((item) => item.snippet.displayMessage);
       document.getElementById("debug").textContent =
         "Messages: " + messages.join(", ");
-      // 以降のメッセージ処理やエラーハンドリング
+
+      // メッセージにタイトルとメッセージを含めて送信
+      chrome.runtime.sendMessage(
+        { apiKeyVOICEVOX: apiKeyVOICEVOX, messages: messages },
+        function (response) {
+          if (response.status === "success") {
+            let audio = new Audio(response.audioUrl);
+            audio.play();
+            document.getElementById("error").textContent = "エラーなし"; // エラーメッセージなしの場合
+          } else {
+            document.getElementById("error").textContent =
+              "Error: " + response.message; // エラーメッセージを表示
+          }
+        }
+      );
     })
     .catch((error) => {
       console.error("Error:", error);
