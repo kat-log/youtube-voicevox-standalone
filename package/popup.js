@@ -1,125 +1,38 @@
-// ページの読み込み時に実行される関数
 window.onload = function () {
-  // ストレージから保存された値を取得
   chrome.storage.sync.get(["apiKeyVOICEVOX", "apiKeyYoutube"], function (data) {
-    // 取得した値をフォームフィールドに設定
     document.getElementById("apiKeyVOICEVOX").value = data.apiKeyVOICEVOX || "";
     document.getElementById("apiKeyYoutube").value = data.apiKeyYoutube || "";
   });
 };
 
 document.getElementById("play").addEventListener("click", () => {
-  console.log("クリックされました！");
   const apiKeyVOICEVOX = document.getElementById("apiKeyVOICEVOX").value;
-  const apiKeyYoutube = document.getElementById("apiKeyYoutube").value; // YouTube APIキーを取得
+  const apiKeyYoutube = document.getElementById("apiKeyYoutube").value;
 
-  // APIキーが空かどうかをチェック
   if (!apiKeyYoutube) {
-    console.error("YouTube APIキーが設定されていません。");
     document.getElementById("error").textContent =
       "YouTube APIキーが設定されていません。";
-    return; // 処理を中断
+    return;
   }
 
-  // APIキーを保存
-  chrome.storage.sync.set({ apiKeyVOICEVOX: apiKeyVOICEVOX }, function () {
-    console.log("VOICEVOX API key saved");
-  });
-  chrome.storage.sync.set({ apiKeyYoutube: apiKeyYoutube }, function () {
-    console.log("YouTube API key saved");
-  });
-
-  // 現在アクティブなタブのURLを取得
-  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    let videoId;
-    const url = new URL(tabs[0].url);
-    console.log("url : ", url.toString()); // URLを文字列として出力
-
-    if (url.hostname === "www.youtube.com") {
-      videoId = new URLSearchParams(url.search).get("v");
-    } else if (url.hostname === "youtu.be") {
-      videoId = url.pathname.slice(1);
+  chrome.storage.sync.set(
+    { apiKeyVOICEVOX: apiKeyVOICEVOX, apiKeyYoutube: apiKeyYoutube },
+    function () {
+      console.log("API keys saved");
     }
+  );
 
-    if (!videoId) {
-      console.error("ビデオIDが見つかりません。");
-      console.error("url : ", url.toString());
-      return; // 処理を中断
+  chrome.runtime.sendMessage(
+    { action: "start", apiKeyVOICEVOX, apiKeyYoutube },
+    function (response) {
+      if (chrome.runtime.lastError) {
+        document.getElementById("error").textContent =
+          chrome.runtime.lastError.message;
+      } else if (response && response.status === "error") {
+        document.getElementById("error").textContent = response.message;
+      } else {
+        document.getElementById("error").textContent = "エラーなし";
+      }
     }
-
-    // ライブチャットIDを取得するためのリクエストを実行
-    fetch(
-      `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=liveStreamingDetails&key=${apiKeyYoutube}`
-    )
-      .then((response) => response.json())
-      .then((data) => {
-        const liveChatId = data.items[0].liveStreamingDetails.activeLiveChatId;
-        if (!liveChatId) {
-          throw new Error("ライブチャットIDが見つかりません。");
-        }
-        console.log("Live Chat ID:", liveChatId);
-
-        // ライブチャットのメッセージを取得するリクエスト
-        const requestUrl = `https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId=${liveChatId}&part=snippet,authorDetails&key=${apiKeyYoutube}`;
-        console.log("投げているリクエストURL: ", requestUrl);
-
-        // 最新のメッセージを保存するための変数
-        let latestMessage = "";
-
-        // 2秒おきに新たなコメントが無いか確認する関数
-        const checkNewComments = () => {
-          fetch(requestUrl)
-            .then((response) => {
-              if (!response.ok) {
-                throw new Error("YouTube APIリクエストに失敗しました。");
-              }
-              return response.json();
-            })
-            .then((data) => {
-              console.log("data : ", data);
-              // 最新のメッセージを取得
-              let newMessage =
-                data.items[data.items.length - 1].snippet.displayMessage;
-
-              // 新たなコメントがあれば処理を行う
-              if (newMessage !== latestMessage) {
-                latestMessage = newMessage;
-                document.getElementById("debug").textContent =
-                  "Latest message: " + latestMessage;
-
-                // メッセージにタイトルとメッセージを含めて送信
-                chrome.runtime.sendMessage(
-                  { apiKeyVOICEVOX: apiKeyVOICEVOX, messages: [latestMessage] },
-                  function (response) {
-                    if (response.status === "success") {
-                      let audio = new Audio(response.audioUrl);
-                      audio.play();
-                      document.getElementById("error").textContent =
-                        "エラーなし"; // エラーメッセージなしの場合
-                    } else {
-                      document.getElementById("error").textContent =
-                        "response.status === success じゃないです。 Error: " +
-                        response.message; // エラーメッセージを表示
-                    }
-                  }
-                );
-              }
-
-              // 2秒後に再確認
-              setTimeout(checkNewComments, 2000);
-            })
-            .catch((error) => {
-              console.error("エラーをキャッチ　Error:", error);
-              document.getElementById("error").textContent = error.message;
-            });
-        };
-
-        // 初回のコメント確認を行う
-        checkNewComments();
-      })
-      .catch((error) => {
-        console.error("エラーをキャッチ　Error:", error);
-        document.getElementById("error").textContent = error.message;
-      });
-  });
+  );
 });
