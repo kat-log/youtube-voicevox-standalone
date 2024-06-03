@@ -66,7 +66,8 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
           if (!liveChatId) {
             sendResponse({
               status: "error",
-              message: "ライブチャットIDが見つかりません。",
+              message:
+                "ライブチャットIDが見つかりません。（or APIのクエリ上限に達しているかも）",
             });
             return;
           }
