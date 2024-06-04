@@ -151,7 +151,7 @@ function startFetchingComments(apiKeyVOICEVOX, apiKeyYoutube, tabId) {
             });
         }
 
-        intervalId = setTimeout(checkNewComments, 2000);
+        intervalId = setTimeout(checkNewComments, 4000);
       })
       .catch((error) => {
         console.error("エラーをキャッチ:", error);
