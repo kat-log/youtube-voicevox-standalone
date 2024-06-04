@@ -36,3 +36,16 @@ document.getElementById("play").addEventListener("click", () => {
     }
   );
 });
+
+document.getElementById("stop").addEventListener("click", () => {
+  chrome.runtime.sendMessage({ action: "stop" }, function (response) {
+    if (chrome.runtime.lastError) {
+      document.getElementById("error").textContent =
+        chrome.runtime.lastError.message;
+    } else if (response && response.status === "error") {
+      document.getElementById("error").textContent = response.message;
+    } else {
+      document.getElementById("error").textContent = "停止しました";
+    }
+  });
+});

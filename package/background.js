@@ -1,3 +1,6 @@
+let audio = null;
+let intervalId = null;
+
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   if (request.action === "start") {
     const { apiKeyVOICEVOX, apiKeyYoutube } = request;
@@ -100,7 +103,11 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                         {
                           target: { tabId: tabs[0].id },
                           func: (audioUrl) => {
+                            if (window.currentAudio) {
+                              window.currentAudio.pause();
+                            }
                             let audio = new Audio(audioUrl);
+                            window.currentAudio = audio;
                             audio.play();
                           },
                           args: [audioUrl],
@@ -120,7 +127,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
                     });
                 }
 
-                setTimeout(checkNewComments, 2000);
+                intervalId = setTimeout(checkNewComments, 2000);
               })
               .catch((error) => {
                 console.error("エラーをキャッチ:", error);
@@ -137,6 +144,17 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     });
 
     return true; // Will respond asynchronously.
+  } else if (request.action === "stop") {
+    if (audio) {
+      audio.pause();
+      audio = null;
+    }
+    if (intervalId) {
+      clearTimeout(intervalId);
+      intervalId = null;
+    }
+    sendResponse({ status: "success" });
+    return true;
   }
 
   return true;
