@@ -174,7 +174,7 @@ function stopFetchingComments() {
 
 function fetchVoiceVox(apiKey, text) {
   const encodedText = encodeURIComponent(text);
-  const url = `https://deprecatedapis.tts.quest/v2/voicevox/audio/?key=${apiKey}&speaker=0&pitch=0&intonationScale=1&speed=1&text=${encodedText}`;
+  const url = `https://deprecatedapis.tts.quest/v2/voicevox/audio/?key=${apiKey}&speaker=1&pitch=0&intonationScale=1&speed=1.5&text=${encodedText}`;
 
   return fetch(url).then((response) => {
     if (!response.ok) {

@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Hello Voice",
+  "name": "000 Hello Voice",
   "version": "1.0",
   "permissions": ["activeTab", "storage", "tabs", "scripting"],
   "host_permissions": ["https://www.youtube.com/*"],
