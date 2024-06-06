@@ -4,7 +4,7 @@ let liveChatId = null;
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   if (request.action === "start") {
-    const { apiKeyVOICEVOX, apiKeyYoutube } = request;
+    const { apiKeyVOICEVOX, apiKeyYoutube, speed } = request;
 
     if (!apiKeyVOICEVOX || !apiKeyYoutube) {
       sendResponse({
@@ -75,7 +75,12 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
               return;
             }
 
-            startFetchingComments(apiKeyVOICEVOX, apiKeyYoutube, tabs[0].id);
+            startFetchingComments(
+              apiKeyVOICEVOX,
+              apiKeyYoutube,
+              speed,
+              tabs[0].id
+            );
             sendResponse({ status: "success" });
           })
           .catch((error) => {
@@ -83,7 +88,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             sendResponse({ status: "error", message: error.message });
           });
       } else {
-        startFetchingComments(apiKeyVOICEVOX, apiKeyYoutube, tabs[0].id);
+        startFetchingComments(apiKeyVOICEVOX, apiKeyYoutube, speed, tabs[0].id);
         sendResponse({ status: "success" });
       }
     });
@@ -98,7 +103,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   return true;
 });
 
-function startFetchingComments(apiKeyVOICEVOX, apiKeyYoutube, tabId) {
+function startFetchingComments(apiKeyVOICEVOX, apiKeyYoutube, speed, tabId) {
   const requestUrl = `https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId=${liveChatId}&part=snippet,authorDetails&key=${apiKeyYoutube}`;
   let latestMessage = "";
 
@@ -121,7 +126,7 @@ function startFetchingComments(apiKeyVOICEVOX, apiKeyYoutube, tabId) {
         if (newMessage !== latestMessage) {
           latestMessage = newMessage;
 
-          fetchVoiceVox(apiKeyVOICEVOX, newMessage)
+          fetchVoiceVox(apiKeyVOICEVOX, newMessage, speed)
             .then((audioUrl) => {
               chrome.scripting.executeScript(
                 {
@@ -172,9 +177,11 @@ function stopFetchingComments() {
   }
 }
 
-function fetchVoiceVox(apiKey, text) {
+function fetchVoiceVox(apiKey, text, speed) {
   const encodedText = encodeURIComponent(text);
-  const url = `https://deprecatedapis.tts.quest/v2/voicevox/audio/?key=${apiKey}&speaker=1&pitch=0&intonationScale=1&speed=1.5&text=${encodedText}`;
+  const url = `https://deprecatedapis.tts.quest/v2/voicevox/audio/?key=${apiKey}&speaker=1&pitch=0&intonationScale=1&speed=${speed}&text=${encodedText}`;
+
+  console.log("VoiceVox API URL:", url); // コンソールにAPI URLを表示
 
   return fetch(url).then((response) => {
     if (!response.ok) {

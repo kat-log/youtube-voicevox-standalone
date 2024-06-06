@@ -1,8 +1,16 @@
 window.onload = function () {
-  chrome.storage.sync.get(["apiKeyVOICEVOX", "apiKeyYoutube"], function (data) {
-    document.getElementById("apiKeyVOICEVOX").value = data.apiKeyVOICEVOX || "";
-    document.getElementById("apiKeyYoutube").value = data.apiKeyYoutube || "";
-  });
+  chrome.storage.sync.get(
+    ["apiKeyVOICEVOX", "apiKeyYoutube", "speed"],
+    function (data) {
+      document.getElementById("apiKeyVOICEVOX").value =
+        data.apiKeyVOICEVOX || "";
+      document.getElementById("apiKeyYoutube").value = data.apiKeyYoutube || "";
+      window.speed = data.speed || 1.0;
+      document.getElementById(
+        "current-speed"
+      ).textContent = `Current Speed: ${window.speed.toFixed(1)}`;
+    }
+  );
 };
 
 document.getElementById("play").addEventListener("click", () => {
@@ -16,14 +24,18 @@ document.getElementById("play").addEventListener("click", () => {
   }
 
   chrome.storage.sync.set(
-    { apiKeyVOICEVOX: apiKeyVOICEVOX, apiKeyYoutube: apiKeyYoutube },
+    {
+      apiKeyVOICEVOX: apiKeyVOICEVOX,
+      apiKeyYoutube: apiKeyYoutube,
+      speed: window.speed,
+    },
     function () {
-      console.log("API keys saved");
+      console.log("API keys and speed saved");
     }
   );
 
   chrome.runtime.sendMessage(
-    { action: "start", apiKeyVOICEVOX, apiKeyYoutube },
+    { action: "start", apiKeyVOICEVOX, apiKeyYoutube, speed: window.speed },
     function (response) {
       if (chrome.runtime.lastError) {
         document.getElementById("error").textContent =
@@ -48,4 +60,28 @@ document.getElementById("stop").addEventListener("click", () => {
       document.getElementById("error").textContent = "停止しました";
     }
   });
+});
+
+document.getElementById("decrease-speed").addEventListener("click", () => {
+  window.speed = Math.max(0.1, window.speed - 0.1);
+  chrome.storage.sync.set({ speed: window.speed });
+  document.getElementById(
+    "current-speed"
+  ).textContent = `Current Speed: ${window.speed.toFixed(1)}`;
+});
+
+document.getElementById("reset-speed").addEventListener("click", () => {
+  window.speed = 1.0;
+  chrome.storage.sync.set({ speed: window.speed });
+  document.getElementById(
+    "current-speed"
+  ).textContent = `Current Speed: ${window.speed.toFixed(1)}`;
+});
+
+document.getElementById("increase-speed").addEventListener("click", () => {
+  window.speed = Math.min(2.0, window.speed + 0.1);
+  chrome.storage.sync.set({ speed: window.speed });
+  document.getElementById(
+    "current-speed"
+  ).textContent = `Current Speed: ${window.speed.toFixed(1)}`;
 });
