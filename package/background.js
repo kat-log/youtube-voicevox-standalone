@@ -1,6 +1,7 @@
-let audio = null;
-let intervalId = null;
+let audioQueue = [];
+let isPlaying = false;
 let liveChatId = null;
+let intervalId = null;
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   if (request.action === "start") {
@@ -128,28 +129,8 @@ function startFetchingComments(apiKeyVOICEVOX, apiKeyYoutube, speed, tabId) {
 
           fetchVoiceVox(apiKeyVOICEVOX, newMessage, speed)
             .then((audioUrl) => {
-              chrome.scripting.executeScript(
-                {
-                  target: { tabId: tabId },
-                  func: (audioUrl) => {
-                    if (window.currentAudio) {
-                      window.currentAudio.pause();
-                    }
-                    let audio = new Audio(audioUrl);
-                    window.currentAudio = audio;
-                    audio.play();
-                  },
-                  args: [audioUrl],
-                },
-                () => {
-                  if (chrome.runtime.lastError) {
-                    console.error(
-                      "VoiceVoxエラー:",
-                      chrome.runtime.lastError.message
-                    );
-                  }
-                }
-              );
+              audioQueue.push(audioUrl);
+              playNextAudio(tabId);
             })
             .catch((error) => {
               console.error("VoiceVoxエラー:", error);
@@ -167,15 +148,56 @@ function startFetchingComments(apiKeyVOICEVOX, apiKeyYoutube, speed, tabId) {
 }
 
 function stopFetchingComments() {
-  if (audio) {
-    audio.pause();
-    audio = null;
+  if (window.currentAudio) {
+    window.currentAudio.pause();
+    window.currentAudio = null;
   }
   if (intervalId) {
     clearTimeout(intervalId);
     intervalId = null;
   }
+  audioQueue = [];
+  isPlaying = false;
 }
+
+function playNextAudio(tabId) {
+  if (isPlaying || audioQueue.length === 0) {
+    return;
+  }
+
+  const audioUrl = audioQueue.shift();
+  isPlaying = true;
+
+  chrome.scripting.executeScript(
+    {
+      target: { tabId: tabId },
+      func: (audioUrl) => {
+        let audio = new Audio(audioUrl);
+        window.currentAudio = audio;
+        audio.play();
+        audio.onended = () => {
+          chrome.runtime.sendMessage({ action: "audioEnded" });
+        };
+      },
+      args: [audioUrl],
+    },
+    () => {
+      if (chrome.runtime.lastError) {
+        console.error("VoiceVoxエラー:", chrome.runtime.lastError.message);
+        isPlaying = false;
+      }
+    }
+  );
+}
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "audioEnded") {
+    isPlaying = false;
+    playNextAudio(sender.tab.id);
+    sendResponse({ status: "success" });
+    return true;
+  }
+});
 
 function fetchVoiceVox(apiKey, text, speed) {
   const encodedText = encodeURIComponent(text);
