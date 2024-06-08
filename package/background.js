@@ -2,6 +2,7 @@ let audioQueue = [];
 let isPlaying = false;
 let liveChatId = null;
 let intervalId = null;
+let currentAudio = null;
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   if (request.action === "start") {
@@ -148,9 +149,9 @@ function startFetchingComments(apiKeyVOICEVOX, apiKeyYoutube, speed, tabId) {
 }
 
 function stopFetchingComments() {
-  if (window.currentAudio) {
-    window.currentAudio.pause();
-    window.currentAudio = null;
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio = null;
   }
   if (intervalId) {
     clearTimeout(intervalId);
@@ -185,6 +186,13 @@ function playNextAudio(tabId) {
       if (chrome.runtime.lastError) {
         console.error("VoiceVoxエラー:", chrome.runtime.lastError.message);
         isPlaying = false;
+      } else {
+        currentAudio = new Audio(audioUrl);
+        currentAudio.play();
+        currentAudio.onended = () => {
+          isPlaying = false;
+          playNextAudio(tabId);
+        };
       }
     }
   );
