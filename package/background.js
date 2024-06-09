@@ -2,6 +2,9 @@ let audioQueue = [];
 let isPlaying = false;
 let liveChatId = null;
 let intervalId = null;
+let nextPageToken = null;
+let commentQueue = [];
+let commentIntervalId = null;
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   if (request.action === "start") {
@@ -89,7 +92,8 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
               apiKeyVOICEVOX,
               apiKeyYoutube,
               speed,
-              tabs[0].id
+              tabs[0].id,
+              true
             );
             sendResponse({ status: "success" });
           })
@@ -98,7 +102,13 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             sendResponse({ status: "error", message: error.message });
           });
       } else {
-        startFetchingComments(apiKeyVOICEVOX, apiKeyYoutube, speed, tabs[0].id);
+        startFetchingComments(
+          apiKeyVOICEVOX,
+          apiKeyYoutube,
+          speed,
+          tabs[0].id,
+          true
+        );
         sendResponse({ status: "success" });
       }
     });
@@ -113,8 +123,16 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   return true;
 });
 
-function startFetchingComments(apiKeyVOICEVOX, apiKeyYoutube, speed, tabId) {
-  const requestUrl = `https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId=${liveChatId}&part=snippet,authorDetails&key=${apiKeyYoutube}`;
+function startFetchingComments(
+  apiKeyVOICEVOX,
+  apiKeyYoutube,
+  speed,
+  tabId,
+  isFirstFetch
+) {
+  const requestUrl = `https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId=${liveChatId}&part=snippet,authorDetails&key=${apiKeyYoutube}${
+    nextPageToken ? `&pageToken=${nextPageToken}` : ""
+  }`;
   let latestMessage = "";
 
   const checkNewComments = () => {
@@ -130,28 +148,37 @@ function startFetchingComments(apiKeyVOICEVOX, apiKeyYoutube, speed, tabId) {
           throw new Error("ライブチャットメッセージが見つかりません。");
         }
 
-        let newMessage =
-          data.items[data.items.length - 1].snippet.displayMessage;
-
-        if (newMessage !== latestMessage) {
-          latestMessage = newMessage;
-
-          fetchVoiceVox(apiKeyVOICEVOX, newMessage, speed)
-            .then((audioUrl) => {
-              audioQueue.push(audioUrl);
-              playNextAudio(tabId);
-            })
-            .catch((error) => {
-              console.error("VoiceVoxエラー:", error);
-            });
+        if (isFirstFetch) {
+          // 最初の取得では最新の1件のみを取得
+          let latestItem = data.items[data.items.length - 1];
+          let newMessage = latestItem.snippet.displayMessage;
+          if (newMessage !== latestMessage) {
+            latestMessage = newMessage;
+            commentQueue.push({ apiKeyVOICEVOX, newMessage, speed, tabId });
+          }
+          isFirstFetch = false;
+        } else {
+          // 2回目以降は差分を取得
+          data.items.forEach((item) => {
+            let newMessage = item.snippet.displayMessage;
+            if (newMessage !== latestMessage) {
+              latestMessage = newMessage;
+              commentQueue.push({ apiKeyVOICEVOX, newMessage, speed, tabId });
+            }
+          });
         }
 
+        nextPageToken = data.nextPageToken || null;
         intervalId = setTimeout(checkNewComments, 4000);
       })
       .catch((error) => {
         console.error("YouTube APIリクエストエラー:", error);
       });
   };
+
+  if (!commentIntervalId) {
+    commentIntervalId = setInterval(processCommentQueue, 3000);
+  }
 
   checkNewComments();
 }
@@ -163,6 +190,11 @@ function stopFetchingComments() {
     clearTimeout(intervalId);
     intervalId = null;
   }
+  if (commentIntervalId) {
+    clearInterval(commentIntervalId);
+    commentIntervalId = null;
+  }
+  commentQueue = [];
 
   chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     if (tabs.length > 0) {
@@ -228,6 +260,23 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 });
+
+function processCommentQueue() {
+  if (commentQueue.length === 0) {
+    return;
+  }
+
+  const { apiKeyVOICEVOX, newMessage, speed, tabId } = commentQueue.shift();
+
+  fetchVoiceVox(apiKeyVOICEVOX, newMessage, speed)
+    .then((audioUrl) => {
+      audioQueue.push(audioUrl);
+      playNextAudio(tabId);
+    })
+    .catch((error) => {
+      console.error("VoiceVoxエラー:", error);
+    });
+}
 
 function fetchVoiceVox(apiKey, text, speed) {
   const encodedText = encodeURIComponent(text);
