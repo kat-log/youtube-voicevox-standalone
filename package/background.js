@@ -177,7 +177,7 @@ function startFetchingComments(
         }
 
         nextPageToken = data.nextPageToken || null;
-        intervalId = setTimeout(checkNewComments, 4000);
+        intervalId = setTimeout(checkNewComments, 3000);
       })
       .catch((error) => {
         console.error("YouTube APIリクエストエラー:", error);
@@ -185,7 +185,7 @@ function startFetchingComments(
   };
 
   if (!commentIntervalId) {
-    commentIntervalId = setInterval(processCommentQueue, 3000);
+    commentIntervalId = setInterval(processCommentQueue, 2000);
   }
 
   checkNewComments();
