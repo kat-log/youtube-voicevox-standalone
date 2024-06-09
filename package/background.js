@@ -2,7 +2,6 @@ let audioQueue = [];
 let isPlaying = false;
 let liveChatId = null;
 let intervalId = null;
-let currentAudio = null;
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   if (request.action === "start") {
@@ -18,6 +17,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       if (chrome.runtime.lastError) {
+        console.error("APIキー取得エラー:", chrome.runtime.lastError.message);
         sendResponse({
           status: "error",
           message: chrome.runtime.lastError.message,
@@ -26,6 +26,9 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
       }
 
       if (!tabs || tabs.length === 0) {
+        console.error(
+          "アクティブタブエラー: アクティブなタブが見つかりません。"
+        );
         sendResponse({
           status: "error",
           message: "アクティブなタブが見つかりません。",
@@ -43,6 +46,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
       }
 
       if (!videoId) {
+        console.error("ビデオIDエラー: ビデオIDが見つかりません。");
         sendResponse({
           status: "error",
           message: "ビデオIDが見つかりません。",
@@ -61,6 +65,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
               data.items.length === 0 ||
               !data.items[0].liveStreamingDetails
             ) {
+              console.error("ライブストリーミングの詳細が見つかりません。");
               sendResponse({
                 status: "error",
                 message: "ライブストリーミングの詳細が見つかりません。",
@@ -70,6 +75,9 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
             liveChatId = data.items[0].liveStreamingDetails.activeLiveChatId;
             if (!liveChatId) {
+              console.error(
+                "ライブチャットIDエラー: ライブチャットIDが見つかりません。"
+              );
               sendResponse({
                 status: "error",
                 message: "ライブチャットIDが見つかりません。",
@@ -86,7 +94,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             sendResponse({ status: "success" });
           })
           .catch((error) => {
-            console.error("エラーをキャッチ:", error);
+            console.error("YouTube APIリクエストエラー:", error.message);
             sendResponse({ status: "error", message: error.message });
           });
       } else {
@@ -141,7 +149,7 @@ function startFetchingComments(apiKeyVOICEVOX, apiKeyYoutube, speed, tabId) {
         intervalId = setTimeout(checkNewComments, 4000);
       })
       .catch((error) => {
-        console.error("エラーをキャッチ:", error);
+        console.error("YouTube APIリクエストエラー:", error);
       });
   };
 
@@ -149,16 +157,32 @@ function startFetchingComments(apiKeyVOICEVOX, apiKeyYoutube, speed, tabId) {
 }
 
 function stopFetchingComments() {
-  if (currentAudio) {
-    currentAudio.pause();
-    currentAudio = null;
-  }
+  audioQueue = [];
+  isPlaying = false;
   if (intervalId) {
     clearTimeout(intervalId);
     intervalId = null;
   }
-  audioQueue = [];
-  isPlaying = false;
+  chrome.tabs.query({}, function (tabs) {
+    for (let tab of tabs) {
+      chrome.scripting.executeScript(
+        {
+          target: { tabId: tab.id },
+          func: () => {
+            if (window.currentAudio) {
+              window.currentAudio.pause();
+              window.currentAudio = null;
+            }
+          },
+        },
+        () => {
+          if (chrome.runtime.lastError) {
+            console.error("音声停止エラー:", chrome.runtime.lastError.message);
+          }
+        }
+      );
+    }
+  });
 }
 
 function playNextAudio(tabId) {
@@ -173,6 +197,9 @@ function playNextAudio(tabId) {
     {
       target: { tabId: tabId },
       func: (audioUrl) => {
+        if (window.currentAudio) {
+          window.currentAudio.pause();
+        }
         let audio = new Audio(audioUrl);
         window.currentAudio = audio;
         audio.play();
@@ -186,13 +213,6 @@ function playNextAudio(tabId) {
       if (chrome.runtime.lastError) {
         console.error("VoiceVoxエラー:", chrome.runtime.lastError.message);
         isPlaying = false;
-      } else {
-        currentAudio = new Audio(audioUrl);
-        currentAudio.play();
-        currentAudio.onended = () => {
-          isPlaying = false;
-          playNextAudio(tabId);
-        };
       }
     }
   );
