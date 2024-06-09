@@ -163,11 +163,13 @@ function stopFetchingComments() {
     clearTimeout(intervalId);
     intervalId = null;
   }
-  chrome.tabs.query({}, function (tabs) {
-    for (let tab of tabs) {
+
+  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+    if (tabs.length > 0) {
+      let activeTabId = tabs[0].id;
       chrome.scripting.executeScript(
         {
-          target: { tabId: tab.id },
+          target: { tabId: activeTabId },
           func: () => {
             if (window.currentAudio) {
               window.currentAudio.pause();
