@@ -5,6 +5,7 @@ let intervalId = null;
 let nextPageToken = null;
 let commentQueue = [];
 let commentIntervalId = null;
+let latestTimestamp = null; // 最新のコメントのタイムスタンプを保存する変数を追加
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   if (request.action === "start") {
@@ -154,6 +155,9 @@ function startFetchingComments(
           let newMessage = latestItem.snippet.displayMessage;
           if (newMessage !== latestMessage) {
             latestMessage = newMessage;
+            latestTimestamp = new Date(
+              latestItem.snippet.publishedAt
+            ).getTime(); // 最新コメントのタイムスタンプを保存
             commentQueue.push({ apiKeyVOICEVOX, newMessage, speed, tabId });
           }
           isFirstFetch = false;
@@ -161,7 +165,11 @@ function startFetchingComments(
           // 2回目以降は差分を取得
           data.items.forEach((item) => {
             let newMessage = item.snippet.displayMessage;
-            if (newMessage !== latestMessage) {
+            let timestamp = new Date(item.snippet.publishedAt).getTime(); // コメントのタイムスタンプを取得
+
+            // 前回の最新コメント以降のコメントのみをキューに追加
+            if (!latestTimestamp || timestamp > latestTimestamp) {
+              latestTimestamp = timestamp;
               latestMessage = newMessage;
               commentQueue.push({ apiKeyVOICEVOX, newMessage, speed, tabId });
             }
