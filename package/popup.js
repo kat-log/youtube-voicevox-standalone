@@ -1,6 +1,6 @@
 window.onload = function () {
   chrome.storage.sync.get(
-    ["apiKeyVOICEVOX", "apiKeyYoutube", "speed"],
+    ["apiKeyVOICEVOX", "apiKeyYoutube", "speed", "volume"],
     function (data) {
       document.getElementById("apiKeyVOICEVOX").value =
         data.apiKeyVOICEVOX || "";
@@ -9,6 +9,11 @@ window.onload = function () {
       document.getElementById(
         "current-speed"
       ).textContent = `Current Speed: ${window.speed.toFixed(1)}`;
+      window.volume = data.volume || 1.0;
+      document.getElementById("volume").value = window.volume;
+      document.getElementById(
+        "current-volume"
+      ).textContent = `Current Volume: ${window.volume}`;
     }
   );
 };
@@ -28,14 +33,21 @@ document.getElementById("play").addEventListener("click", () => {
       apiKeyVOICEVOX: apiKeyVOICEVOX,
       apiKeyYoutube: apiKeyYoutube,
       speed: window.speed,
+      volume: window.volume,
     },
     function () {
-      console.log("API keys and speed saved");
+      console.log("API keys, speed, and volume saved");
     }
   );
 
   chrome.runtime.sendMessage(
-    { action: "start", apiKeyVOICEVOX, apiKeyYoutube, speed: window.speed },
+    {
+      action: "start",
+      apiKeyVOICEVOX,
+      apiKeyYoutube,
+      speed: window.speed,
+      volume: window.volume,
+    },
     function (response) {
       if (chrome.runtime.lastError) {
         document.getElementById("error").textContent =
@@ -84,4 +96,13 @@ document.getElementById("increase-speed").addEventListener("click", () => {
   document.getElementById(
     "current-speed"
   ).textContent = `Current Speed: ${window.speed.toFixed(1)}`;
+});
+
+document.getElementById("volume").addEventListener("input", (event) => {
+  window.volume = event.target.value;
+  chrome.storage.sync.set({ volume: window.volume });
+  document.getElementById(
+    "current-volume"
+  ).textContent = `Current Volume: ${window.volume}`;
+  chrome.runtime.sendMessage({ action: "setVolume", volume: window.volume });
 });

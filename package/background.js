@@ -301,3 +301,56 @@ function fetchVoiceVox(apiKey, text, speed) {
     return response.url;
   });
 }
+
+function playNextAudio(tabId) {
+  if (isPlaying || audioQueue.length === 0) {
+    return;
+  }
+
+  const audioUrl = audioQueue.shift();
+  isPlaying = true;
+
+  chrome.storage.sync.get("volume", function (data) {
+    const volume = data.volume !== undefined ? data.volume : 1.0;
+
+    chrome.scripting.executeScript(
+      {
+        target: { tabId: tabId },
+        func: (audioUrl, volume) => {
+          if (window.currentAudio) {
+            window.currentAudio.pause();
+          }
+          let audio = new Audio(audioUrl);
+          audio.volume = volume;
+          window.currentAudio = audio;
+          audio.play();
+          audio.onended = () => {
+            chrome.runtime.sendMessage({ action: "audioEnded" });
+          };
+        },
+        args: [audioUrl, volume],
+      },
+      () => {
+        if (chrome.runtime.lastError) {
+          console.error("VoiceVoxエラー:", chrome.runtime.lastError.message);
+          isPlaying = false;
+        }
+      }
+    );
+  });
+}
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "audioEnded") {
+    isPlaying = false;
+    playNextAudio(sender.tab.id);
+    sendResponse({ status: "success" });
+    return true;
+  } else if (request.action === "setVolume" && request.volume !== undefined) {
+    if (window.currentAudio) {
+      window.currentAudio.volume = request.volume;
+    }
+    sendResponse({ status: "success" });
+    return true;
+  }
+});
