@@ -1,0 +1,81 @@
+/* 全体設定 */
+body {
+  font-family: "Arial", sans-serif;
+  background-color: #f0f0f0;
+  color: #333;
+  padding: 20px;
+  width: 400px;
+  height: 280px;
+}
+
+/* label */
+label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #666; /* グレー */
+}
+
+/* p */
+p {
+  margin-top: 0;
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+input[type="text"] {
+  width: 95%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-bottom: 15px;
+}
+
+/* ボタン */
+button {
+  background-color: #4caf50; /* 緑色 */
+  border: none;
+  color: white;
+  padding: 10px 20px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  margin: 4px 2px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+button:hover {
+  background-color: #45a049; /* 緑色（濃い） */
+}
+
+/* スピード調整ボタン */
+#decrease-speed,
+#reset-speed,
+#increase-speed {
+  background-color: #ccc; /* 灰色 */
+  color: #333;
+}
+
+#decrease-speed:hover,
+#reset-speed:hover,
+#increase-speed:hover {
+  background-color: #aaa; /* 灰色（濃い） */
+}
+
+/* メッセージ表示 */
+#error,
+#debug {
+  margin-top: 10px;
+}
+
+/* エラーメッセージ */
+#error {
+  color: #dc3545; /* 赤 */
+}
+
+/* デバッグメッセージ */
+#debug {
+  color: #3ac9ff; /* 青色 */
+}
