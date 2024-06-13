@@ -235,36 +235,70 @@ function playNextAudio(tabId) {
   const audioUrl = audioQueue.shift();
   isPlaying = true;
 
-  chrome.scripting.executeScript(
-    {
-      target: { tabId: tabId },
-      func: (audioUrl) => {
-        if (window.currentAudio) {
-          window.currentAudio.pause();
-        }
-        let audio = new Audio(audioUrl);
-        window.currentAudio = audio;
-        audio.play();
-        audio.onended = () => {
-          chrome.runtime.sendMessage({ action: "audioEnded" });
-        };
+  chrome.storage.sync.get("volume", function (data) {
+    const volume = data.volume !== undefined ? data.volume : 1.0;
+
+    chrome.scripting.executeScript(
+      {
+        target: { tabId: tabId },
+        func: (audioUrl, volume) => {
+          if (window.currentAudio) {
+            window.currentAudio.pause();
+          }
+          let audio = new Audio(audioUrl);
+          audio.volume = volume;
+          window.currentAudio = audio;
+          audio.play();
+          audio.onended = () => {
+            chrome.runtime.sendMessage({ action: "audioEnded" });
+          };
+        },
+        args: [audioUrl, volume],
       },
-      args: [audioUrl],
-    },
-    () => {
-      if (chrome.runtime.lastError) {
-        console.error("VoiceVoxエラー:", chrome.runtime.lastError.message);
-        isPlaying = false;
+      (results) => {
+        if (chrome.runtime.lastError) {
+          console.error("VoiceVoxエラー:", chrome.runtime.lastError.message);
+          isPlaying = false;
+        }
       }
-    }
-  );
+    );
+  });
 }
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "audioEnded") {
     isPlaying = false;
-    playNextAudio(sender.tab.id);
-    sendResponse({ status: "success" });
+    if (sender && sender.tab && sender.tab.id) {
+      playNextAudio(sender.tab.id);
+      sendResponse({ status: "success" });
+    }
+    return true;
+  } else if (request.action === "setVolume" && request.volume !== undefined) {
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+      if (tabs.length > 0) {
+        let activeTabId = tabs[0].id;
+        chrome.scripting.executeScript(
+          {
+            target: { tabId: activeTabId },
+            func: (volume) => {
+              if (window.currentAudio) {
+                window.currentAudio.volume = volume;
+              }
+            },
+            args: [request.volume],
+          },
+          () => {
+            if (chrome.runtime.lastError) {
+              console.error(
+                "音量設定エラー:",
+                chrome.runtime.lastError.message
+              );
+            }
+          }
+        );
+        sendResponse({ status: "success" });
+      }
+    });
     return true;
   }
 });
@@ -301,56 +335,3 @@ function fetchVoiceVox(apiKey, text, speed) {
     return response.url;
   });
 }
-
-function playNextAudio(tabId) {
-  if (isPlaying || audioQueue.length === 0) {
-    return;
-  }
-
-  const audioUrl = audioQueue.shift();
-  isPlaying = true;
-
-  chrome.storage.sync.get("volume", function (data) {
-    const volume = data.volume !== undefined ? data.volume : 1.0;
-
-    chrome.scripting.executeScript(
-      {
-        target: { tabId: tabId },
-        func: (audioUrl, volume) => {
-          if (window.currentAudio) {
-            window.currentAudio.pause();
-          }
-          let audio = new Audio(audioUrl);
-          audio.volume = volume;
-          window.currentAudio = audio;
-          audio.play();
-          audio.onended = () => {
-            chrome.runtime.sendMessage({ action: "audioEnded" });
-          };
-        },
-        args: [audioUrl, volume],
-      },
-      () => {
-        if (chrome.runtime.lastError) {
-          console.error("VoiceVoxエラー:", chrome.runtime.lastError.message);
-          isPlaying = false;
-        }
-      }
-    );
-  });
-}
-
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "audioEnded") {
-    isPlaying = false;
-    playNextAudio(sender.tab.id);
-    sendResponse({ status: "success" });
-    return true;
-  } else if (request.action === "setVolume" && request.volume !== undefined) {
-    if (window.currentAudio) {
-      window.currentAudio.volume = request.volume;
-    }
-    sendResponse({ status: "success" });
-    return true;
-  }
-});
