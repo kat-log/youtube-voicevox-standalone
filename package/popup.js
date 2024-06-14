@@ -83,6 +83,12 @@ document.getElementById("decrease-speed").addEventListener("click", () => {
 
   // 再生中のオーディオの速度を変更
   chrome.runtime.sendMessage({ action: "setSpeed", speed: window.speed });
+
+  // キュー内のコメントの速度を変更
+  chrome.runtime.sendMessage({
+    action: "updateQueueSpeed",
+    speed: window.speed,
+  });
 });
 
 document.getElementById("reset-speed").addEventListener("click", () => {
@@ -94,6 +100,12 @@ document.getElementById("reset-speed").addEventListener("click", () => {
 
   // 再生中のオーディオの速度を変更
   chrome.runtime.sendMessage({ action: "setSpeed", speed: window.speed });
+
+  // キュー内のコメントの速度を変更
+  chrome.runtime.sendMessage({
+    action: "updateQueueSpeed",
+    speed: window.speed,
+  });
 });
 
 document.getElementById("increase-speed").addEventListener("click", () => {
@@ -105,6 +117,12 @@ document.getElementById("increase-speed").addEventListener("click", () => {
 
   // 再生中のオーディオの速度を変更
   chrome.runtime.sendMessage({ action: "setSpeed", speed: window.speed });
+
+  // キュー内のコメントの速度を変更
+  chrome.runtime.sendMessage({
+    action: "updateQueueSpeed",
+    speed: window.speed,
+  });
 });
 
 document.getElementById("volume").addEventListener("input", (event) => {

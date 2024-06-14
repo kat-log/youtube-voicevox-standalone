@@ -235,25 +235,27 @@ function playNextAudio(tabId) {
   const audioUrl = audioQueue.shift();
   isPlaying = true;
 
-  chrome.storage.sync.get("volume", function (data) {
+  chrome.storage.sync.get(["volume", "speed"], function (data) {
     const volume = data.volume !== undefined ? data.volume : 1.0;
+    const speed = data.speed !== undefined ? data.speed : 1.0;
 
     chrome.scripting.executeScript(
       {
         target: { tabId: tabId },
-        func: (audioUrl, volume) => {
+        func: (audioUrl, volume, speed) => {
           if (window.currentAudio) {
             window.currentAudio.pause();
           }
           let audio = new Audio(audioUrl);
           audio.volume = volume;
+          audio.playbackRate = speed; // 再生速度を設定
           window.currentAudio = audio;
           audio.play();
           audio.onended = () => {
             chrome.runtime.sendMessage({ action: "audioEnded" });
           };
         },
-        args: [audioUrl, volume],
+        args: [audioUrl, volume, speed],
       },
       (results) => {
         if (chrome.runtime.lastError) {
@@ -326,6 +328,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ status: "success" });
       }
     });
+    return true;
+  } else if (
+    request.action === "updateQueueSpeed" &&
+    request.speed !== undefined
+  ) {
+    commentQueue = commentQueue.map((comment) => {
+      return { ...comment, speed: request.speed };
+    });
+    sendResponse({ status: "success" });
     return true;
   }
 });
