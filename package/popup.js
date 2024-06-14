@@ -80,6 +80,9 @@ document.getElementById("decrease-speed").addEventListener("click", () => {
   document.getElementById(
     "current-speed"
   ).textContent = `Current Speed: ${window.speed.toFixed(1)}`;
+
+  // 再生中のオーディオの速度を変更
+  chrome.runtime.sendMessage({ action: "setSpeed", speed: window.speed });
 });
 
 document.getElementById("reset-speed").addEventListener("click", () => {
@@ -88,6 +91,9 @@ document.getElementById("reset-speed").addEventListener("click", () => {
   document.getElementById(
     "current-speed"
   ).textContent = `Current Speed: ${window.speed.toFixed(1)}`;
+
+  // 再生中のオーディオの速度を変更
+  chrome.runtime.sendMessage({ action: "setSpeed", speed: window.speed });
 });
 
 document.getElementById("increase-speed").addEventListener("click", () => {
@@ -96,6 +102,9 @@ document.getElementById("increase-speed").addEventListener("click", () => {
   document.getElementById(
     "current-speed"
   ).textContent = `Current Speed: ${window.speed.toFixed(1)}`;
+
+  // 再生中のオーディオの速度を変更
+  chrome.runtime.sendMessage({ action: "setSpeed", speed: window.speed });
 });
 
 document.getElementById("volume").addEventListener("input", (event) => {

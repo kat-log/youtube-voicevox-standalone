@@ -300,6 +300,33 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
     });
     return true;
+  } else if (request.action === "setSpeed" && request.speed !== undefined) {
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+      if (tabs.length > 0) {
+        let activeTabId = tabs[0].id;
+        chrome.scripting.executeScript(
+          {
+            target: { tabId: activeTabId },
+            func: (speed) => {
+              if (window.currentAudio) {
+                window.currentAudio.playbackRate = speed;
+              }
+            },
+            args: [request.speed],
+          },
+          () => {
+            if (chrome.runtime.lastError) {
+              console.error(
+                "再生速度設定エラー:",
+                chrome.runtime.lastError.message
+              );
+            }
+          }
+        );
+        sendResponse({ status: "success" });
+      }
+    });
+    return true;
   }
 });
 
