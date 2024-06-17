@@ -348,7 +348,7 @@ function processCommentQueue() {
 
   const { apiKeyVOICEVOX, newMessage, speed, tabId } = commentQueue.shift();
 
-  fetchVoiceVox(apiKeyVOICEVOX, newMessage, speed)
+  fetchVoiceVox(apiKeyVOICEVOX, newMessage)
     .then((audioUrl) => {
       audioQueue.push(audioUrl);
       playNextAudio(tabId);
@@ -358,9 +358,9 @@ function processCommentQueue() {
     });
 }
 
-function fetchVoiceVox(apiKey, text, speed) {
+function fetchVoiceVox(apiKey, text) {
   const encodedText = encodeURIComponent(text);
-  const url = `https://deprecatedapis.tts.quest/v2/voicevox/audio/?key=${apiKey}&speaker=1&pitch=0&intonationScale=1&speed=${speed}&text=${encodedText}`;
+  const url = `https://deprecatedapis.tts.quest/v2/voicevox/audio/?key=${apiKey}&speaker=1&pitch=0&intonationScale=1&text=${encodedText}`;
 
   console.log("VoiceVox API URL:", url); // コンソールにAPI URLを表示
 
