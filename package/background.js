@@ -192,8 +192,10 @@ function startFetchingComments(
 }
 
 function stopFetchingComments() {
-  audioQueue = [];
+  audioQueue = []; // オーディオキューをクリア
+  commentQueue = []; // コメントキューをクリア
   isPlaying = false;
+
   if (intervalId) {
     clearTimeout(intervalId);
     intervalId = null;
@@ -202,7 +204,6 @@ function stopFetchingComments() {
     clearInterval(commentIntervalId);
     commentIntervalId = null;
   }
-  commentQueue = [];
 
   chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     if (tabs.length > 0) {
