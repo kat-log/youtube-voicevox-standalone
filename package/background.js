@@ -126,6 +126,19 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     stopFetchingComments();
     sendResponse({ status: "success" });
     return true;
+  } else if (request.action === "updateLatestOnlyMode") {
+    latestOnlyMode = request.latestOnlyMode;
+
+    // コメントキューをクリア（モード切替時に古いキューを消去）
+    if (latestOnlyMode) {
+      commentQueue = [];
+    }
+
+    // 現在のタイムスタンプを更新（新しいモードでの基準点として使用）
+    latestTimestamp = Date.now();
+
+    sendResponse({ status: "success" });
+    return true;
   }
 
   return true;

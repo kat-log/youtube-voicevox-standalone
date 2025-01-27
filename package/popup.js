@@ -141,5 +141,12 @@ document.getElementById("volume").addEventListener("input", (event) => {
 document
   .getElementById("latestOnlyMode")
   .addEventListener("change", (event) => {
-    chrome.storage.sync.set({ latestOnlyMode: event.target.checked });
+    const newMode = event.target.checked;
+    chrome.storage.sync.set({ latestOnlyMode: newMode });
+
+    // 実行中の場合は、新しいモードをbackground.jsに即時反映
+    chrome.runtime.sendMessage({
+      action: "updateLatestOnlyMode",
+      latestOnlyMode: newMode,
+    });
   });
