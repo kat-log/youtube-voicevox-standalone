@@ -1,6 +1,6 @@
 window.onload = function () {
   chrome.storage.sync.get(
-    ["apiKeyVOICEVOX", "apiKeyYoutube", "speed", "volume"],
+    ["apiKeyVOICEVOX", "apiKeyYoutube", "speed", "volume", "latestOnlyMode"],
     function (data) {
       document.getElementById("apiKeyVOICEVOX").value =
         data.apiKeyVOICEVOX || "";
@@ -14,6 +14,8 @@ window.onload = function () {
       document.getElementById(
         "current-volume"
       ).textContent = `Current Volume: ${window.volume}`;
+      document.getElementById("latestOnlyMode").checked =
+        data.latestOnlyMode || false;
     }
   );
 };
@@ -34,6 +36,7 @@ document.getElementById("play").addEventListener("click", () => {
       apiKeyYoutube: apiKeyYoutube,
       speed: window.speed,
       volume: window.volume,
+      latestOnlyMode: document.getElementById("latestOnlyMode").checked,
     },
     function () {
       console.log("API keys, speed, and volume saved");
@@ -47,6 +50,7 @@ document.getElementById("play").addEventListener("click", () => {
       apiKeyYoutube,
       speed: window.speed,
       volume: window.volume,
+      latestOnlyMode: document.getElementById("latestOnlyMode").checked,
     },
     function (response) {
       if (chrome.runtime.lastError) {
@@ -133,3 +137,9 @@ document.getElementById("volume").addEventListener("input", (event) => {
   ).textContent = `Current Volume: ${window.volume}`;
   chrome.runtime.sendMessage({ action: "setVolume", volume: window.volume });
 });
+
+document
+  .getElementById("latestOnlyMode")
+  .addEventListener("change", (event) => {
+    chrome.storage.sync.set({ latestOnlyMode: event.target.checked });
+  });

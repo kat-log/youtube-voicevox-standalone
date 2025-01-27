@@ -6,10 +6,17 @@ let nextPageToken = null;
 let commentQueue = [];
 let commentIntervalId = null;
 let latestTimestamp = null; // 最新のコメントのタイムスタンプを保存する変数を追加
+let latestOnlyMode = false;
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   if (request.action === "start") {
-    const { apiKeyVOICEVOX, apiKeyYoutube, speed } = request;
+    const {
+      apiKeyVOICEVOX,
+      apiKeyYoutube,
+      speed,
+      latestOnlyMode: newMode,
+    } = request;
+    latestOnlyMode = newMode; // モード設定を保存
 
     if (!apiKeyVOICEVOX || !apiKeyYoutube) {
       sendResponse({
@@ -149,25 +156,24 @@ function startFetchingComments(
           throw new Error("ライブチャットメッセージが見つかりません。");
         }
 
-        if (isFirstFetch) {
-          // 最初の取得では最新の1件のみを取得
+        if (isFirstFetch || latestOnlyMode) {
+          // 最初の取得または最新のみモードでは最新の1件のみを取得
           let latestItem = data.items[data.items.length - 1];
           let newMessage = latestItem.snippet.displayMessage;
           if (newMessage !== latestMessage) {
             latestMessage = newMessage;
             latestTimestamp = new Date(
               latestItem.snippet.publishedAt
-            ).getTime(); // 最新コメントのタイムスタンプを保存
+            ).getTime();
             commentQueue.push({ apiKeyVOICEVOX, newMessage, speed, tabId });
           }
           isFirstFetch = false;
         } else {
-          // 2回目以降は差分を取得
+          // 通常モードでは差分をすべて取得
           data.items.forEach((item) => {
             let newMessage = item.snippet.displayMessage;
-            let timestamp = new Date(item.snippet.publishedAt).getTime(); // コメントのタイムスタンプを取得
+            let timestamp = new Date(item.snippet.publishedAt).getTime();
 
-            // 前回の最新コメント以降のコメントのみをキューに追加
             if (!latestTimestamp || timestamp > latestTimestamp) {
               latestTimestamp = timestamp;
               latestMessage = newMessage;
