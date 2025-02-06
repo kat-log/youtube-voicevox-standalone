@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "YouTube Live Comment 読み上げ",
+  "name": "YouTubeライブチャットずんだもんボイス読み上げ",
   "version": "2.0",
   "permissions": ["activeTab", "storage", "scripting"],
   "host_permissions": ["https://www.youtube.com/*"],
