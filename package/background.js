@@ -139,6 +139,13 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
     sendResponse({ status: "success" });
     return true;
+  } else if (request.action === "updateSpeaker") {
+    // コメントキューの話者IDを更新
+    commentQueue = commentQueue.map((comment) => {
+      return { ...comment, speakerId: request.speakerId };
+    });
+    sendResponse({ status: "success" });
+    return true;
   }
 
   return true;
@@ -366,9 +373,10 @@ function processCommentQueue() {
     return;
   }
 
-  const { apiKeyVOICEVOX, newMessage, speed, tabId } = commentQueue.shift();
+  const { apiKeyVOICEVOX, newMessage, speed, tabId, speakerId } =
+    commentQueue.shift();
 
-  fetchVoiceVox(apiKeyVOICEVOX, newMessage)
+  fetchVoiceVox(apiKeyVOICEVOX, newMessage, speakerId)
     .then((audioUrl) => {
       audioQueue.push(audioUrl);
       playNextAudio(tabId);
@@ -378,14 +386,26 @@ function processCommentQueue() {
     });
 }
 
-function fetchVoiceVox(apiKey, text) {
+function fetchVoiceVox(apiKey, text, speakerId) {
   const encodedText = encodeURIComponent(text);
 
-  // ストレージから話者IDを取得
-  return chrome.storage.sync.get(["speakerId"]).then((data) => {
-    const speakerId = data.speakerId || "1"; // デフォルトは1（ずんだもん）
+  // 指定された話者IDがある場合はそれを使用し、なければストレージから取得
+  if (speakerId) {
     const url = `https://deprecatedapis.tts.quest/v2/voicevox/audio/?key=${apiKey}&speaker=${speakerId}&pitch=0&intonationScale=1&text=${encodedText}`;
+    return fetch(url).then((response) => {
+      if (!response.ok) {
+        return response.text().then((text) => {
+          throw new Error(text);
+        });
+      }
+      return response.url;
+    });
+  }
 
+  // 既存のストレージからの取得処理
+  return chrome.storage.sync.get(["speakerId"]).then((data) => {
+    const storedSpeakerId = data.speakerId || "1";
+    const url = `https://deprecatedapis.tts.quest/v2/voicevox/audio/?key=${apiKey}&speaker=${storedSpeakerId}&pitch=0&intonationScale=1&text=${encodedText}`;
     return fetch(url).then((response) => {
       if (!response.ok) {
         return response.text().then((text) => {

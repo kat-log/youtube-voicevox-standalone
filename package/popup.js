@@ -178,3 +178,15 @@ document
       latestOnlyMode: newMode,
     });
   });
+
+// 話者選択の変更イベントリスナー
+document.getElementById("speaker").addEventListener("change", (event) => {
+  const newSpeakerId = event.target.value;
+  chrome.storage.sync.set({ speakerId: newSpeakerId });
+
+  // background.jsに話者変更を通知
+  chrome.runtime.sendMessage({
+    action: "updateSpeaker",
+    speakerId: newSpeakerId,
+  });
+});
