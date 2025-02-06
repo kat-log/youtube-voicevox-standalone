@@ -1,6 +1,13 @@
 window.onload = function () {
   chrome.storage.sync.get(
-    ["apiKeyVOICEVOX", "apiKeyYoutube", "speed", "volume", "latestOnlyMode"],
+    [
+      "apiKeyVOICEVOX",
+      "apiKeyYoutube",
+      "speed",
+      "volume",
+      "latestOnlyMode",
+      "speakerId",
+    ],
     function (data) {
       document.getElementById("apiKeyVOICEVOX").value =
         data.apiKeyVOICEVOX || "";
@@ -16,6 +23,24 @@ window.onload = function () {
       ).textContent = `Current Volume: ${window.volume}`;
       document.getElementById("latestOnlyMode").checked =
         data.latestOnlyMode || false;
+
+      // 話者一覧を取得して選択メニューを作成
+      fetch("https://static.tts.quest/voicevox_speakers.json")
+        .then((response) => response.json())
+        .then((speakers) => {
+          const select = document.getElementById("speaker");
+          speakers.forEach((speaker, index) => {
+            if (speaker) {
+              // null以外の話者のみ追加
+              const option = document.createElement("option");
+              option.value = index;
+              option.textContent = speaker;
+              select.appendChild(option);
+            }
+          });
+          // 保存された話者IDを選択
+          select.value = data.speakerId || "1";
+        });
     }
   );
 };
@@ -23,6 +48,7 @@ window.onload = function () {
 document.getElementById("play").addEventListener("click", () => {
   const apiKeyVOICEVOX = document.getElementById("apiKeyVOICEVOX").value;
   const apiKeyYoutube = document.getElementById("apiKeyYoutube").value;
+  const speakerId = document.getElementById("speaker").value;
 
   if (!apiKeyYoutube) {
     document.getElementById("error").textContent =
@@ -37,6 +63,7 @@ document.getElementById("play").addEventListener("click", () => {
       speed: window.speed,
       volume: window.volume,
       latestOnlyMode: document.getElementById("latestOnlyMode").checked,
+      speakerId: speakerId,
     },
     function () {
       console.log("API keys, speed, and volume saved");
@@ -51,6 +78,7 @@ document.getElementById("play").addEventListener("click", () => {
       speed: window.speed,
       volume: window.volume,
       latestOnlyMode: document.getElementById("latestOnlyMode").checked,
+      speakerId: speakerId,
     },
     function (response) {
       if (chrome.runtime.lastError) {

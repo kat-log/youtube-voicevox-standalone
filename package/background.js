@@ -380,16 +380,19 @@ function processCommentQueue() {
 
 function fetchVoiceVox(apiKey, text) {
   const encodedText = encodeURIComponent(text);
-  const url = `https://deprecatedapis.tts.quest/v2/voicevox/audio/?key=${apiKey}&speaker=1&pitch=0&intonationScale=1&text=${encodedText}`;
 
-  console.log("VoiceVox API URL:", url); // コンソールにAPI URLを表示
+  // ストレージから話者IDを取得
+  return chrome.storage.sync.get(["speakerId"]).then((data) => {
+    const speakerId = data.speakerId || "1"; // デフォルトは1（ずんだもん）
+    const url = `https://deprecatedapis.tts.quest/v2/voicevox/audio/?key=${apiKey}&speaker=${speakerId}&pitch=0&intonationScale=1&text=${encodedText}`;
 
-  return fetch(url).then((response) => {
-    if (!response.ok) {
-      return response.text().then((text) => {
-        throw new Error(text);
-      });
-    }
-    return response.url;
+    return fetch(url).then((response) => {
+      if (!response.ok) {
+        return response.text().then((text) => {
+          throw new Error(text);
+        });
+      }
+      return response.url;
+    });
   });
 }

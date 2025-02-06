@@ -139,4 +139,19 @@ input:checked + .slider:before {
 .slider.round:before {
   border-radius: 50%;
 }
+
+/* 話者選択ドロップダウン */
+select {
+  width: 95%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  background-color: white;
+}
+
+select:focus {
+  outline: none;
+  border-color: #4caf50;
+}
 /*# sourceMappingURL=styles.css.map */
