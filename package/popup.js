@@ -1,47 +1,152 @@
-// popup.js
+window.onload = function () {
+  chrome.storage.sync.get(
+    ["apiKeyVOICEVOX", "apiKeyYoutube", "speed", "volume", "latestOnlyMode"],
+    function (data) {
+      document.getElementById("apiKeyVOICEVOX").value =
+        data.apiKeyVOICEVOX || "";
+      document.getElementById("apiKeyYoutube").value = data.apiKeyYoutube || "";
+      window.speed = data.speed || 1.0;
+      document.getElementById(
+        "current-speed"
+      ).textContent = `Current Speed: ${window.speed.toFixed(1)}`;
+      window.volume = data.volume || 1.0;
+      document.getElementById("volume").value = window.volume;
+      document.getElementById(
+        "current-volume"
+      ).textContent = `Current Volume: ${window.volume}`;
+      document.getElementById("latestOnlyMode").checked =
+        data.latestOnlyMode || false;
+    }
+  );
+};
+
 document.getElementById("play").addEventListener("click", () => {
-  const apiKey = document.getElementById("apikey").value;
-  // APIキーを保存
-  chrome.storage.sync.set({ apiKey: apiKey }, function () {
-    console.log("API key saved");
-  });
+  const apiKeyVOICEVOX = document.getElementById("apiKeyVOICEVOX").value;
+  const apiKeyYoutube = document.getElementById("apiKeyYoutube").value;
 
-  // 現在のタブでスクリプトを実行してタイトルを取得
-  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    chrome.scripting.executeScript(
-      {
-        target: { tabId: tabs[0].id },
-        function: function () {
-          let titleElement = document.querySelector(
-            ".style-scope ytd-watch-metadata h1"
-          );
-          return titleElement
-            ? titleElement.textContent
-            : "タイトル要素が見つかりません";
-        },
-      },
-      function (result) {
-        // スクリプトの実行結果を取得
-        let pageTitle = result[0].result;
+  if (!apiKeyYoutube) {
+    document.getElementById("error").textContent =
+      "YouTube APIキーが設定されていません。";
+    return;
+  }
 
-        // メッセージにタイトルを含めて送信
-        chrome.runtime.sendMessage(
-          { apiKey: apiKey, title: pageTitle },
-          function (response) {
-            if (response.status === "success") {
-              let audio = new Audio(response.audioUrl);
-              audio.play();
-              document.getElementById("error").textContent = "エラーなし"; // エラーメッセージなしの場合
-            } else {
-              document.getElementById("error").textContent =
-                "Error: " + response.message; // エラーメッセージを表示
-            }
-          }
-        );
+  chrome.storage.sync.set(
+    {
+      apiKeyVOICEVOX: apiKeyVOICEVOX,
+      apiKeyYoutube: apiKeyYoutube,
+      speed: window.speed,
+      volume: window.volume,
+      latestOnlyMode: document.getElementById("latestOnlyMode").checked,
+    },
+    function () {
+      console.log("API keys, speed, and volume saved");
+    }
+  );
 
-        // デバッグのためにタイトルを出力
-        document.getElementById("debug").textContent = "Title: " + pageTitle;
+  chrome.runtime.sendMessage(
+    {
+      action: "start",
+      apiKeyVOICEVOX,
+      apiKeyYoutube,
+      speed: window.speed,
+      volume: window.volume,
+      latestOnlyMode: document.getElementById("latestOnlyMode").checked,
+    },
+    function (response) {
+      if (chrome.runtime.lastError) {
+        document.getElementById("error").textContent =
+          chrome.runtime.lastError.message;
+      } else if (response && response.status === "error") {
+        document.getElementById("error").textContent = response.message;
+      } else {
+        document.getElementById("error").textContent = "エラーなし";
       }
-    );
+    }
+  );
+});
+
+document.getElementById("stop").addEventListener("click", () => {
+  chrome.runtime.sendMessage({ action: "stop" }, function (response) {
+    if (chrome.runtime.lastError) {
+      document.getElementById("error").textContent =
+        chrome.runtime.lastError.message;
+    } else if (response && response.status === "error") {
+      document.getElementById("error").textContent = response.message;
+    } else {
+      document.getElementById("error").textContent = "停止しました";
+    }
   });
 });
+
+document.getElementById("decrease-speed").addEventListener("click", () => {
+  window.speed = Math.max(0.1, window.speed - 0.1);
+  chrome.storage.sync.set({ speed: window.speed });
+  document.getElementById(
+    "current-speed"
+  ).textContent = `Current Speed: ${window.speed.toFixed(1)}`;
+
+  // 再生中のオーディオの速度を変更
+  chrome.runtime.sendMessage({ action: "setSpeed", speed: window.speed });
+
+  // キュー内のコメントの速度を変更
+  chrome.runtime.sendMessage({
+    action: "updateQueueSpeed",
+    speed: window.speed,
+  });
+});
+
+document.getElementById("reset-speed").addEventListener("click", () => {
+  window.speed = 1.0;
+  chrome.storage.sync.set({ speed: window.speed });
+  document.getElementById(
+    "current-speed"
+  ).textContent = `Current Speed: ${window.speed.toFixed(1)}`;
+
+  // 再生中のオーディオの速度を変更
+  chrome.runtime.sendMessage({ action: "setSpeed", speed: window.speed });
+
+  // キュー内のコメントの速度を変更
+  chrome.runtime.sendMessage({
+    action: "updateQueueSpeed",
+    speed: window.speed,
+  });
+});
+
+document.getElementById("increase-speed").addEventListener("click", () => {
+  window.speed = Math.min(2.0, window.speed + 0.1);
+  chrome.storage.sync.set({ speed: window.speed });
+  document.getElementById(
+    "current-speed"
+  ).textContent = `Current Speed: ${window.speed.toFixed(1)}`;
+
+  // 再生中のオーディオの速度を変更
+  chrome.runtime.sendMessage({ action: "setSpeed", speed: window.speed });
+
+  // キュー内のコメントの速度を変更
+  chrome.runtime.sendMessage({
+    action: "updateQueueSpeed",
+    speed: window.speed,
+  });
+});
+
+document.getElementById("volume").addEventListener("input", (event) => {
+  window.volume = event.target.value;
+  chrome.storage.sync.set({ volume: window.volume });
+  document.getElementById(
+    "current-volume"
+  ).textContent = `Current Volume: ${window.volume}`;
+  chrome.runtime.sendMessage({ action: "setVolume", volume: window.volume });
+});
+
+document
+  .getElementById("latestOnlyMode")
+  .addEventListener("change", (event) => {
+    const newMode = event.target.checked;
+    chrome.storage.sync.set({ latestOnlyMode: newMode });
+
+    // 実行中の場合は、新しいモードをbackground.jsに即時反映
+    chrome.runtime.sendMessage({
+      action: "updateLatestOnlyMode",
+      latestOnlyMode: newMode,
+    });
+  });
