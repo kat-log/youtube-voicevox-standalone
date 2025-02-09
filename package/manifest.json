@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "YouTubeライブチャットずんだもんボイス読み上げ",
-  "version": "2.0",
+  "version": "3.0",
   "permissions": ["activeTab", "storage", "scripting"],
   "host_permissions": ["https://www.youtube.com/*"],
   "action": {
