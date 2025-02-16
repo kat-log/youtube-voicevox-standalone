@@ -187,14 +187,18 @@ select:focus {
 .accordion-content.active {
   max-height: 200px;
   overflow-y: auto;
+  overflow-x: auto;
   padding: 10px;
   border: 1px solid #ddd;
+  width: 95%;
 }
 
 #debug {
   color: #3ac9ff;
   font-size: 12px;
   white-space: pre-wrap;
+  white-space: pre;
   margin: 0;
+  min-width: 100%;
 }
 /*# sourceMappingURL=styles.css.map */
