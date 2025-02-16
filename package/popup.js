@@ -195,12 +195,15 @@ document.getElementById("speaker").addEventListener("change", (event) => {
   });
 });
 
-// エラーメッセージ表示部分を修正
+// デバッグメッセージの表示を改善
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   if (request.action === "debugInfo") {
     const debugElement = document.getElementById("debug");
     if (debugElement) {
-      debugElement.textContent = request.message;
+      // 新しいメッセージを既存のログの先頭に追加
+      const timestamp = new Date().toLocaleTimeString();
+      const newMessage = `[${timestamp}] ${request.message}\n${debugElement.textContent}`;
+      debugElement.textContent = newMessage;
     }
   }
 });

@@ -389,12 +389,29 @@ function processCommentQueue() {
   const { apiKeyVOICEVOX, newMessage, speed, tabId, speakerId } =
     commentQueue.shift();
 
+  // デバッグログにVOICEVOXへのリクエストを表示
+  chrome.runtime.sendMessage({
+    action: "debugInfo",
+    message: `VOICEVOX REQUEST：${newMessage}`,
+  });
+
   fetchVoiceVox(apiKeyVOICEVOX, newMessage, speakerId)
     .then((audioUrl) => {
+      // デバッグログにVOICEVOXからのレスポンスを表示
+      chrome.runtime.sendMessage({
+        action: "debugInfo",
+        message: `VOICEVOX RESPONSE：${audioUrl}`,
+      });
+
       audioQueue.push(audioUrl);
       playNextAudio(tabId);
     })
     .catch((error) => {
+      // エラー時もデバッグログに表示
+      chrome.runtime.sendMessage({
+        action: "debugInfo",
+        message: `VOICEVOXエラー：${error.message}`,
+      });
       console.error("VoiceVoxエラー:", error);
     });
 }
