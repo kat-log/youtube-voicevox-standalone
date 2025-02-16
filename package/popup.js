@@ -85,7 +85,11 @@ document.getElementById("play").addEventListener("click", () => {
         document.getElementById("error").textContent =
           chrome.runtime.lastError.message;
       } else if (response && response.status === "error") {
-        document.getElementById("error").textContent = response.message;
+        let errorMessage = response.message;
+        if (response.details) {
+          errorMessage += "\n\nデバッグ情報:\n" + response.details;
+        }
+        document.getElementById("error").textContent = errorMessage;
       } else {
         document.getElementById("error").textContent = "エラーなし";
       }
@@ -189,4 +193,14 @@ document.getElementById("speaker").addEventListener("change", (event) => {
     action: "updateSpeaker",
     speakerId: newSpeakerId,
   });
+});
+
+// エラーメッセージ表示部分を修正
+chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+  if (request.action === "debugInfo") {
+    const debugElement = document.getElementById("debug");
+    if (debugElement) {
+      debugElement.textContent = request.message;
+    }
+  }
 });

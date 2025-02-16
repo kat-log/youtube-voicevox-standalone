@@ -65,63 +65,76 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         return;
       }
 
-      if (!liveChatId) {
-        fetch(
-          `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=liveStreamingDetails&key=${apiKeyYoutube}`
-        )
-          .then((response) => response.json())
-          .then((data) => {
-            if (
-              !data.items ||
-              data.items.length === 0 ||
-              !data.items[0].liveStreamingDetails
-            ) {
-              console.error("ライブストリーミングの詳細が見つかりません。");
-              sendResponse({
-                status: "error",
-                message: "ライブストリーミングの詳細が見つかりません。",
-              });
-              return;
-            }
+      fetch(
+        `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=liveStreamingDetails,snippet&key=${apiKeyYoutube}`
+      )
+        .then((response) => response.json())
+        .then((data) => {
+          // デバッグ情報をコンソールに出力
+          console.log("YouTube API Response:", data);
+          console.log("Video Details:", data.items?.[0]);
+          console.log(
+            "LiveStreamingDetails:",
+            data.items?.[0]?.liveStreamingDetails
+          );
 
-            liveChatId = data.items[0].liveStreamingDetails.activeLiveChatId;
-            if (!liveChatId) {
-              console.error(
-                "ライブチャットIDエラー: ライブチャットIDが見つかりません。"
-              );
-              sendResponse({
-                status: "error",
-                message: "ライブチャットIDが見つかりません。",
-              });
-              return;
-            }
+          if (!data.items || data.items.length === 0) {
+            throw new Error("動画情報が見つかりません。");
+          }
 
-            startFetchingComments(
-              apiKeyVOICEVOX,
-              apiKeyYoutube,
-              speed,
-              tabs[0].id,
-              true
-            );
-            sendResponse({ status: "success" });
-          })
-          .catch((error) => {
-            console.error("YouTube APIリクエストエラー:", error.message);
-            sendResponse({ status: "error", message: error.message });
+          const videoDetails = data.items[0];
+
+          if (!videoDetails.liveStreamingDetails) {
+            throw new Error("この動画はライブ配信ではありません。");
+          }
+
+          // デバッグ情報をポップアップに表示
+          const debugInfo = `
+            Video ID: ${videoId}
+            Is Live: ${!!videoDetails.liveStreamingDetails.activeLiveChatId}
+            LiveStreamingDetails: ${JSON.stringify(
+              videoDetails.liveStreamingDetails,
+              null,
+              2
+            )}
+          `;
+          chrome.runtime.sendMessage({
+            action: "debugInfo",
+            message: debugInfo,
           });
-      } else {
-        startFetchingComments(
-          apiKeyVOICEVOX,
-          apiKeyYoutube,
-          speed,
-          tabs[0].id,
-          true
-        );
-        sendResponse({ status: "success" });
-      }
-    });
 
-    return true; // Will respond asynchronously.
+          liveChatId = videoDetails.liveStreamingDetails.activeLiveChatId;
+          if (!liveChatId) {
+            const error = new Error(
+              "このライブ配信ではチャットを取得できません。チャットが無効になっている可能性があります。"
+            );
+            error.details = videoDetails.liveStreamingDetails;
+            throw error;
+          }
+
+          startFetchingComments(
+            apiKeyVOICEVOX,
+            apiKeyYoutube,
+            speed,
+            tabs[0].id,
+            true
+          );
+          sendResponse({ status: "success" });
+        })
+        .catch((error) => {
+          console.error("YouTube APIリクエストエラー:", error);
+          console.error("エラー詳細:", error.details);
+          sendResponse({
+            status: "error",
+            message: error.message,
+            details: error.details
+              ? JSON.stringify(error.details, null, 2)
+              : undefined,
+          });
+        });
+
+      return true;
+    });
   } else if (request.action === "stop") {
     stopFetchingComments();
     sendResponse({ status: "success" });
