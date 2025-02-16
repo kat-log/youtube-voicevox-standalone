@@ -204,3 +204,11 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     }
   }
 });
+
+// アコーディオンの機能を追加
+document
+  .querySelector(".accordion-button")
+  .addEventListener("click", function () {
+    const content = this.nextElementSibling;
+    content.classList.toggle("active");
+  });

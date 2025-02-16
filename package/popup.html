@@ -31,10 +31,12 @@
       <span>最新コメントのみ取得モード</span>
     </div>
     <p id="error" style="color: red"></p>
-    <pre
-      id="debug"
-      style="color: blue; font-size: 12px; white-space: pre-wrap"
-    ></pre>
+    <div class="accordion">
+      <button class="accordion-button">ログ表示</button>
+      <div class="accordion-content">
+        <pre id="debug"></pre>
+      </div>
+    </div>
     <br />
     <script src="popup.js"></script>
   </body>
