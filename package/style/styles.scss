@@ -153,3 +153,50 @@ select:focus {
   outline: none;
   border-color: #4caf50;
 }
+
+/* アコーディオン */
+.accordion {
+  margin-top: 15px;
+}
+
+.accordion-button {
+  background-color: #ddd;
+  color: #444;
+  cursor: pointer;
+  padding: 10px;
+  width: 100%;
+  text-align: left;
+  border: none;
+  outline: none;
+  transition: 0.4s;
+  font-size: 12px;
+}
+
+.accordion-button:hover {
+  background-color: #ccc;
+}
+
+.accordion-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.2s ease-out;
+  background-color: white;
+}
+
+.accordion-content.active {
+  max-height: 200px;
+  overflow-y: auto;
+  overflow-x: auto;
+  padding: 10px;
+  border: 1px solid #ddd;
+  width: 95%;
+}
+
+#debug {
+  color: #3ac9ff;
+  font-size: 12px;
+  white-space: pre-wrap;
+  white-space: pre;
+  margin: 0;
+  min-width: 100%;
+}
