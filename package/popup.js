@@ -13,6 +13,8 @@ window.onload = function () {
         data.apiKeyVOICEVOX || "";
       document.getElementById("apiKeyYoutube").value = data.apiKeyYoutube || "";
       window.speed = data.speed || 1.0;
+      const speedSlider = document.getElementById("speed");
+      speedSlider.value = window.speed;
       document.getElementById(
         "current-speed"
       ).textContent = `Current Speed: ${window.speed.toFixed(1)}`;
@@ -125,6 +127,8 @@ document.getElementById("decrease-speed").addEventListener("click", () => {
     action: "updateQueueSpeed",
     speed: window.speed,
   });
+
+  document.getElementById("speed").value = window.speed;
 });
 
 document.getElementById("reset-speed").addEventListener("click", () => {
@@ -142,10 +146,12 @@ document.getElementById("reset-speed").addEventListener("click", () => {
     action: "updateQueueSpeed",
     speed: window.speed,
   });
+
+  document.getElementById("speed").value = window.speed;
 });
 
 document.getElementById("increase-speed").addEventListener("click", () => {
-  window.speed = Math.min(2.0, window.speed + 0.1);
+  window.speed = Math.min(3.0, window.speed + 0.1);
   chrome.storage.sync.set({ speed: window.speed });
   document.getElementById(
     "current-speed"
@@ -159,6 +165,8 @@ document.getElementById("increase-speed").addEventListener("click", () => {
     action: "updateQueueSpeed",
     speed: window.speed,
   });
+
+  document.getElementById("speed").value = window.speed;
 });
 
 document.getElementById("volume").addEventListener("input", (event) => {
@@ -215,3 +223,23 @@ document
     const content = this.nextElementSibling;
     content.classList.toggle("active");
   });
+
+// スピードスライダーのイベントリスナー
+document.getElementById("speed").addEventListener("input", (event) => {
+  window.speed = parseFloat(event.target.value);
+  chrome.storage.sync.set({ speed: window.speed });
+  document.getElementById(
+    "current-speed"
+  ).textContent = `Current Speed: ${window.speed.toFixed(1)}`;
+
+  // 再生中のオーディオの速度を変更
+  chrome.runtime.sendMessage({ action: "setSpeed", speed: window.speed });
+
+  // キュー内のコメントの速度を変更
+  chrome.runtime.sendMessage({
+    action: "updateQueueSpeed",
+    speed: window.speed,
+  });
+
+  document.getElementById("speed").value = window.speed;
+});
