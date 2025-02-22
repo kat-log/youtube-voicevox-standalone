@@ -145,7 +145,7 @@ document.getElementById("reset-speed").addEventListener("click", () => {
 });
 
 document.getElementById("increase-speed").addEventListener("click", () => {
-  window.speed = Math.min(2.0, window.speed + 0.1);
+  window.speed = Math.min(3.0, window.speed + 0.1);
   chrome.storage.sync.set({ speed: window.speed });
   document.getElementById(
     "current-speed"
