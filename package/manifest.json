@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "YouTubeライブチャットずんだもんボイス読み上げ",
-  "version": "3.3",
+  "version": "3.4",
   "permissions": ["activeTab", "storage", "scripting"],
   "host_permissions": ["https://www.youtube.com/*"],
   "action": {
@@ -16,5 +16,19 @@
     "16": "./icon/youtube-live-comment-icon16.png",
     "48": "./icon/youtube-live-comment-icon48.png",
     "128": "./icon/youtube-live-comment-icon128.png"
+  },
+  "commands": {
+    "start-reading": {
+      "suggested_key": {
+        "mac": "Alt+Shift+S"
+      },
+      "description": "コメント読み上げ開始"
+    },
+    "stop-reading": {
+      "suggested_key": {
+        "mac": "Alt+Shift+Q"
+      },
+      "description": "コメント読み上げ停止"
+    }
   }
 }

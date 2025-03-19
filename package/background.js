@@ -446,3 +446,113 @@ function fetchVoiceVox(apiKey, text, speakerId) {
     });
   });
 }
+
+// ショートカットキーのリスナーを追加
+chrome.commands.onCommand.addListener(function (command) {
+  if (command === "start-reading") {
+    // 保存されたAPIキーと設定を取得して読み上げを開始
+    chrome.storage.sync.get(
+      [
+        "apiKeyVOICEVOX",
+        "apiKeyYoutube",
+        "speed",
+        "volume",
+        "latestOnlyMode",
+        "speakerId",
+      ],
+      function (data) {
+        if (!data.apiKeyVOICEVOX || !data.apiKeyYoutube) {
+          console.error("APIキーが設定されていません。");
+          return;
+        }
+
+        chrome.tabs.query(
+          { active: true, currentWindow: true },
+          function (tabs) {
+            if (!tabs || tabs.length === 0) {
+              console.error("アクティブなタブが見つかりません。");
+              return;
+            }
+
+            let videoId;
+            const url = new URL(tabs[0].url);
+
+            if (url.hostname === "www.youtube.com") {
+              videoId = new URLSearchParams(url.search).get("v");
+            } else if (url.hostname === "youtu.be") {
+              videoId = url.pathname.slice(1);
+            }
+
+            if (!videoId) {
+              console.error("ビデオIDが見つかりません。");
+              return;
+            }
+
+            fetch(
+              `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=liveStreamingDetails,snippet&key=${data.apiKeyYoutube}`
+            )
+              .then((response) => response.json())
+              .then((responseData) => {
+                if (!responseData.items || responseData.items.length === 0) {
+                  throw new Error("動画情報が見つかりません。");
+                }
+
+                const videoDetails = responseData.items[0];
+
+                if (!videoDetails.liveStreamingDetails) {
+                  throw new Error("この動画はライブ配信ではありません。");
+                }
+
+                liveChatId = videoDetails.liveStreamingDetails.activeLiveChatId;
+                if (!liveChatId) {
+                  throw new Error(
+                    "このライブ配信ではチャットを取得できません。チャットが無効になっている可能性があります。"
+                  );
+                }
+
+                startFetchingComments(
+                  data.apiKeyVOICEVOX,
+                  data.apiKeyYoutube,
+                  data.speed || 1.0,
+                  tabs[0].id,
+                  true
+                );
+              })
+              .catch((error) => {
+                console.error("YouTube APIリクエストエラー:", error);
+              });
+          }
+        );
+      }
+    );
+  } else if (command === "stop-reading") {
+    // 読み上げを停止
+    stopFetchingComments();
+
+    // デバッグ情報を送信
+    chrome.runtime.sendMessage({
+      action: "debugInfo",
+      message: "ショートカットキーによる停止コマンドを実行しました",
+    });
+
+    // 停止時の状態をクリア
+    audioQueue = [];
+    commentQueue = [];
+    isPlaying = false;
+
+    // 現在再生中のオーディオを停止
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+      if (tabs.length > 0) {
+        chrome.scripting.executeScript({
+          target: { tabId: tabs[0].id },
+          func: () => {
+            if (window.currentAudio) {
+              window.currentAudio.pause();
+              window.currentAudio = null;
+            }
+          },
+        });
+      }
+    });
+  }
+});
