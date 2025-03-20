@@ -20,13 +20,19 @@
   "commands": {
     "start-reading": {
       "suggested_key": {
-        "mac": "Alt+Shift+S"
+        "mac": "Alt+Shift+S",
+        "windows": "Alt+Shift+S",
+        "chromeos": "Alt+Shift+S",
+        "linux": "Alt+Shift+S"
       },
       "description": "コメント読み上げ開始"
     },
     "stop-reading": {
       "suggested_key": {
-        "mac": "Alt+Shift+Q"
+        "mac": "Alt+Shift+Q",
+        "windows": "Alt+Shift+Q",
+        "chromeos": "Alt+Shift+Q",
+        "linux": "Alt+Shift+Q"
       },
       "description": "コメント読み上げ停止"
     }
