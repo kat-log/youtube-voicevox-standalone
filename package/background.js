@@ -463,6 +463,8 @@ chrome.commands.onCommand.addListener(function (command) {
       function (data) {
         if (!data.apiKeyVOICEVOX || !data.apiKeyYoutube) {
           console.error("APIキーが設定されていません。");
+          // エラーメッセージをポップアップに表示
+          updateErrorMessage("YouTube APIキーが設定されていません。");
           return;
         }
 
@@ -471,6 +473,7 @@ chrome.commands.onCommand.addListener(function (command) {
           function (tabs) {
             if (!tabs || tabs.length === 0) {
               console.error("アクティブなタブが見つかりません。");
+              updateErrorMessage("アクティブなタブが見つかりません。");
               return;
             }
 
@@ -485,6 +488,7 @@ chrome.commands.onCommand.addListener(function (command) {
 
             if (!videoId) {
               console.error("ビデオIDが見つかりません。");
+              updateErrorMessage("ビデオIDが見つかりません。");
               return;
             }
 
@@ -517,9 +521,13 @@ chrome.commands.onCommand.addListener(function (command) {
                   tabs[0].id,
                   true
                 );
+
+                // 成功メッセージを表示
+                updateErrorMessage("エラーなし");
               })
               .catch((error) => {
                 console.error("YouTube APIリクエストエラー:", error);
+                updateErrorMessage(error.message);
               });
           }
         );
@@ -554,5 +562,16 @@ chrome.commands.onCommand.addListener(function (command) {
         });
       }
     });
+
+    // 停止メッセージを表示
+    updateErrorMessage("停止しました");
   }
 });
+
+// エラーメッセージをポップアップに表示する関数
+function updateErrorMessage(message) {
+  chrome.runtime.sendMessage({
+    action: "updateErrorMessage",
+    message: message,
+  });
+}

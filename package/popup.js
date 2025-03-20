@@ -203,9 +203,16 @@ document.getElementById("speaker").addEventListener("change", (event) => {
   });
 });
 
-// デバッグメッセージの表示を改善
+// エラーメッセージ更新のリスナーを追加
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-  if (request.action === "debugInfo") {
+  if (request.action === "updateErrorMessage") {
+    const errorElement = document.getElementById("error");
+    if (errorElement) {
+      errorElement.textContent = request.message;
+    }
+  }
+  // 既存のデバッグメッセージリスナーはそのまま
+  else if (request.action === "debugInfo") {
     const debugElement = document.getElementById("debug");
     if (debugElement) {
       // 新しいメッセージを既存のログの先頭に追加
