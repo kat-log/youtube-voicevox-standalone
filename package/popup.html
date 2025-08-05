@@ -13,8 +13,22 @@
     <input type="text" id="apiKeyVOICEVOX" name="apiKeyVOICEVOX" /><br />
     <label for="apiKeyYoutube">YouTube API Key:</label>
     <input type="text" id="apiKeyYoutube" name="apiKeyYoutube" /><br />
-    <button id="play">Play</button>
-    <button id="stop">Stop</button>
+
+    <div class="button-container">
+      <div class="tooltip">
+        <button id="play">Play</button>
+        <span class="tooltiptext" id="play-tooltip"
+          >ショートカット: Alt+Shift+S</span
+        >
+      </div>
+      <div class="tooltip">
+        <button id="stop">Stop</button>
+        <span class="tooltiptext" id="stop-tooltip"
+          >ショートカット: Alt+Shift+Q</span
+        >
+      </div>
+    </div>
+
     <br />
     <button id="decrease-speed">-0.1 Speed</button>
     <button id="reset-speed">Reset Speed</button>
