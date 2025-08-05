@@ -43,9 +43,41 @@ window.onload = function () {
           // 保存された話者IDを選択
           select.value = data.speakerId || "1";
         });
+
+      // OSに応じてツールチップのテキストを更新
+      updateShortcutTooltips();
     }
   );
 };
+
+// OSに応じてショートカットキーのツールチップを更新する関数
+function updateShortcutTooltips() {
+  // OSを検出
+  let os = "unknown";
+  const userAgent = navigator.userAgent;
+
+  if (userAgent.indexOf("Win") !== -1) os = "Windows";
+  else if (userAgent.indexOf("Mac") !== -1) os = "Mac";
+  else if (userAgent.indexOf("Linux") !== -1) os = "Linux";
+  else if (userAgent.indexOf("CrOS") !== -1) os = "ChromeOS";
+
+  // Macの場合は特殊な表記に変更
+  let startShortcut = "Alt+Shift+S";
+  let stopShortcut = "Alt+Shift+Q";
+
+  if (os === "Mac") {
+    startShortcut = "⌥⇧S"; // Option(Alt)+Shift+S
+    stopShortcut = "⌥⇧Q"; // Option(Alt)+Shift+Q
+  }
+
+  // ツールチップのテキストを更新
+  document.getElementById(
+    "play-tooltip"
+  ).textContent = `ショートカット: ${startShortcut}`;
+  document.getElementById(
+    "stop-tooltip"
+  ).textContent = `ショートカット: ${stopShortcut}`;
+}
 
 document.getElementById("play").addEventListener("click", () => {
   const apiKeyVOICEVOX = document.getElementById("apiKeyVOICEVOX").value;
