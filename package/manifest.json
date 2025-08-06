@@ -13,9 +13,9 @@
     "service_worker": "background.js"
   },
   "icons": {
-    "16": "./icon/youtube-live-comment-icon16.png",
-    "48": "./icon/youtube-live-comment-icon48.png",
-    "128": "./icon/youtube-live-comment-icon128.png"
+    "16": "icon/youtube-live-comment-icon16.png",
+    "48": "icon/youtube-live-comment-icon48.png",
+    "128": "icon/youtube-live-comment-icon128.png"
   },
   "commands": {
     "start-reading": {
