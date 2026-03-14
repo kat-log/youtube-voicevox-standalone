@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:developer.chrome.com)"
+      "WebFetch(domain:developer.chrome.com)",
+      "Bash(file:*)",
+      "Bash(git -C /Users/yamadatarou/Coding/chrome-extension-youtube_live-voicevox log --oneline -20)",
+      "Bash(git -C /Users/yamadatarou/Coding/chrome-extension-youtube_live-voicevox log --all --oneline --graph -20)",
+      "WebFetch(domain:tts.quest)",
+      "WebFetch(domain:voicevox.su-shiki.com)"
     ],
     "deny": []
   }
