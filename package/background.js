@@ -10,6 +10,8 @@ let latestOnlyMode = false;
 let activeTabId = null; // 0.1/0.2: 音声注入先タブIDを固定保持
 let playingTimeout = null; // 0.1: デッドロック防止用フェイルセーフタイマー
 let consecutiveErrors = 0; // 0.4: 連続エラーカウンタ（指数バックオフ用）
+let commentCount = 0; // 1.0: 読み上げ済みコメント数
+let sessionId = 0; // 1.0: セッションID（Stop時にインクリメントして非同期処理を無効化）
 
 // 0.1: タブが閉じられた場合のクリーンアップ
 chrome.tabs.onRemoved.addListener((tabId) => {
@@ -39,10 +41,10 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
     } = request;
     latestOnlyMode = newMode; // モード設定を保存
 
-    if (!apiKeyVOICEVOX || !apiKeyYoutube) {
+    if (!apiKeyYoutube) {
       sendResponse({
         status: "error",
-        message: "APIキーが入力されていません。",
+        message: "YouTube APIキーが入力されていません。",
       });
       return true;
     }
@@ -88,6 +90,8 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         });
         return;
       }
+
+      sendStatus("connecting"); // 1.0
 
       fetch(
         `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=liveStreamingDetails,snippet&key=${apiKeyYoutube}`
@@ -143,11 +147,13 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             activeTabId,
             true
           );
+          sendStatus("listening"); // 1.0
           sendResponse({ status: "success" });
         })
         .catch((error) => {
           console.error("YouTube APIリクエストエラー:", error);
           console.error("エラー詳細:", error.details);
+          sendStatus("error", error.message); // 1.0
           sendResponse({
             status: "error",
             message: error.message,
@@ -182,6 +188,12 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
       return { ...comment, speakerId: request.speakerId };
     });
     sendResponse({ status: "success" });
+    return true;
+  } else if (request.action === "getStatus") {
+    // 1.0: popup再オープン時に現在のステータスを返す
+    const currentStatus =
+      intervalId !== null || commentIntervalId !== null ? "listening" : "idle";
+    sendResponse({ status: currentStatus, commentCount });
     return true;
   }
 
@@ -261,7 +273,8 @@ function startFetchingComments(
         chrome.runtime.sendMessage({
           action: "debugInfo",
           message: `YouTube APIエラー（${consecutiveErrors}回連続）: ${error.message}`,
-        });
+        }).catch(() => {});
+        sendStatus("error", error.message); // 1.0
       })
       .finally(() => {
         // 0.4: 成功・失敗どちらでも必ずポーリングを再スケジュール
@@ -279,9 +292,12 @@ function startFetchingComments(
 }
 
 function stopFetchingComments() {
+  sessionId++; // 1.0: セッションを無効化（進行中の非同期処理を破棄）
   audioQueue = []; // オーディオキューをクリア
   commentQueue = []; // コメントキューをクリア
   isPlaying = false;
+  commentCount = 0; // 1.0: カウントリセット
+  sendStatus("idle"); // 1.0
 
   // 0.1: フェイルセーフタイマーをクリア
   if (playingTimeout) {
@@ -475,10 +491,14 @@ function processCommentQueue() {
 // 0.5: VOICEVOX APIエラー時のリトライ機構（最大3回）
 function synthesizeWithRetry(comment, retryCount) {
   const maxRetries = 3;
+  const currentSession = sessionId; // 1.0: 開始時のセッションIDを記録
   const { apiKeyVOICEVOX, newMessage, speed, tabId, speakerId } = comment;
 
   fetchVoiceVox(apiKeyVOICEVOX, newMessage, speakerId)
     .then((audioUrl) => {
+      // 1.0: Stop後に完了した古いリクエストは破棄
+      if (sessionId !== currentSession) return;
+
       // デバッグログにVOICEVOXからのレスポンスを表示
       chrome.runtime.sendMessage({
         action: "debugInfo",
@@ -486,9 +506,14 @@ function synthesizeWithRetry(comment, retryCount) {
       });
 
       audioQueue.push(audioUrl);
+      commentCount++; // 1.0
+      sendStatus("listening"); // 1.0
       playNextAudio(tabId);
     })
     .catch((error) => {
+      // 1.0: Stop後に完了した古いリクエストは破棄
+      if (sessionId !== currentSession) return;
+
       if (retryCount < maxRetries) {
         chrome.runtime.sendMessage({
           action: "debugInfo",
@@ -506,35 +531,73 @@ function synthesizeWithRetry(comment, retryCount) {
     });
 }
 
-function fetchVoiceVox(apiKey, text, speakerId) {
+// TTS Quest v3 API で音声合成を行い、音声URLを返す
+// apiKey は任意（有効なキーがあれば高速処理される）
+async function fetchVoiceVox(apiKey, text, speakerId) {
   const encodedText = encodeURIComponent(text);
+  const effectiveSpeakerId =
+    speakerId ||
+    (await chrome.storage.sync.get(["speakerId"])).speakerId ||
+    "1";
 
-  // 指定された話者IDがある場合はそれを使用し、なければストレージから取得
-  if (speakerId) {
-    const url = `https://deprecatedapis.tts.quest/v2/voicevox/audio/?key=${apiKey}&speaker=${speakerId}&pitch=0&intonationScale=1&text=${encodedText}`;
-    return fetch(url).then((response) => {
-      if (!response.ok) {
-        return response.text().then((text) => {
-          throw new Error(text);
-        });
-      }
-      return response.url;
-    });
+  let url = `https://api.tts.quest/v3/voicevox/synthesis?text=${encodedText}&speaker=${effectiveSpeakerId}`;
+  if (apiKey) {
+    url += `&key=${encodeURIComponent(apiKey)}`;
   }
 
-  // 既存のストレージからの取得処理
-  return chrome.storage.sync.get(["speakerId"]).then((data) => {
-    const storedSpeakerId = data.speakerId || "1";
-    const url = `https://deprecatedapis.tts.quest/v2/voicevox/audio/?key=${apiKey}&speaker=${storedSpeakerId}&pitch=0&intonationScale=1&text=${encodedText}`;
-    return fetch(url).then((response) => {
-      if (!response.ok) {
-        return response.text().then((text) => {
-          throw new Error(text);
-        });
-      }
-      return response.url;
-    });
-  });
+  const response = await fetch(url);
+
+  // レート制限（HTTP 429）
+  if (response.status === 429) {
+    const data = await response.json();
+    const waitMs = (data.retryAfter || 5) * 1000;
+    chrome.runtime.sendMessage({
+      action: "debugInfo",
+      message: `レート制限: ${data.retryAfter || 5}秒待機中...`,
+    }).catch(() => {});
+    await new Promise((r) => setTimeout(r, waitMs));
+    return fetchVoiceVox(apiKey, text, speakerId);
+  }
+
+  if (!response.ok) {
+    throw new Error(`TTS Quest API エラー (${response.status})`);
+  }
+
+  const data = await response.json();
+  if (!data.success) {
+    throw new Error(data.errorMessage || "TTS Quest APIリクエスト失敗");
+  }
+
+  // mp3StreamingUrl を優先（ポーリング不要で即時利用可能）
+  if (data.mp3StreamingUrl) {
+    return data.mp3StreamingUrl;
+  }
+
+  // フォールバック: ポーリングして mp3DownloadUrl を使用
+  const audioUrl = data.mp3DownloadUrl || data.wavDownloadUrl;
+  if (!audioUrl || !data.audioStatusUrl) {
+    throw new Error("音声URLが取得できません");
+  }
+  await waitForAudio(data.audioStatusUrl);
+  return audioUrl;
+}
+
+// audioStatusUrl をポーリングして音声生成完了を待つ（フォールバック用）
+async function waitForAudio(audioStatusUrl, maxAttempts = 30, intervalMs = 1000) {
+  for (let i = 0; i < maxAttempts; i++) {
+    await new Promise((r) => setTimeout(r, intervalMs));
+    try {
+      const res = await fetch(audioStatusUrl);
+      if (!res.ok) continue;
+      const status = await res.json();
+      if (status.isAudioError) throw new Error("音声生成エラー");
+      if (status.isAudioReady) return;
+    } catch (e) {
+      if (e.message === "音声生成エラー") throw e;
+      continue; // ネットワークエラーは続行
+    }
+  }
+  throw new Error(`音声生成タイムアウト（${maxAttempts}秒）`);
 }
 
 // ショートカットキーのリスナーを追加
@@ -551,9 +614,8 @@ chrome.commands.onCommand.addListener(function (command) {
         "speakerId",
       ],
       function (data) {
-        if (!data.apiKeyVOICEVOX || !data.apiKeyYoutube) {
-          console.error("APIキーが設定されていません。");
-          // エラーメッセージをポップアップに表示
+        if (!data.apiKeyYoutube) {
+          console.error("YouTube APIキーが設定されていません。");
           updateErrorMessage("YouTube APIキーが設定されていません。");
           return;
         }
@@ -585,6 +647,8 @@ chrome.commands.onCommand.addListener(function (command) {
               return;
             }
 
+            sendStatus("connecting"); // 1.0
+
             fetch(
               `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=liveStreamingDetails,snippet&key=${data.apiKeyYoutube}`
             )
@@ -615,11 +679,12 @@ chrome.commands.onCommand.addListener(function (command) {
                   true
                 );
 
-                // 成功メッセージを表示
+                sendStatus("listening"); // 1.0
                 updateErrorMessage("エラーなし");
               })
               .catch((error) => {
                 console.error("YouTube APIリクエストエラー:", error);
+                sendStatus("error", error.message); // 1.0
                 updateErrorMessage(error.message);
               });
           }
@@ -664,5 +729,15 @@ function updateErrorMessage(message) {
   chrome.runtime.sendMessage({
     action: "updateErrorMessage",
     message: message,
-  });
+  }).catch(() => {});
+}
+
+// 1.0: ステータス情報をポップアップに送信する関数
+function sendStatus(status, message = "") {
+  chrome.runtime.sendMessage({
+    action: "updateStatus",
+    status,
+    message,
+    commentCount,
+  }).catch(() => {});
 }

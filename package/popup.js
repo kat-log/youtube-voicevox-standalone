@@ -46,6 +46,17 @@ window.onload = function () {
 
       // OSに応じてツールチップのテキストを更新
       updateShortcutTooltips();
+
+      // 1.0: 現在のステータスを取得
+      chrome.runtime.sendMessage({ action: "getStatus" }, function (response) {
+        if (chrome.runtime.lastError) return;
+        if (response) {
+          updateStatusUI(response.status || "idle", "", response.commentCount || 0);
+        }
+      });
+
+      // 1.0: 初期バリデーション
+      validateInputs();
     }
   );
 };
@@ -237,7 +248,10 @@ document.getElementById("speaker").addEventListener("change", (event) => {
 
 // エラーメッセージ更新のリスナーを追加
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-  if (request.action === "updateErrorMessage") {
+  // 1.0: ステータス更新
+  if (request.action === "updateStatus") {
+    updateStatusUI(request.status, request.message, request.commentCount);
+  } else if (request.action === "updateErrorMessage") {
     const errorElement = document.getElementById("error");
     if (errorElement) {
       errorElement.textContent = request.message;
@@ -282,3 +296,43 @@ document.getElementById("speed").addEventListener("input", (event) => {
 
   document.getElementById("speed").value = window.speed;
 });
+
+// 1.0: ステータスバーのUIを更新する関数
+function updateStatusUI(status, message, count) {
+  const dot = document.getElementById("status-dot");
+  const text = document.getElementById("status-text");
+  const countEl = document.getElementById("status-count");
+  if (!dot || !text || !countEl) return;
+
+  dot.className = "status-dot " + status;
+  switch (status) {
+    case "idle":
+      text.textContent = "停止中";
+      countEl.textContent = "";
+      break;
+    case "connecting":
+      text.textContent = "接続中...";
+      countEl.textContent = "";
+      break;
+    case "listening":
+      text.textContent = "読み上げ中";
+      countEl.textContent = count > 0 ? `（${count}件読上済）` : "";
+      break;
+    case "error":
+      text.textContent = "エラー: " + (message || "不明");
+      countEl.textContent = "";
+      break;
+  }
+}
+
+// 1.0: 入力バリデーション
+function validateInputs() {
+  const apiKey = document.getElementById("apiKeyYoutube").value.trim();
+  const playBtn = document.getElementById("play");
+  playBtn.disabled = !apiKey;
+}
+
+// 1.0: YouTube APIキー入力の変更を監視
+document
+  .getElementById("apiKeyYoutube")
+  .addEventListener("input", validateInputs);

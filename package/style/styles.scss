@@ -246,3 +246,66 @@ select:focus {
   visibility: visible;
   opacity: 1;
 }
+
+/* 1.0: ステータスバー */
+.status-bar {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  font-size: 13px;
+  border: 1px solid #e9ecef;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 8px;
+  flex-shrink: 0;
+
+  &.idle {
+    background-color: #999;
+  }
+
+  &.connecting {
+    background-color: #f59e0b;
+    animation: pulse 1.5s infinite;
+  }
+
+  &.listening {
+    background-color: #22c55e;
+  }
+
+  &.error {
+    background-color: #ef4444;
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+#status-count {
+  margin-left: 2px;
+  color: #666;
+}
+
+/* 1.0: ボタン無効化スタイル */
+button:disabled {
+  background-color: #ccc !important;
+  color: #999;
+  cursor: not-allowed;
+}
+
+button:disabled:hover {
+  background-color: #ccc !important;
+}
