@@ -6,7 +6,10 @@
       "Bash(git -C /Users/yamadatarou/Coding/chrome-extension-youtube_live-voicevox log --oneline -20)",
       "Bash(git -C /Users/yamadatarou/Coding/chrome-extension-youtube_live-voicevox log --all --oneline --graph -20)",
       "WebFetch(domain:tts.quest)",
-      "WebFetch(domain:voicevox.su-shiki.com)"
+      "WebFetch(domain:voicevox.su-shiki.com)",
+      "Bash(gh repo view:*)",
+      "Bash(gh label list:*)",
+      "Bash(gh issue create:*)"
     ],
     "deny": []
   }
