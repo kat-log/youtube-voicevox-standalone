@@ -6,60 +6,145 @@
     <link rel="stylesheet" href="./style/styles.min.css" />
   </head>
   <body>
-    <label for="speaker">話者選択:</label>
-    <select id="speaker" name="speaker"></select
-    ><br />
-    <label for="apiKeyVOICEVOX">VOICEVOX API Key（任意・高速化）:</label>
-    <input type="text" id="apiKeyVOICEVOX" name="apiKeyVOICEVOX" /><br />
-    <label for="apiKeyYoutube">YouTube API Key:</label>
-    <input type="text" id="apiKeyYoutube" name="apiKeyYoutube" /><br />
-
-    <div id="status-bar" class="status-bar">
+    <!-- ステータスバー -->
+    <div id="status-bar" class="status-bar" aria-live="polite" role="status">
       <span id="status-dot" class="status-dot idle"></span>
       <span id="status-text">停止中</span>
       <span id="status-count"></span>
     </div>
 
-    <div class="button-container">
-      <div class="tooltip">
-        <button id="play">Play</button>
-        <span class="tooltiptext" id="play-tooltip"
-          >ショートカット: Alt+Shift+S</span
-        >
+    <!-- 操作セクション -->
+    <div class="section">
+      <div class="button-container">
+        <div class="tooltip">
+          <button id="play" aria-label="読み上げを開始する">読み上げ開始</button>
+          <span class="tooltiptext" id="play-tooltip"
+            >ショートカット: Alt+Shift+S</span
+          >
+        </div>
+        <div class="tooltip">
+          <button id="stop" aria-label="読み上げを停止する">停止</button>
+          <span class="tooltiptext" id="stop-tooltip"
+            >ショートカット: Alt+Shift+Q</span
+          >
+        </div>
       </div>
-      <div class="tooltip">
-        <button id="stop">Stop</button>
-        <span class="tooltiptext" id="stop-tooltip"
-          >ショートカット: Alt+Shift+Q</span
+      <p id="error" role="alert" aria-live="assertive"></p>
+    </div>
+
+    <!-- 音声設定セクション -->
+    <div class="section">
+      <div class="section-title">音声設定</div>
+      <label for="speaker">話者選択:</label>
+      <select id="speaker" name="speaker"></select>
+
+      <label for="speed">再生速度:</label>
+      <div class="slider-group">
+        <input
+          type="range"
+          id="speed"
+          min="0.1"
+          max="3.0"
+          step="0.1"
+          value="1.0"
+          aria-label="再生速度"
+          aria-valuetext="1.0倍速"
+        />
+        <span id="current-speed">1.0x</span>
+        <button
+          id="reset-speed"
+          class="small-btn"
+          aria-label="再生速度をリセット"
         >
+          リセット
+        </button>
+      </div>
+
+      <label for="volume">音量:</label>
+      <div class="slider-group">
+        <input
+          type="range"
+          id="volume"
+          min="0"
+          max="1"
+          step="0.1"
+          value="1"
+          aria-label="音量"
+          aria-valuetext="音量100%"
+        />
+        <span id="current-volume">1.0</span>
       </div>
     </div>
 
-    <br />
-    <button id="decrease-speed">-0.1 Speed</button>
-    <button id="reset-speed">Reset Speed</button>
-    <button id="increase-speed">+0.1 Speed</button>
-    <p id="current-speed">Current Speed: 1.0</p>
-    <label for="speed">Speed:</label>
-    <input type="range" id="speed" min="0.1" max="3.0" step="0.1" value="1.0" />
-    <label for="volume">Volume:</label>
-    <input type="range" id="volume" min="0" max="1" step="0.1" value="1" />
-    <p id="current-volume">Current Volume: 1.0</p>
-    <div class="toggle-container">
-      <label class="toggle-switch">
-        <input type="checkbox" id="latestOnlyMode" />
-        <span class="slider round"></span>
-      </label>
-      <span>最新コメントのみ取得モード</span>
+    <!-- 設定セクション -->
+    <div class="section">
+      <div class="section-title">設定</div>
+
+      <label for="apiKeyVOICEVOX">VOICEVOX API Key（任意・高速化）:</label>
+      <input type="text" id="apiKeyVOICEVOX" name="apiKeyVOICEVOX" />
+
+      <div class="label-with-help">
+        <label for="apiKeyYoutube">YouTube API Key:</label>
+        <a
+          href="https://github.com/kat-log/chrome-extension-youtube_live-voicevox#youtube-data-api-v3"
+          target="_blank"
+          class="help-link"
+          title="APIキーの取得方法を見る"
+          >?</a
+        >
+      </div>
+      <div class="api-key-container">
+        <input
+          type="password"
+          id="apiKeyYoutube"
+          name="apiKeyYoutube"
+          placeholder="YouTube Data API v3 キーを入力"
+        />
+        <button
+          type="button"
+          id="toggle-api-key"
+          class="toggle-visibility"
+          aria-label="APIキーの表示/非表示を切替"
+        >
+          👁
+        </button>
+      </div>
+
+      <div class="toggle-container">
+        <label class="toggle-switch" aria-label="最新コメントのみ取得モード">
+          <input
+            type="checkbox"
+            id="latestOnlyMode"
+            role="switch"
+            aria-checked="false"
+          />
+          <span class="slider round"></span>
+        </label>
+        <span>最新コメントのみ取得モード</span>
+      </div>
+
+      <div class="toggle-container">
+        <label class="toggle-switch" aria-label="ダークモード">
+          <input
+            type="checkbox"
+            id="darkMode"
+            role="switch"
+            aria-checked="false"
+          />
+          <span class="slider round"></span>
+        </label>
+        <span>ダークモード</span>
+      </div>
     </div>
-    <p id="error" style="color: red"></p>
+
+    <!-- ログセクション -->
     <div class="accordion">
       <button class="accordion-button">ログ表示</button>
       <div class="accordion-content">
         <pre id="debug"></pre>
       </div>
     </div>
-    <br />
+
     <script src="popup.js"></script>
   </body>
 </html>

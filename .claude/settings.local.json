@@ -23,7 +23,8 @@
       "WebFetch(domain:github.com)",
       "Bash(npx sass:*)",
       "Bash(git add:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(gh issue comment:*)"
     ],
     "deny": []
   }
