@@ -1,3 +1,12 @@
+// 2.0: 初回インストール時にセットアップガイドを開く
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details.reason === "install") {
+    chrome.tabs.create({
+      url: "https://github.com/kat-log/chrome-extension-youtube_live-voicevox#-セットアップ方法",
+    });
+  }
+});
+
 let audioQueue = [];
 let isPlaying = false;
 let liveChatId = null;

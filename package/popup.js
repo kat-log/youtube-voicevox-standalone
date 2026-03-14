@@ -7,6 +7,7 @@ window.onload = function () {
       "volume",
       "latestOnlyMode",
       "speakerId",
+      "darkMode",
     ],
     function (data) {
       document.getElementById("apiKeyVOICEVOX").value =
@@ -15,16 +16,41 @@ window.onload = function () {
       window.speed = data.speed || 1.0;
       const speedSlider = document.getElementById("speed");
       speedSlider.value = window.speed;
-      document.getElementById(
-        "current-speed"
-      ).textContent = `Current Speed: ${window.speed.toFixed(1)}`;
+      document.getElementById("current-speed").textContent =
+        `${window.speed.toFixed(1)}x`;
+      speedSlider.setAttribute(
+        "aria-valuetext",
+        `${window.speed.toFixed(1)}倍速`
+      );
+
       window.volume = data.volume || 1.0;
       document.getElementById("volume").value = window.volume;
-      document.getElementById(
-        "current-volume"
-      ).textContent = `Current Volume: ${window.volume}`;
-      document.getElementById("latestOnlyMode").checked =
-        data.latestOnlyMode || false;
+      document.getElementById("current-volume").textContent =
+        `${window.volume}`;
+      const volumePct = Math.round(window.volume * 100);
+      document
+        .getElementById("volume")
+        .setAttribute("aria-valuetext", `音量${volumePct}%`);
+
+      const latestOnlyMode = data.latestOnlyMode || false;
+      document.getElementById("latestOnlyMode").checked = latestOnlyMode;
+      document
+        .getElementById("latestOnlyMode")
+        .setAttribute("aria-checked", String(latestOnlyMode));
+
+      // ダークモード設定を復元（未設定時はシステム設定に従う）
+      const darkModeCheckbox = document.getElementById("darkMode");
+      let isDark;
+      if (data.darkMode !== undefined) {
+        isDark = data.darkMode;
+      } else {
+        isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      }
+      if (isDark) {
+        document.body.classList.add("dark-mode");
+        darkModeCheckbox.checked = true;
+        darkModeCheckbox.setAttribute("aria-checked", "true");
+      }
 
       // 話者一覧を取得して選択メニューを作成
       fetch("https://static.tts.quest/voicevox_speakers.json")
@@ -47,15 +73,19 @@ window.onload = function () {
       // OSに応じてツールチップのテキストを更新
       updateShortcutTooltips();
 
-      // 1.0: 現在のステータスを取得
+      // 現在のステータスを取得
       chrome.runtime.sendMessage({ action: "getStatus" }, function (response) {
         if (chrome.runtime.lastError) return;
         if (response) {
-          updateStatusUI(response.status || "idle", "", response.commentCount || 0);
+          updateStatusUI(
+            response.status || "idle",
+            "",
+            response.commentCount || 0
+          );
         }
       });
 
-      // 1.0: 初期バリデーション
+      // 初期バリデーション
       validateInputs();
     }
   );
@@ -155,31 +185,11 @@ document.getElementById("stop").addEventListener("click", () => {
   });
 });
 
-document.getElementById("decrease-speed").addEventListener("click", () => {
-  window.speed = Math.max(0.1, window.speed - 0.1);
-  chrome.storage.sync.set({ speed: window.speed });
-  document.getElementById(
-    "current-speed"
-  ).textContent = `Current Speed: ${window.speed.toFixed(1)}`;
-
-  // 再生中のオーディオの速度を変更
-  chrome.runtime.sendMessage({ action: "setSpeed", speed: window.speed });
-
-  // キュー内のコメントの速度を変更
-  chrome.runtime.sendMessage({
-    action: "updateQueueSpeed",
-    speed: window.speed,
-  });
-
-  document.getElementById("speed").value = window.speed;
-});
-
 document.getElementById("reset-speed").addEventListener("click", () => {
   window.speed = 1.0;
   chrome.storage.sync.set({ speed: window.speed });
-  document.getElementById(
-    "current-speed"
-  ).textContent = `Current Speed: ${window.speed.toFixed(1)}`;
+  document.getElementById("current-speed").textContent =
+    `${window.speed.toFixed(1)}x`;
 
   // 再生中のオーディオの速度を変更
   chrome.runtime.sendMessage({ action: "setSpeed", speed: window.speed });
@@ -190,35 +200,19 @@ document.getElementById("reset-speed").addEventListener("click", () => {
     speed: window.speed,
   });
 
-  document.getElementById("speed").value = window.speed;
-});
-
-document.getElementById("increase-speed").addEventListener("click", () => {
-  window.speed = Math.min(3.0, window.speed + 0.1);
-  chrome.storage.sync.set({ speed: window.speed });
-  document.getElementById(
-    "current-speed"
-  ).textContent = `Current Speed: ${window.speed.toFixed(1)}`;
-
-  // 再生中のオーディオの速度を変更
-  chrome.runtime.sendMessage({ action: "setSpeed", speed: window.speed });
-
-  // キュー内のコメントの速度を変更
-  chrome.runtime.sendMessage({
-    action: "updateQueueSpeed",
-    speed: window.speed,
-  });
-
-  document.getElementById("speed").value = window.speed;
+  const speedSlider = document.getElementById("speed");
+  speedSlider.value = window.speed;
+  speedSlider.setAttribute("aria-valuetext", "1.0倍速");
 });
 
 document.getElementById("volume").addEventListener("input", (event) => {
   window.volume = event.target.value;
   chrome.storage.sync.set({ volume: window.volume });
-  document.getElementById(
-    "current-volume"
-  ).textContent = `Current Volume: ${window.volume}`;
+  document.getElementById("current-volume").textContent = `${window.volume}`;
   chrome.runtime.sendMessage({ action: "setVolume", volume: window.volume });
+
+  const pct = Math.round(event.target.value * 100);
+  event.target.setAttribute("aria-valuetext", `音量${pct}%`);
 });
 
 document
@@ -226,6 +220,7 @@ document
   .addEventListener("change", (event) => {
     const newMode = event.target.checked;
     chrome.storage.sync.set({ latestOnlyMode: newMode });
+    event.target.setAttribute("aria-checked", String(newMode));
 
     // 実行中の場合は、新しいモードをbackground.jsに即時反映
     chrome.runtime.sendMessage({
@@ -248,7 +243,7 @@ document.getElementById("speaker").addEventListener("change", (event) => {
 
 // エラーメッセージ更新のリスナーを追加
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-  // 1.0: ステータス更新
+  // ステータス更新
   if (request.action === "updateStatus") {
     updateStatusUI(request.status, request.message, request.commentCount);
   } else if (request.action === "updateErrorMessage") {
@@ -257,7 +252,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
       errorElement.textContent = request.message;
     }
   }
-  // 既存のデバッグメッセージリスナーはそのまま
+  // デバッグメッセージリスナー
   else if (request.action === "debugInfo") {
     const debugElement = document.getElementById("debug");
     if (debugElement) {
@@ -281,9 +276,8 @@ document
 document.getElementById("speed").addEventListener("input", (event) => {
   window.speed = parseFloat(event.target.value);
   chrome.storage.sync.set({ speed: window.speed });
-  document.getElementById(
-    "current-speed"
-  ).textContent = `Current Speed: ${window.speed.toFixed(1)}`;
+  document.getElementById("current-speed").textContent =
+    `${window.speed.toFixed(1)}x`;
 
   // 再生中のオーディオの速度を変更
   chrome.runtime.sendMessage({ action: "setSpeed", speed: window.speed });
@@ -294,10 +288,13 @@ document.getElementById("speed").addEventListener("input", (event) => {
     speed: window.speed,
   });
 
-  document.getElementById("speed").value = window.speed;
+  event.target.setAttribute(
+    "aria-valuetext",
+    `${window.speed.toFixed(1)}倍速`
+  );
 });
 
-// 1.0: ステータスバーのUIを更新する関数
+// ステータスバーのUIを更新する関数
 function updateStatusUI(status, message, count) {
   const dot = document.getElementById("status-dot");
   const text = document.getElementById("status-text");
@@ -325,14 +322,41 @@ function updateStatusUI(status, message, count) {
   }
 }
 
-// 1.0: 入力バリデーション
+// 入力バリデーション
 function validateInputs() {
   const apiKey = document.getElementById("apiKeyYoutube").value.trim();
   const playBtn = document.getElementById("play");
   playBtn.disabled = !apiKey;
 }
 
-// 1.0: YouTube APIキー入力の変更を監視
+// YouTube APIキー入力の変更を監視
 document
   .getElementById("apiKeyYoutube")
   .addEventListener("input", validateInputs);
+
+// APIキーの表示/非表示切替
+document.getElementById("toggle-api-key").addEventListener("click", () => {
+  const input = document.getElementById("apiKeyYoutube");
+  const btn = document.getElementById("toggle-api-key");
+  if (input.type === "password") {
+    input.type = "text";
+    btn.textContent = "🔒";
+    btn.setAttribute("aria-label", "APIキーを非表示にする");
+  } else {
+    input.type = "password";
+    btn.textContent = "👁";
+    btn.setAttribute("aria-label", "APIキーを表示する");
+  }
+});
+
+// ダークモード切替
+document.getElementById("darkMode").addEventListener("change", (event) => {
+  const isDark = event.target.checked;
+  if (isDark) {
+    document.body.classList.add("dark-mode");
+  } else {
+    document.body.classList.remove("dark-mode");
+  }
+  event.target.setAttribute("aria-checked", String(isDark));
+  chrome.storage.sync.set({ darkMode: isDark });
+});
