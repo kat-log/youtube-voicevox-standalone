@@ -16,7 +16,11 @@
       "Bash(git push:*)",
       "Bash(gh pr create:*)",
       "Bash(gh pr merge:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "WebFetch(domain:api.tts.quest)",
+      "WebFetch(domain:audio2.tts.quest)",
+      "WebFetch(domain:static.tts.quest)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": []
   }
