@@ -7,6 +7,27 @@ let commentQueue = [];
 let commentIntervalId = null;
 let latestTimestamp = null; // 最新のコメントのタイムスタンプを保存する変数を追加
 let latestOnlyMode = false;
+let activeTabId = null; // 0.1/0.2: 音声注入先タブIDを固定保持
+let playingTimeout = null; // 0.1: デッドロック防止用フェイルセーフタイマー
+let consecutiveErrors = 0; // 0.4: 連続エラーカウンタ（指数バックオフ用）
+
+// 0.1: タブが閉じられた場合のクリーンアップ
+chrome.tabs.onRemoved.addListener((tabId) => {
+  if (tabId === activeTabId) {
+    stopFetchingComments();
+    activeTabId = null;
+  }
+});
+
+// 0.1: タブがYouTube以外に遷移した場合のクリーンアップ
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (tabId === activeTabId && changeInfo.url) {
+    if (!changeInfo.url.includes("youtube.com/watch")) {
+      stopFetchingComments();
+      activeTabId = null;
+    }
+  }
+});
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   if (request.action === "start") {
@@ -46,6 +67,9 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
         });
         return;
       }
+
+      // 0.2: タブIDを保存
+      activeTabId = tabs[0].id;
 
       let videoId;
       const url = new URL(tabs[0].url);
@@ -116,7 +140,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             apiKeyVOICEVOX,
             apiKeyYoutube,
             speed,
-            tabs[0].id,
+            activeTabId,
             true
           );
           sendResponse({ status: "success" });
@@ -171,12 +195,16 @@ function startFetchingComments(
   tabId,
   isFirstFetch
 ) {
-  const requestUrl = `https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId=${liveChatId}&part=snippet,authorDetails&key=${apiKeyYoutube}${
-    nextPageToken ? `&pageToken=${nextPageToken}` : ""
-  }`;
+  // 0.4: ポーリング開始時にエラーカウンタをリセット
+  consecutiveErrors = 0;
   let latestMessage = "";
 
   const checkNewComments = () => {
+    // 0.3: 毎回最新のnextPageTokenでURLを構築
+    const requestUrl = `https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId=${liveChatId}&part=snippet,authorDetails&key=${apiKeyYoutube}${
+      nextPageToken ? `&pageToken=${nextPageToken}` : ""
+    }`;
+
     fetch(requestUrl)
       .then((response) => {
         if (!response.ok) {
@@ -185,8 +213,17 @@ function startFetchingComments(
         return response.json();
       })
       .then((data) => {
+        // 0.4: 成功時にエラーカウンタをリセット
+        consecutiveErrors = 0;
+
         if (!data.items || data.items.length === 0) {
-          throw new Error("ライブチャットメッセージが見つかりません。");
+          // 新規コメントなし（正常系）- nextPageTokenだけ更新して次のポーリングへ
+          chrome.runtime.sendMessage({
+            action: "debugInfo",
+            message: "新規コメントなし",
+          });
+          nextPageToken = data.nextPageToken || null;
+          return;
         }
 
         if (isFirstFetch || latestOnlyMode) {
@@ -216,10 +253,21 @@ function startFetchingComments(
         }
 
         nextPageToken = data.nextPageToken || null;
-        intervalId = setTimeout(checkNewComments, 3000);
       })
       .catch((error) => {
+        // 0.4: エラーカウンタをインクリメント
+        consecutiveErrors++;
         console.error("YouTube APIリクエストエラー:", error);
+        chrome.runtime.sendMessage({
+          action: "debugInfo",
+          message: `YouTube APIエラー（${consecutiveErrors}回連続）: ${error.message}`,
+        });
+      })
+      .finally(() => {
+        // 0.4: 成功・失敗どちらでも必ずポーリングを再スケジュール
+        // 指数バックオフ: 3秒→6秒→12秒→最大30秒
+        const delay = Math.min(3000 * Math.pow(2, consecutiveErrors), 30000);
+        intervalId = setTimeout(checkNewComments, delay);
       });
   };
 
@@ -235,6 +283,12 @@ function stopFetchingComments() {
   commentQueue = []; // コメントキューをクリア
   isPlaying = false;
 
+  // 0.1: フェイルセーフタイマーをクリア
+  if (playingTimeout) {
+    clearTimeout(playingTimeout);
+    playingTimeout = null;
+  }
+
   if (intervalId) {
     clearTimeout(intervalId);
     intervalId = null;
@@ -244,27 +298,25 @@ function stopFetchingComments() {
     commentIntervalId = null;
   }
 
-  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    if (tabs.length > 0) {
-      let activeTabId = tabs[0].id;
-      chrome.scripting.executeScript(
-        {
-          target: { tabId: activeTabId },
-          func: () => {
-            if (window.currentAudio) {
-              window.currentAudio.pause();
-              window.currentAudio = null;
-            }
-          },
-        },
-        () => {
-          if (chrome.runtime.lastError) {
-            console.error("音声停止エラー:", chrome.runtime.lastError.message);
+  // 0.2: activeTabIdを使用して正しいタブの音声を停止
+  if (activeTabId) {
+    chrome.scripting.executeScript(
+      {
+        target: { tabId: activeTabId },
+        func: () => {
+          if (window.currentAudio) {
+            window.currentAudio.pause();
+            window.currentAudio = null;
           }
+        },
+      },
+      () => {
+        if (chrome.runtime.lastError) {
+          console.error("音声停止エラー:", chrome.runtime.lastError.message);
         }
-      );
-    }
-  });
+      }
+    );
+  }
 }
 
 function playNextAudio(tabId) {
@@ -274,6 +326,18 @@ function playNextAudio(tabId) {
 
   const audioUrl = audioQueue.shift();
   isPlaying = true;
+
+  // 0.1: フェイルセーフタイマー（30秒で強制リセット）
+  if (playingTimeout) {
+    clearTimeout(playingTimeout);
+  }
+  playingTimeout = setTimeout(() => {
+    if (isPlaying) {
+      console.warn("音声再生タイムアウト: isPlayingを強制リセット");
+      isPlaying = false;
+      playNextAudio(activeTabId || tabId);
+    }
+  }, 30000);
 
   chrome.storage.sync.get(["volume", "speed"], function (data) {
     const volume = data.volume !== undefined ? data.volume : 1.0;
@@ -301,6 +365,11 @@ function playNextAudio(tabId) {
         if (chrome.runtime.lastError) {
           console.error("VoiceVoxエラー:", chrome.runtime.lastError.message);
           isPlaying = false;
+          // 0.1: エラー時もフェイルセーフタイマーをクリア
+          if (playingTimeout) {
+            clearTimeout(playingTimeout);
+            playingTimeout = null;
+          }
         }
       }
     );
@@ -310,64 +379,69 @@ function playNextAudio(tabId) {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "audioEnded") {
     isPlaying = false;
+    // 0.1: フェイルセーフタイマーをクリア
+    if (playingTimeout) {
+      clearTimeout(playingTimeout);
+      playingTimeout = null;
+    }
     if (sender && sender.tab && sender.tab.id) {
       playNextAudio(sender.tab.id);
       sendResponse({ status: "success" });
     }
     return true;
   } else if (request.action === "setVolume" && request.volume !== undefined) {
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-      if (tabs.length > 0) {
-        let activeTabId = tabs[0].id;
-        chrome.scripting.executeScript(
-          {
-            target: { tabId: activeTabId },
-            func: (volume) => {
-              if (window.currentAudio) {
-                window.currentAudio.volume = volume;
-              }
-            },
-            args: [request.volume],
-          },
-          () => {
-            if (chrome.runtime.lastError) {
-              console.error(
-                "音量設定エラー:",
-                chrome.runtime.lastError.message
-              );
-            }
+    // 0.2: activeTabIdを使用
+    if (!activeTabId) {
+      sendResponse({ status: "error", message: "再生中のタブがありません" });
+      return true;
+    }
+    chrome.scripting.executeScript(
+      {
+        target: { tabId: activeTabId },
+        func: (volume) => {
+          if (window.currentAudio) {
+            window.currentAudio.volume = volume;
           }
-        );
-        sendResponse({ status: "success" });
+        },
+        args: [request.volume],
+      },
+      () => {
+        if (chrome.runtime.lastError) {
+          console.error(
+            "音量設定エラー:",
+            chrome.runtime.lastError.message
+          );
+        }
       }
-    });
+    );
+    sendResponse({ status: "success" });
     return true;
   } else if (request.action === "setSpeed" && request.speed !== undefined) {
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-      if (tabs.length > 0) {
-        let activeTabId = tabs[0].id;
-        chrome.scripting.executeScript(
-          {
-            target: { tabId: activeTabId },
-            func: (speed) => {
-              if (window.currentAudio) {
-                window.currentAudio.playbackRate = speed;
-              }
-            },
-            args: [request.speed],
-          },
-          () => {
-            if (chrome.runtime.lastError) {
-              console.error(
-                "再生速度設定エラー:",
-                chrome.runtime.lastError.message
-              );
-            }
+    // 0.2: activeTabIdを使用
+    if (!activeTabId) {
+      sendResponse({ status: "error", message: "再生中のタブがありません" });
+      return true;
+    }
+    chrome.scripting.executeScript(
+      {
+        target: { tabId: activeTabId },
+        func: (speed) => {
+          if (window.currentAudio) {
+            window.currentAudio.playbackRate = speed;
           }
-        );
-        sendResponse({ status: "success" });
+        },
+        args: [request.speed],
+      },
+      () => {
+        if (chrome.runtime.lastError) {
+          console.error(
+            "再生速度設定エラー:",
+            chrome.runtime.lastError.message
+          );
+        }
       }
-    });
+    );
+    sendResponse({ status: "success" });
     return true;
   } else if (
     request.action === "updateQueueSpeed" &&
@@ -386,14 +460,22 @@ function processCommentQueue() {
     return;
   }
 
-  const { apiKeyVOICEVOX, newMessage, speed, tabId, speakerId } =
-    commentQueue.shift();
+  const comment = commentQueue.shift();
 
   // デバッグログにVOICEVOXへのリクエストを表示
   chrome.runtime.sendMessage({
     action: "debugInfo",
-    message: `VOICEVOX REQUEST：${newMessage}`,
+    message: `VOICEVOX REQUEST：${comment.newMessage}`,
   });
+
+  // 0.5: リトライ機構付きで音声合成を実行
+  synthesizeWithRetry(comment, 0);
+}
+
+// 0.5: VOICEVOX APIエラー時のリトライ機構（最大3回）
+function synthesizeWithRetry(comment, retryCount) {
+  const maxRetries = 3;
+  const { apiKeyVOICEVOX, newMessage, speed, tabId, speakerId } = comment;
 
   fetchVoiceVox(apiKeyVOICEVOX, newMessage, speakerId)
     .then((audioUrl) => {
@@ -407,12 +489,20 @@ function processCommentQueue() {
       playNextAudio(tabId);
     })
     .catch((error) => {
-      // エラー時もデバッグログに表示
-      chrome.runtime.sendMessage({
-        action: "debugInfo",
-        message: `VOICEVOXエラー：${error.message}`,
-      });
-      console.error("VoiceVoxエラー:", error);
+      if (retryCount < maxRetries) {
+        chrome.runtime.sendMessage({
+          action: "debugInfo",
+          message: `VOICEVOXリトライ（${retryCount + 1}/${maxRetries}）: ${newMessage}`,
+        });
+        setTimeout(() => synthesizeWithRetry(comment, retryCount + 1), 1000);
+      } else {
+        // リトライ上限到達: コメントをスキップ
+        chrome.runtime.sendMessage({
+          action: "debugInfo",
+          message: `VOICEVOXエラー（スキップ）: ${error.message} - "${newMessage}"`,
+        });
+        console.error("VoiceVoxエラー:", error);
+      }
     });
 }
 
@@ -477,6 +567,9 @@ chrome.commands.onCommand.addListener(function (command) {
               return;
             }
 
+            // 0.2: タブIDを保存
+            activeTabId = tabs[0].id;
+
             let videoId;
             const url = new URL(tabs[0].url);
 
@@ -518,7 +611,7 @@ chrome.commands.onCommand.addListener(function (command) {
                   data.apiKeyVOICEVOX,
                   data.apiKeyYoutube,
                   data.speed || 1.0,
-                  tabs[0].id,
+                  activeTabId,
                   true
                 );
 
@@ -548,20 +641,18 @@ chrome.commands.onCommand.addListener(function (command) {
     commentQueue = [];
     isPlaying = false;
 
-    // 現在再生中のオーディオを停止
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-      if (tabs.length > 0) {
-        chrome.scripting.executeScript({
-          target: { tabId: tabs[0].id },
-          func: () => {
-            if (window.currentAudio) {
-              window.currentAudio.pause();
-              window.currentAudio = null;
-            }
-          },
-        });
-      }
-    });
+    // 0.2: activeTabIdを使用して現在再生中のオーディオを停止
+    if (activeTabId) {
+      chrome.scripting.executeScript({
+        target: { tabId: activeTabId },
+        func: () => {
+          if (window.currentAudio) {
+            window.currentAudio.pause();
+            window.currentAudio = null;
+          }
+        },
+      });
+    }
 
     // 停止メッセージを表示
     updateErrorMessage("停止しました");
