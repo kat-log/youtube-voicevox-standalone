@@ -20,7 +20,8 @@
       "WebFetch(domain:api.tts.quest)",
       "WebFetch(domain:audio2.tts.quest)",
       "WebFetch(domain:static.tts.quest)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(npx sass:*)"
     ],
     "deny": []
   }
