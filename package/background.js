@@ -19,6 +19,8 @@ let latestOnlyMode = false;
 let activeTabId = null; // 0.1/0.2: 音声注入先タブIDを固定保持
 let playingTimeout = null; // 0.1: デッドロック防止用フェイルセーフタイマー
 let consecutiveErrors = 0; // 0.4: 連続エラーカウンタ（指数バックオフ用）
+let pollingIntervalMs = 5000; // YouTube APIの推奨ポーリング間隔（デフォルト5秒）
+const ERROR_THRESHOLD_FOR_STATUS = 3; // この回数以上連続エラーでUI上にエラー表示
 let commentCount = 0; // 1.0: 読み上げ済みコメント数
 let sessionId = 0; // 1.0: セッションID（Stop時にインクリメントして非同期処理を無効化）
 
@@ -216,8 +218,9 @@ function startFetchingComments(
   tabId,
   isFirstFetch
 ) {
-  // 0.4: ポーリング開始時にエラーカウンタをリセット
+  // 0.4: ポーリング開始時にエラーカウンタとポーリング間隔をリセット
   consecutiveErrors = 0;
+  pollingIntervalMs = 5000;
   let latestMessage = "";
 
   const checkNewComments = () => {
@@ -229,13 +232,27 @@ function startFetchingComments(
     fetch(requestUrl)
       .then((response) => {
         if (!response.ok) {
-          throw new Error("YouTube APIリクエストに失敗しました。");
+          if (response.status === 403) {
+            throw Object.assign(
+              new Error("YouTube APIレート制限（403）"),
+              { isRateLimit: true }
+            );
+          }
+          throw new Error(`YouTube APIリクエストに失敗しました（${response.status}）。`);
         }
         return response.json();
       })
       .then((data) => {
-        // 0.4: 成功時にエラーカウンタをリセット
+        // 成功時にエラーカウンタをリセット
         consecutiveErrors = 0;
+
+        // YouTube APIの推奨ポーリング間隔を保存
+        if (data.pollingIntervalMillis) {
+          pollingIntervalMs = data.pollingIntervalMillis;
+        }
+
+        // エラー状態からの復帰: ポーリング成功時にlisteningステータスを復元
+        sendStatus("listening");
 
         if (!data.items || data.items.length === 0) {
           // 新規コメントなし（正常系）- nextPageTokenだけ更新して次のポーリングへ
@@ -276,19 +293,40 @@ function startFetchingComments(
         nextPageToken = data.nextPageToken || null;
       })
       .catch((error) => {
-        // 0.4: エラーカウンタをインクリメント
         consecutiveErrors++;
-        console.error("YouTube APIリクエストエラー:", error);
-        chrome.runtime.sendMessage({
-          action: "debugInfo",
-          message: `YouTube APIエラー（${consecutiveErrors}回連続）: ${error.message}`,
-        }).catch(() => {});
-        sendStatus("error", error.message); // 1.0
+
+        if (error.isRateLimit) {
+          // レート制限: デバッグログのみ、エラーステータスにはしない
+          console.warn("YouTube APIレート制限:", error.message);
+          chrome.runtime.sendMessage({
+            action: "debugInfo",
+            message: `レート制限検知（${consecutiveErrors}回連続）- ポーリング間隔を延長`,
+          }).catch(() => {});
+        } else {
+          console.error("YouTube APIリクエストエラー:", error);
+          chrome.runtime.sendMessage({
+            action: "debugInfo",
+            message: `YouTube APIエラー（${consecutiveErrors}回連続）: ${error.message}`,
+          }).catch(() => {});
+        }
+
+        // 一定回数以上連続でエラーの場合のみ、UIにエラー表示
+        if (consecutiveErrors >= ERROR_THRESHOLD_FOR_STATUS) {
+          sendStatus("error", error.message);
+        }
       })
       .finally(() => {
-        // 0.4: 成功・失敗どちらでも必ずポーリングを再スケジュール
-        // 指数バックオフ: 3秒→6秒→12秒→最大30秒
-        const delay = Math.min(3000 * Math.pow(2, consecutiveErrors), 30000);
+        // 成功時: YouTube API推奨間隔を使用
+        // エラー時: 推奨間隔を基準に指数バックオフ（最大60秒）
+        let delay;
+        if (consecutiveErrors === 0) {
+          delay = pollingIntervalMs;
+        } else {
+          delay = Math.min(
+            pollingIntervalMs * Math.pow(2, consecutiveErrors),
+            60000
+          );
+        }
         intervalId = setTimeout(checkNewComments, delay);
       });
   };
@@ -306,6 +344,7 @@ function stopFetchingComments() {
   commentQueue = []; // コメントキューをクリア
   isPlaying = false;
   commentCount = 0; // 1.0: カウントリセット
+  pollingIntervalMs = 5000; // ポーリング間隔をデフォルトにリセット
   sendStatus("idle"); // 1.0
 
   // 0.1: フェイルセーフタイマーをクリア
