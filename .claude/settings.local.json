@@ -9,7 +9,8 @@
       "WebFetch(domain:voicevox.su-shiki.com)",
       "Bash(gh repo view:*)",
       "Bash(gh label list:*)",
-      "Bash(gh issue create:*)"
+      "Bash(gh issue create:*)",
+      "Bash(gh issue view:*)"
     ],
     "deny": []
   }
