@@ -363,6 +363,16 @@ function updateStatusUI(status: string, message: string, count: number, queueLen
       countEl.textContent = '';
       queueEl.textContent = '';
       break;
+    case 'fetching':
+      text.textContent = 'コメント取得中...';
+      countEl.textContent = '';
+      queueEl.textContent = '';
+      break;
+    case 'generating':
+      text.textContent = '音声生成中...';
+      countEl.textContent = count > 0 ? `（${count}件読上済）` : '';
+      queueEl.textContent = queueLength > 0 ? `待機: ${queueLength}件` : '';
+      break;
     case 'listening':
       text.textContent = '読み上げ中';
       countEl.textContent = count > 0 ? `（${count}件読上済）` : '';

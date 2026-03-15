@@ -33,4 +33,10 @@ export interface ExtensionState {
   sessionId: number;
 }
 
-export type ExtensionStatus = 'idle' | 'connecting' | 'listening' | 'error';
+export type ExtensionStatus =
+  | 'idle'
+  | 'connecting'
+  | 'fetching'
+  | 'generating'
+  | 'listening'
+  | 'error';

@@ -394,6 +394,16 @@ select:focus {
     animation: pulse 1.5s infinite;
   }
 
+  &.fetching {
+    background-color: #3b82f6; /* Blue */
+    animation: pulse 1.5s infinite;
+  }
+
+  &.generating {
+    background-color: #8b5cf6; /* Purple */
+    animation: pulse 1.5s infinite;
+  }
+
   &.listening {
     background-color: #22c55e;
   }
