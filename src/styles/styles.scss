@@ -11,6 +11,9 @@
   --accent-light: #d1fae5;
   --error-color: #dc2626;
   --debug-color: #0ea5e9;
+  --tooltip-bg: #ffffff;
+  --tooltip-text: #1e293b;
+  --tooltip-border: #e2e8f0;
 }
 
 /* 全体設定 */
@@ -418,12 +421,13 @@ select:focus {
 .tooltip-block .tooltiptext {
   visibility: hidden;
   width: 180px;
-  background-color: #1e293b;
-  color: #f1f5f9;
+  background-color: var(--tooltip-bg);
+  color: var(--tooltip-text);
   text-align: center;
   border-radius: 6px;
   padding: 6px 8px;
-  border: 1px solid #334155;
+  border: 1px solid var(--tooltip-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   position: absolute;
   z-index: 1;
   bottom: 125%;
@@ -444,7 +448,7 @@ select:focus {
   margin-left: -5px;
   border-width: 5px;
   border-style: solid;
-  border-color: #1e293b transparent transparent transparent;
+  border-color: var(--tooltip-bg) transparent transparent transparent;
 }
 
 .tooltip:hover .tooltiptext,
@@ -574,4 +578,7 @@ body.dark-mode {
   --accent-light: #064e3b;
   --error-color: #f87171;
   --debug-color: #38bdf8;
+  --tooltip-bg: #1e293b;
+  --tooltip-text: #f1f5f9;
+  --tooltip-border: #334155;
 }
