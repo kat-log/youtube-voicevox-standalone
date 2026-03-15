@@ -411,20 +411,19 @@ function populateBrowserVoices(savedVoice?: string): void {
   const select = document.getElementById('browserVoice') as HTMLSelectElement;
   const warning = document.getElementById('no-ja-voices-warning')!;
 
-  function fillVoices(): void {
-    const voices = window.speechSynthesis.getVoices();
+  chrome.tts.getVoices((voices) => {
     select.innerHTML = '';
 
-    const jaVoices = voices.filter((v) => v.lang.startsWith('ja'));
-    const otherVoices = voices.filter((v) => !v.lang.startsWith('ja'));
+    const jaVoices = voices.filter((v) => v.lang?.startsWith('ja'));
+    const otherVoices = voices.filter((v) => !v.lang?.startsWith('ja'));
 
     if (jaVoices.length > 0) {
       const group = document.createElement('optgroup');
       group.label = '日本語';
       jaVoices.forEach((v) => {
         const opt = document.createElement('option');
-        opt.value = v.name;
-        opt.textContent = `${v.name} (${v.lang})`;
+        opt.value = v.voiceName || '';
+        opt.textContent = `${v.voiceName} (${v.lang})`;
         group.appendChild(opt);
       });
       select.appendChild(group);
@@ -438,20 +437,15 @@ function populateBrowserVoices(savedVoice?: string): void {
       group.label = 'その他';
       otherVoices.forEach((v) => {
         const opt = document.createElement('option');
-        opt.value = v.name;
-        opt.textContent = `${v.name} (${v.lang})`;
+        opt.value = v.voiceName || '';
+        opt.textContent = `${v.voiceName} (${v.lang})`;
         group.appendChild(opt);
       });
       select.appendChild(group);
     }
 
     if (savedVoice) select.value = savedVoice;
-  }
-
-  fillVoices();
-  if (window.speechSynthesis.onvoiceschanged !== undefined) {
-    window.speechSynthesis.onvoiceschanged = fillVoices;
-  }
+  });
 }
 
 document.getElementById('ttsEngine')!.addEventListener('change', (event) => {
