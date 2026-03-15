@@ -9,6 +9,9 @@ import type { FilterConfig } from './comment-filter';
 import { setTtsEngine, setBrowserVoice } from './tts-api';
 import type { TtsEngine } from '@/types/state';
 
+// ポップアップ・ログページから session storage にアクセスできるようにする
+chrome.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' });
+
 // タブリスナー初期化
 initTabListeners();
 

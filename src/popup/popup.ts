@@ -141,6 +141,18 @@ window.onload = function () {
       validateInputs();
     }
   );
+
+  // session storage から保存済みログを復元
+  chrome.storage.session.get({ debugLogs: [] }, (data) => {
+    const debugElement = document.getElementById('debug');
+    if (debugElement && data.debugLogs.length > 0) {
+      debugElement.textContent = data.debugLogs.join('\n') + '\n';
+      const accordionContent = debugElement.closest('.accordion-content') as HTMLElement | null;
+      if (accordionContent) {
+        accordionContent.scrollTop = accordionContent.scrollHeight;
+      }
+    }
+  });
 };
 
 // OSに応じてショートカットキーのツールチップを更新する関数
@@ -299,6 +311,7 @@ chrome.runtime.onMessage.addListener(function (request: {
   action: string;
   status?: string;
   message?: string;
+  timestamp?: string;
   commentCount?: number;
   queueLength?: number;
 }) {
@@ -329,7 +342,7 @@ chrome.runtime.onMessage.addListener(function (request: {
         accordionContent.scrollHeight - accordionContent.clientHeight <=
         accordionContent.scrollTop + 50;
 
-      const timestamp = new Date().toLocaleTimeString();
+      const timestamp = request.timestamp || new Date().toLocaleTimeString();
       const newMessage = `[${timestamp}] ${request.message}\n`;
       debugElement.insertAdjacentText('beforeend', newMessage);
 

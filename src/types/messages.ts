@@ -82,6 +82,7 @@ export interface UpdateErrorMessage {
 export interface DebugInfoMessage {
   action: 'debugInfo';
   message: string;
+  timestamp?: string;
 }
 
 // メッセージレスポンス

@@ -2,7 +2,7 @@ import { getState, updateState, resetState, incrementSessionId, pushComment } fr
 import { LiveChatEndedError } from './youtube-api';
 import { processCommentQueue } from './tts-api';
 import { stopCurrentAudio, updateBadge, clearBadge } from './audio-player';
-import { sendStatus, sendDebugInfo } from './messaging';
+import { sendStatus, sendDebugInfo, clearDebugLogs } from './messaging';
 import { ERROR_THRESHOLD_FOR_STATUS } from './state';
 import { shouldFilter, getFilterConfig, stripEmojis } from './comment-filter';
 
@@ -14,6 +14,9 @@ export function startPolling(config: {
   tabId: number;
   speakerId?: string;
 }): void {
+  // 新セッション開始時に前回のログをクリア
+  clearDebugLogs();
+
   const state = getState();
 
   // ポーリング開始時にエラーカウンタとポーリング間隔をリセット
