@@ -13,8 +13,20 @@ chrome.storage.sync.get(['darkMode'], function (data) {
   }
 });
 
+// session storage から保存済みログを復元
+chrome.storage.session.get({ debugLogs: [] }, (data) => {
+  const debugElement = document.getElementById('debug');
+  if (debugElement && data.debugLogs.length > 0) {
+    debugElement.textContent = data.debugLogs.join('\n') + '\n';
+    const logContentArea = document.getElementById('log-content-area');
+    if (logContentArea) {
+      logContentArea.scrollTop = logContentArea.scrollHeight;
+    }
+  }
+});
+
 // エラーメッセージ更新のリスナーを追加
-chrome.runtime.onMessage.addListener(function (request: { action: string; message?: string }) {
+chrome.runtime.onMessage.addListener(function (request: { action: string; message?: string; timestamp?: string }) {
   // デバッグメッセージリスナー
   if (request.action === 'debugInfo') {
     const debugElement = document.getElementById('debug');
@@ -27,7 +39,7 @@ chrome.runtime.onMessage.addListener(function (request: { action: string; messag
       const isScrolledToBottom =
         logContentArea.scrollHeight - logContentArea.clientHeight <= logContentArea.scrollTop + 50;
 
-      const timestamp = new Date().toLocaleTimeString();
+      const timestamp = request.timestamp || new Date().toLocaleTimeString();
       const newMessage = `[${timestamp}] ${request.message}\n`;
       debugElement.insertAdjacentText('beforeend', newMessage);
 
@@ -45,4 +57,5 @@ document.getElementById('clear-log')?.addEventListener('click', () => {
   if (debugElement) {
     debugElement.textContent = '';
   }
+  chrome.storage.session.set({ debugLogs: [] });
 });
