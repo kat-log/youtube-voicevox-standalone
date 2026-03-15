@@ -314,17 +314,19 @@ chrome.runtime.onMessage.addListener(function (request: {
   // デバッグメッセージリスナー
   else if (request.action === 'debugInfo') {
     const debugElement = document.getElementById('debug');
-    const accordionContent = document.querySelector('.accordion-content') as HTMLElement;
+    // #debug の親要素（ログのアコーディオン）を直接取得
+    const accordionContent = debugElement?.closest('.accordion-content') as HTMLElement | null;
     if (debugElement && accordionContent) {
       // スクロール位置の判定
-      // クライアントの高さ + スクロール量が、全体の高さとほぼ同じ（数pxの誤差を許容）であれば一番下にいると判定
+      // クライアントの高さ + スクロール量が、全体の高さとほぼ同じであれば一番下にいると判定
+      // 許容誤差を大きめ(50px)にして、ほぼ底付近にいれば自動スクロールを維持する
       const isScrolledToBottom =
         accordionContent.scrollHeight - accordionContent.clientHeight <=
-        accordionContent.scrollTop + 5;
+        accordionContent.scrollTop + 50;
 
       const timestamp = new Date().toLocaleTimeString();
       const newMessage = `[${timestamp}] ${request.message}\n`;
-      debugElement.textContent += newMessage;
+      debugElement.insertAdjacentText('beforeend', newMessage);
 
       // 一番下にいた場合のみ、新しいログに合わせて一番下までスクロールさせる
       if (isScrolledToBottom) {
