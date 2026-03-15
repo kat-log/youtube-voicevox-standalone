@@ -30,7 +30,8 @@
       "Bash(npx vite build:*)",
       "Bash(npx eslint:*)",
       "Bash(npm run build:*)",
-      "Bash(npm run lint:*)"
+      "Bash(npm run lint:*)",
+      "Bash(ls:*)"
     ],
     "deny": []
   }
