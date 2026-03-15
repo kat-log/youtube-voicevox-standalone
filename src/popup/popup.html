@@ -91,6 +91,33 @@
     <div class="section">
       <div class="section-title">設定</div>
 
+      <div class="label-with-help">
+        <label for="apiKeyYoutube">YouTube API Key:</label>
+        <a
+          href="/onboarding/onboarding.html#youtube-api"
+          target="_blank"
+          class="help-link"
+          title="APIキーの取得方法を見る"
+          >?</a
+        >
+      </div>
+      <div class="api-key-container">
+        <input
+          type="password"
+          id="apiKeyYoutube"
+          name="apiKeyYoutube"
+          placeholder="YouTube Data API v3 キーを入力"
+        />
+        <button
+          type="button"
+          id="toggle-api-key"
+          class="toggle-visibility"
+          aria-label="APIキーの表示/非表示を切替"
+        >
+          👀
+        </button>
+      </div>
+
       <div id="voicevox-api-key-section" class="accordion">
         <div class="tooltip-block">
           <button class="accordion-button" type="button">
@@ -128,33 +155,6 @@
             </button>
           </div>
         </div>
-      </div>
-
-      <div class="label-with-help">
-        <label for="apiKeyYoutube">YouTube API Key:</label>
-        <a
-          href="/onboarding/onboarding.html#youtube-api"
-          target="_blank"
-          class="help-link"
-          title="APIキーの取得方法を見る"
-          >?</a
-        >
-      </div>
-      <div class="api-key-container">
-        <input
-          type="password"
-          id="apiKeyYoutube"
-          name="apiKeyYoutube"
-          placeholder="YouTube Data API v3 キーを入力"
-        />
-        <button
-          type="button"
-          id="toggle-api-key"
-          class="toggle-visibility"
-          aria-label="APIキーの表示/非表示を切替"
-        >
-          👀
-        </button>
       </div>
 
       <div class="toggle-container">
