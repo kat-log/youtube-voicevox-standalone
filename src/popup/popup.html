@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
     <meta charset="UTF-8" />
@@ -18,15 +18,11 @@
       <div class="button-container">
         <div class="tooltip">
           <button id="play" aria-label="読み上げを開始する">読み上げ開始</button>
-          <span class="tooltiptext" id="play-tooltip"
-            >ショートカット: Alt+Shift+S</span
-          >
+          <span class="tooltiptext" id="play-tooltip">ショートカット: Alt+Shift+S</span>
         </div>
         <div class="tooltip">
           <button id="stop" aria-label="読み上げを停止する">停止</button>
-          <span class="tooltiptext" id="stop-tooltip"
-            >ショートカット: Alt+Shift+Q</span
-          >
+          <span class="tooltiptext" id="stop-tooltip">ショートカット: Alt+Shift+Q</span>
         </div>
       </div>
       <p id="error" role="alert" aria-live="assertive"></p>
@@ -51,7 +47,8 @@
         <label for="browserVoice">ブラウザ音声:</label>
         <select id="browserVoice" name="browserVoice"></select>
         <p id="no-ja-voices-warning" class="warning-text" style="display: none">
-          日本語音声が見つかりません。システム設定またはChrome TTS拡張機能で日本語音声を追加してください。
+          日本語音声が見つかりません。システム設定またはChrome
+          TTS拡張機能で日本語音声を追加してください。
         </p>
       </div>
 
@@ -68,13 +65,7 @@
           aria-valuetext="1.0倍速"
         />
         <span id="current-speed">1.0x</span>
-        <button
-          id="reset-speed"
-          class="small-btn"
-          aria-label="再生速度をリセット"
-        >
-          リセット
-        </button>
+        <button id="reset-speed" class="small-btn" aria-label="再生速度をリセット">リセット</button>
       </div>
       <p id="speed-unsupported-info" class="info-text" style="display: none">
         この音声では再生速度の変更はサポートされていません（等速固定）
@@ -134,12 +125,7 @@
 
       <div class="toggle-container">
         <label class="toggle-switch" aria-label="最新コメントのみ取得モード">
-          <input
-            type="checkbox"
-            id="latestOnlyMode"
-            role="switch"
-            aria-checked="false"
-          />
+          <input type="checkbox" id="latestOnlyMode" role="switch" aria-checked="false" />
           <span class="slider round"></span>
         </label>
         <span>最新コメントのみ取得モード</span>
@@ -147,12 +133,7 @@
 
       <div class="toggle-container">
         <label class="toggle-switch" aria-label="ダークモード">
-          <input
-            type="checkbox"
-            id="darkMode"
-            role="switch"
-            aria-checked="false"
-          />
+          <input type="checkbox" id="darkMode" role="switch" aria-checked="false" />
           <span class="slider round"></span>
         </label>
         <span>ダークモード</span>
@@ -165,12 +146,7 @@
 
       <div class="toggle-container">
         <label class="toggle-switch" aria-label="コメントフィルターを有効にする">
-          <input
-            type="checkbox"
-            id="filterEnabled"
-            role="switch"
-            aria-checked="false"
-          />
+          <input type="checkbox" id="filterEnabled" role="switch" aria-checked="false" />
           <span class="slider round"></span>
         </label>
         <span>フィルターを有効化</span>
@@ -194,29 +170,30 @@
 
         <div class="toggle-container">
           <label class="toggle-switch" aria-label="絵文字のみのコメントをスキップ">
-            <input
-              type="checkbox"
-              id="filterSkipEmojiOnly"
-              role="switch"
-              aria-checked="false"
-            />
+            <input type="checkbox" id="filterSkipEmojiOnly" role="switch" aria-checked="false" />
             <span class="slider round"></span>
           </label>
           <span>絵文字のみスキップ</span>
         </div>
 
         <label for="filterNgWords">NGワード（カンマ区切り）:</label>
-        <input
-          type="text"
-          id="filterNgWords"
-          placeholder="例: スパム,宣伝,http"
-        />
+        <input type="text" id="filterNgWords" placeholder="例: スパム,宣伝,http" />
       </div>
     </div>
 
     <!-- ログセクション -->
     <div class="accordion">
-      <button class="accordion-button">ログ表示</button>
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <button class="accordion-button" style="flex: 1">ログ表示</button>
+        <button
+          id="open-log-page"
+          class="small-btn"
+          style="margin-left: 10px"
+          aria-label="専用ページで開く"
+        >
+          専用ページで開く
+        </button>
+      </div>
       <div class="accordion-content">
         <pre id="debug"></pre>
       </div>

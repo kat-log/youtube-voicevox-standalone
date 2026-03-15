@@ -1,7 +1,4 @@
-import type {
-  TTSQuestSynthesisResponse,
-  TTSQuestAudioStatusResponse,
-} from '@/types/api-responses';
+import type { TTSQuestSynthesisResponse, TTSQuestAudioStatusResponse } from '@/types/api-responses';
 import type { TtsEngine } from '@/types/state';
 import { getState, shiftComment, pushAudio } from './state';
 import { sendDebugInfo, sendStatus } from './messaging';

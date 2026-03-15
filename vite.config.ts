@@ -13,6 +13,7 @@ export default defineConfig({
       input: {
         background: resolve(__dirname, 'src/background/index.ts'),
         popup: resolve(__dirname, 'src/popup/popup.html'),
+        log: resolve(__dirname, 'src/log/log.html'),
       },
       output: {
         entryFileNames: '[name].js',

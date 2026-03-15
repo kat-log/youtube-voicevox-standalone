@@ -66,7 +66,9 @@ export async function fetchChatMessages(
       // 配信終了の検出: liveChatEnded reason をチェック
       try {
         const errorData = await response.json();
-        if (errorData?.error?.errors?.some((e: { reason: string }) => e.reason === 'liveChatEnded')) {
+        if (
+          errorData?.error?.errors?.some((e: { reason: string }) => e.reason === 'liveChatEnded')
+        ) {
           throw new LiveChatEndedError('ライブ配信が終了しました。');
         }
       } catch (e) {

@@ -4,10 +4,7 @@ import { handleAudioEnded } from './audio-player';
 import { initTabListeners } from './tab-manager';
 import { startPolling, stopAll } from './lifecycle';
 import { sendStatus, sendDebugInfo, updateErrorMessage } from './messaging';
-import {
-  loadFilterConfigFromStorage,
-  setFilterConfig,
-} from './comment-filter';
+import { loadFilterConfigFromStorage, setFilterConfig } from './comment-filter';
 import type { FilterConfig } from './comment-filter';
 import { setTtsEngine, setBrowserVoice } from './tts-api';
 import type { TtsEngine } from '@/types/state';
@@ -71,9 +68,7 @@ async function handleStart(config: {
     const liveChatId = await fetchLiveChatId(videoId, config.apiKeyYoutube);
 
     // デバッグ情報をポップアップに表示
-    sendDebugInfo(
-      `Video ID: ${videoId}\nIs Live: true\nLiveChatId: ${liveChatId}`
-    );
+    sendDebugInfo(`Video ID: ${videoId}\nIs Live: true\nLiveChatId: ${liveChatId}`);
 
     updateState({ liveChatId });
 
