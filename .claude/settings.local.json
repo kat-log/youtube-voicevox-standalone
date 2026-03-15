@@ -35,7 +35,8 @@
       "Bash(wc:*)",
       "Bash(git -C /Users/yamadatarou/Coding/chrome-extension-youtube_live-voicevox status)",
       "Bash(git -C /Users/yamadatarou/Coding/chrome-extension-youtube_live-voicevox log --oneline -5)",
-      "Bash(git -C /Users/yamadatarou/Coding/chrome-extension-youtube_live-voicevox diff)"
+      "Bash(git -C /Users/yamadatarou/Coding/chrome-extension-youtube_live-voicevox diff)",
+      "Bash(xargs ls:*)"
     ],
     "deny": []
   }
