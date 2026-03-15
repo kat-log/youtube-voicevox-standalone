@@ -91,9 +91,34 @@
     <div class="section">
       <div class="section-title">設定</div>
 
-      <div id="voicevox-api-key-section">
-        <label for="apiKeyVOICEVOX">VOICEVOX API Key（任意・高速化）:</label>
-        <input type="text" id="apiKeyVOICEVOX" name="apiKeyVOICEVOX" />
+      <div id="voicevox-api-key-section" class="accordion">
+        <div class="tooltip-block">
+          <button class="accordion-button" type="button">
+            詳細設定（VOICEVOX API / 任意・高速化）
+          </button>
+          <span class="tooltiptext"
+            >生成処理が高速化され快適になるため、設定をおすすめします！</span
+          >
+        </div>
+        <div class="accordion-content">
+          <label for="apiKeyVOICEVOX">VOICEVOX API Key:</label>
+          <div class="api-key-container">
+            <input
+              type="password"
+              id="apiKeyVOICEVOX"
+              name="apiKeyVOICEVOX"
+              placeholder="APIキーを入力"
+            />
+            <button
+              type="button"
+              id="toggle-voicevox-key"
+              class="toggle-visibility"
+              aria-label="APIキーの表示/非表示を切替"
+            >
+              👁
+            </button>
+          </div>
+        </div>
       </div>
 
       <div class="label-with-help">
@@ -184,7 +209,7 @@
     <!-- ログセクション -->
     <div class="accordion">
       <div style="display: flex; justify-content: space-between; align-items: center">
-        <button class="accordion-button" style="flex: 1">ログ表示</button>
+        <button class="accordion-button" style="flex: 1; margin-right: 10px">ログ表示</button>
         <button
           id="open-log-page"
           class="small-btn"

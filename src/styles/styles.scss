@@ -289,6 +289,19 @@ select:focus {
   outline: none;
   transition: 0.4s;
   font-size: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.accordion-button::after {
+  content: '\25BC'; /* ▼ */
+  font-size: 10px;
+  transition: transform 0.3s ease;
+}
+
+.accordion-button.active::after {
+  transform: rotate(-180deg); /* ▲ */
 }
 
 .accordion-button:hover {
@@ -332,7 +345,14 @@ select:focus {
   display: inline-block;
 }
 
-.tooltip .tooltiptext {
+.tooltip-block {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.tooltip .tooltiptext,
+.tooltip-block .tooltiptext {
   visibility: hidden;
   width: 180px;
   background-color: #555;
@@ -350,7 +370,8 @@ select:focus {
   font-size: 12px;
 }
 
-.tooltip .tooltiptext::after {
+.tooltip .tooltiptext::after,
+.tooltip-block .tooltiptext::after {
   content: '';
   position: absolute;
   top: 100%;
@@ -361,7 +382,8 @@ select:focus {
   border-color: #555 transparent transparent transparent;
 }
 
-.tooltip:hover .tooltiptext {
+.tooltip:hover .tooltiptext,
+.tooltip-block:hover .tooltiptext {
   visibility: visible;
   opacity: 1;
 }

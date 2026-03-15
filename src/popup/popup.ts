@@ -325,15 +325,16 @@ document.getElementById('open-log-page')?.addEventListener('click', () => {
 });
 
 // アコーディオンの機能を追加
-document
-  .querySelector('.accordion-button')!
-  .addEventListener('click', function (this: HTMLElement) {
+document.querySelectorAll('.accordion-button').forEach((btn) => {
+  btn.addEventListener('click', function (this: HTMLElement) {
+    this.classList.toggle('active');
     const accordion = this.closest('.accordion');
     const content = accordion?.querySelector('.accordion-content') as HTMLElement;
     if (content) {
       content.classList.toggle('active');
     }
   });
+});
 
 // スピードスライダーのイベントリスナー
 document.getElementById('speed')!.addEventListener('input', (event) => {
@@ -430,10 +431,25 @@ function validateInputs(): void {
 // YouTube APIキー入力の変更を監視
 document.getElementById('apiKeyYoutube')!.addEventListener('input', validateInputs);
 
-// APIキーの表示/非表示切替
+// APIキーの表示/非表示切替 (YouTube)
 document.getElementById('toggle-api-key')!.addEventListener('click', () => {
   const input = document.getElementById('apiKeyYoutube') as HTMLInputElement;
   const btn = document.getElementById('toggle-api-key')!;
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.textContent = '🔒';
+    btn.setAttribute('aria-label', 'APIキーを非表示にする');
+  } else {
+    input.type = 'password';
+    btn.textContent = '👁';
+    btn.setAttribute('aria-label', 'APIキーを表示する');
+  }
+});
+
+// APIキーの表示/非表示切替 (VOICEVOX)
+document.getElementById('toggle-voicevox-key')?.addEventListener('click', () => {
+  const input = document.getElementById('apiKeyVOICEVOX') as HTMLInputElement;
+  const btn = document.getElementById('toggle-voicevox-key')!;
   if (input.type === 'password') {
     input.type = 'text';
     btn.textContent = '🔒';
