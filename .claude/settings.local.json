@@ -24,7 +24,11 @@
       "Bash(npx sass:*)",
       "Bash(git add:*)",
       "Bash(git stash:*)",
-      "Bash(gh issue comment:*)"
+      "Bash(gh issue comment:*)",
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx vite build:*)",
+      "Bash(npx eslint:*)"
     ],
     "deny": []
   }

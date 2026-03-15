@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "YouTubeライブチャットずんだもんボイス読み上げ",
+  "version": "4.0",
+  "permissions": ["activeTab", "storage", "scripting"],
+  "host_permissions": ["https://www.youtube.com/*", "https://*.tts.quest/*"],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": "./icon/youtube-live-comment-icon.png",
+    "default_title": "Open the popup"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "icons": {
+    "16": "icon/youtube-live-comment-icon16.png",
+    "48": "icon/youtube-live-comment-icon48.png",
+    "128": "icon/youtube-live-comment-icon128.png"
+  },
+  "commands": {
+    "start-reading": {
+      "suggested_key": {
+        "mac": "Alt+Shift+S",
+        "windows": "Alt+Shift+S",
+        "chromeos": "Alt+Shift+S",
+        "linux": "Alt+Shift+S"
+      },
+      "description": "コメント読み上げ開始"
+    },
+    "stop-reading": {
+      "suggested_key": {
+        "mac": "Alt+Shift+Q",
+        "windows": "Alt+Shift+Q",
+        "chromeos": "Alt+Shift+Q",
+        "linux": "Alt+Shift+Q"
+      },
+      "description": "コメント読み上げ停止"
+    }
+  }
+}
