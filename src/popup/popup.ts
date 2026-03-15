@@ -434,15 +434,20 @@ function validateInputs(): void {
   const apiKey = (document.getElementById('apiKeyYoutube') as HTMLInputElement).value.trim();
   const playBtn = document.getElementById('play') as HTMLButtonElement;
   const playTooltip = document.getElementById('play-tooltip') as HTMLElement;
+  const banner = document.getElementById('api-key-banner');
 
   if (!apiKey) {
     playBtn.disabled = true;
     playTooltip.textContent = 'YouTube APIキーを設定してください';
     playTooltip.style.color = '#ef4444'; // Error color
-  } else if (currentStatus === 'idle' || currentStatus === 'error') {
-    playBtn.disabled = false;
-    updateShortcutTooltips(); // 基本のショートカットテキストに戻す
-    playTooltip.style.color = '';
+    if (banner) banner.style.display = 'flex';
+  } else {
+    if (banner) banner.style.display = 'none';
+    if (currentStatus === 'idle' || currentStatus === 'error') {
+      playBtn.disabled = false;
+      updateShortcutTooltips(); // 基本のショートカットテキストに戻す
+      playTooltip.style.color = '';
+    }
   }
 }
 

@@ -21,15 +21,6 @@ chrome.storage.sync.get(['ttsEngine', 'browserVoice'], (data) => {
   if (data.browserVoice) setBrowserVoice(data.browserVoice as string);
 });
 
-// 初回インストール時にセットアップガイドを開く
-chrome.runtime.onInstalled.addListener((details) => {
-  if (details.reason === 'install') {
-    chrome.tabs.create({
-      url: chrome.runtime.getURL('onboarding/onboarding.html'),
-    });
-  }
-});
-
 // 共通の読み上げ開始フロー（onMessageとonCommandで共有）
 async function handleStart(config: {
   apiKeyVOICEVOX: string;

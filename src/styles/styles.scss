@@ -519,6 +519,31 @@ select:focus {
   color: var(--text-secondary);
 }
 
+/* APIキー未設定バナー */
+.api-key-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  background-color: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #92400e;
+
+  a {
+    color: #b45309;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
 /* ボタン無効化スタイル */
 button:disabled {
   background-color: #e2e8f0 !important;
@@ -581,4 +606,14 @@ body.dark-mode {
   --tooltip-bg: #1e293b;
   --tooltip-text: #f1f5f9;
   --tooltip-border: #334155;
+
+  .api-key-banner {
+    background-color: #422006;
+    border-color: #b45309;
+    color: #fde68a;
+
+    a {
+      color: #fbbf24;
+    }
+  }
 }
