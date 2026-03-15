@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Hello Voice - ログ表示</title>
+    <style>
+      body {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: none !important;
+        height: 100vh;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      .log-container {
+        padding: 20px;
+        height: 100%;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+      }
+      .log-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+      .log-header h1 {
+        margin: 0;
+        font-size: 20px;
+      }
+      .log-content {
+        flex: 1;
+        overflow-y: auto;
+        background-color: var(--bg-section);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 10px;
+      }
+      #debug {
+        font-family: monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="log-container">
+      <div class="log-header">
+        <h1>拡張機能 ログ一覧</h1>
+        <button id="clear-log" class="small-btn">ログをクリア</button>
+      </div>
+      <div class="log-content" id="log-content-area">
+        <pre id="debug"></pre>
+      </div>
+    </div>
+    <script type="module" src="./log.ts"></script>
+  </body>
+</html>

@@ -5,7 +5,18 @@ let volume = 1.0;
 
 window.onload = function () {
   chrome.storage.sync.get(
-    ['apiKeyVOICEVOX', 'apiKeyYoutube', 'speed', 'volume', 'latestOnlyMode', 'speakerId', 'darkMode', 'filterConfig', 'ttsEngine', 'browserVoice'],
+    [
+      'apiKeyVOICEVOX',
+      'apiKeyYoutube',
+      'speed',
+      'volume',
+      'latestOnlyMode',
+      'speakerId',
+      'darkMode',
+      'filterConfig',
+      'ttsEngine',
+      'browserVoice',
+    ],
     function (data) {
       (document.getElementById('apiKeyVOICEVOX') as HTMLInputElement).value =
         data.apiKeyVOICEVOX || '';
@@ -44,15 +55,25 @@ window.onload = function () {
       }
 
       // フィルタ設定を復元
-      const fc = data.filterConfig || { enabled: false, minLength: 1, skipEmojiOnly: false, ngWords: [] };
+      const fc = data.filterConfig || {
+        enabled: false,
+        minLength: 1,
+        skipEmojiOnly: false,
+        ngWords: [],
+      };
       (document.getElementById('filterEnabled') as HTMLInputElement).checked = fc.enabled;
       document.getElementById('filterEnabled')!.setAttribute('aria-checked', String(fc.enabled));
       document.getElementById('filter-options')!.style.display = fc.enabled ? 'block' : 'none';
       (document.getElementById('filterMinLength') as HTMLInputElement).value = String(fc.minLength);
       document.getElementById('current-min-length')!.textContent = String(fc.minLength);
-      (document.getElementById('filterSkipEmojiOnly') as HTMLInputElement).checked = fc.skipEmojiOnly;
-      document.getElementById('filterSkipEmojiOnly')!.setAttribute('aria-checked', String(fc.skipEmojiOnly));
-      (document.getElementById('filterNgWords') as HTMLInputElement).value = (fc.ngWords || []).join(', ');
+      (document.getElementById('filterSkipEmojiOnly') as HTMLInputElement).checked =
+        fc.skipEmojiOnly;
+      document
+        .getElementById('filterSkipEmojiOnly')!
+        .setAttribute('aria-checked', String(fc.skipEmojiOnly));
+      (document.getElementById('filterNgWords') as HTMLInputElement).value = (
+        fc.ngWords || []
+      ).join(', ');
 
       // TTSエンジン設定を復元
       const engine = data.ttsEngine || 'voicevox';
@@ -88,7 +109,12 @@ window.onload = function () {
         function (response: { status?: string; commentCount?: number; queueLength?: number }) {
           if (chrome.runtime.lastError) return;
           if (response) {
-            updateStatusUI(response.status || 'idle', '', response.commentCount || 0, response.queueLength || 0);
+            updateStatusUI(
+              response.status || 'idle',
+              '',
+              response.commentCount || 0,
+              response.queueLength || 0
+            );
           }
         }
       );
@@ -241,12 +267,21 @@ document.getElementById('speaker')!.addEventListener('change', (event) => {
 });
 
 // エラーメッセージ更新のリスナーを追加
-chrome.runtime.onMessage.addListener(function (
-  request: { action: string; status?: string; message?: string; commentCount?: number; queueLength?: number },
-) {
+chrome.runtime.onMessage.addListener(function (request: {
+  action: string;
+  status?: string;
+  message?: string;
+  commentCount?: number;
+  queueLength?: number;
+}) {
   // ステータス更新
   if (request.action === 'updateStatus') {
-    updateStatusUI(request.status || 'idle', request.message || '', request.commentCount || 0, request.queueLength || 0);
+    updateStatusUI(
+      request.status || 'idle',
+      request.message || '',
+      request.commentCount || 0,
+      request.queueLength || 0
+    );
   } else if (request.action === 'updateErrorMessage') {
     const errorElement = document.getElementById('error');
     if (errorElement) {
@@ -256,19 +291,41 @@ chrome.runtime.onMessage.addListener(function (
   // デバッグメッセージリスナー
   else if (request.action === 'debugInfo') {
     const debugElement = document.getElementById('debug');
-    if (debugElement) {
+    const accordionContent = document.querySelector('.accordion-content') as HTMLElement;
+    if (debugElement && accordionContent) {
+      // スクロール位置の判定
+      // クライアントの高さ + スクロール量が、全体の高さとほぼ同じ（数pxの誤差を許容）であれば一番下にいると判定
+      const isScrolledToBottom =
+        accordionContent.scrollHeight - accordionContent.clientHeight <=
+        accordionContent.scrollTop + 5;
+
       const timestamp = new Date().toLocaleTimeString();
-      const newMessage = `[${timestamp}] ${request.message}\n${debugElement.textContent}`;
-      debugElement.textContent = newMessage;
+      const newMessage = `[${timestamp}] ${request.message}\n`;
+      debugElement.textContent += newMessage;
+
+      // 一番下にいた場合のみ、新しいログに合わせて一番下までスクロールさせる
+      if (isScrolledToBottom) {
+        accordionContent.scrollTop = accordionContent.scrollHeight;
+      }
     }
   }
 });
 
-// アコーディオンの機能を追加
-document.querySelector('.accordion-button')!.addEventListener('click', function (this: HTMLElement) {
-  const content = this.nextElementSibling as HTMLElement;
-  content.classList.toggle('active');
+// 専用ページを開く
+document.getElementById('open-log-page')?.addEventListener('click', () => {
+  chrome.tabs.create({ url: chrome.runtime.getURL('log/log.html') });
 });
+
+// アコーディオンの機能を追加
+document
+  .querySelector('.accordion-button')!
+  .addEventListener('click', function (this: HTMLElement) {
+    const accordion = this.closest('.accordion');
+    const content = accordion?.querySelector('.accordion-content') as HTMLElement;
+    if (content) {
+      content.classList.toggle('active');
+    }
+  });
 
 // スピードスライダーのイベントリスナー
 document.getElementById('speed')!.addEventListener('input', (event) => {
@@ -361,10 +418,17 @@ document.getElementById('darkMode')!.addEventListener('change', (event) => {
 
 function sendFilterConfig(): void {
   const enabled = (document.getElementById('filterEnabled') as HTMLInputElement).checked;
-  const minLength = parseInt((document.getElementById('filterMinLength') as HTMLInputElement).value, 10);
-  const skipEmojiOnly = (document.getElementById('filterSkipEmojiOnly') as HTMLInputElement).checked;
+  const minLength = parseInt(
+    (document.getElementById('filterMinLength') as HTMLInputElement).value,
+    10
+  );
+  const skipEmojiOnly = (document.getElementById('filterSkipEmojiOnly') as HTMLInputElement)
+    .checked;
   const ngWordsRaw = (document.getElementById('filterNgWords') as HTMLInputElement).value;
-  const ngWords = ngWordsRaw.split(',').map((w) => w.trim()).filter((w) => w.length > 0);
+  const ngWords = ngWordsRaw
+    .split(',')
+    .map((w) => w.trim())
+    .filter((w) => w.length > 0);
 
   const filterConfig = { enabled, minLength, skipEmojiOnly, ngWords };
   chrome.runtime.sendMessage({ action: 'updateFilterConfig', filterConfig });
