@@ -1,6 +1,11 @@
 import { getState, updateState, shiftAudio } from './state';
 import { sendStatus } from './messaging';
 
+/** chrome.tts の rate を補正（エンジンの指数的スケーリングを相殺） */
+function correctTtsRate(sliderSpeed: number): number {
+  return Math.sqrt(sliderSpeed);
+}
+
 // 次の音声を再生
 export function playNextAudio(): void {
   const state = getState();
@@ -84,7 +89,7 @@ function playSpeechSynthesis(
     {
       voiceName: voiceName || undefined,
       lang: 'ja-JP',
-      rate: speed,
+      rate: correctTtsRate(speed),
       volume: volume,
       onEvent: (event) => {
         if (
