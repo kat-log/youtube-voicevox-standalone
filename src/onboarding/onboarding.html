@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>YouTubeライブチャットずんだもんボイス読み上げ - 使い方ガイド</title>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>YouTubeライブチャットずんだもんボイス読み上げ<br />使い方ガイド</h1>
+        <p>まずは↓のセットアップをお願いします！🙇</p>
+      </header>
+
+      <nav class="toc">
+        <h2>目次</h2>
+        <ul>
+          <li><a href="#youtube-api">1. YouTube APIキーの取得と設定（必須）</a></li>
+          <li><a href="#voicevox-api">2. VOICEVOXとの連携（推奨・任意）</a></li>
+          <li><a href="#how-to-use">3. 基本的な使い方</a></li>
+        </ul>
+      </nav>
+
+      <main>
+        <section id="youtube-api" class="guide-section">
+          <h2>1. YouTube APIキーの取得と設定（必須）</h2>
+          <p>
+            コメントを取得するためには、無料のYouTube Data API v3のキーが必要です。
+            以下の手順で取得してください。
+          </p>
+          <ol>
+            <li>
+              <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a>
+              にアクセスし、Googleアカウントでログインします。
+            </li>
+            <li>上部から「プロジェクトの選択」を押し、「新しいプロジェクト」を作成します。</li>
+            <li>
+              <a
+                href="https://console.cloud.google.com/apis/library/youtube.googleapis.com"
+                target="_blank"
+                >YouTube Data API v3のページ</a
+              >
+              を開き、「有効にする」をクリックします。
+            </li>
+            <li>左側メニューの「認証情報」から「＋認証情報を作成」＞「APIキー」を選択します。</li>
+            <li>
+              生成された文字列（APIキー）をコピーし、拡張機能の設定画面（YouTube API
+              Key）に入力します。
+            </li>
+          </ol>
+          <div class="note">
+            ※ APIキーは自分専用のものです。他人に教えたり、公開したりしないでください。
+          </div>
+        </section>
+
+        <section id="voicevox-api" class="guide-section">
+          <h2>2. VOICEVOXとの連携（推奨・任意）</h2>
+          <p>
+            標準のブラウザ音声以外に、高品質な「VOICEVOX」の音声を利用できます。<br />
+            音声生成を高速かつ安定させるため、無料のWEB版VOICEVOX
+            API（高速）APIキーの取得をおすすめしています。
+          </p>
+          <ol>
+            <li>
+              <a href="https://voicevox.su-shiki.com/su-shikiapis/" target="_blank">su-shiki API</a>
+              様のWebサイトへアクセスします。（当拡張機能はVOICEVOXの公式提供ではなく、サードパーティのAPIを利用しています）
+            </li>
+            <li>利用規約を確認後、ご自身用のAPIキーを発行・取得します。</li>
+            <li>
+              拡張機能の設定画面の「詳細設定（VOICEVOX API）」を開き、取得したAPIキーを入力します。
+            </li>
+          </ol>
+        </section>
+
+        <section id="how-to-use" class="guide-section">
+          <h2>3. 基本的な使い方</h2>
+          <ol>
+            <li>YouTube Liveの配信ページを開きます。</li>
+            <li>拡張機能のアイコンをクリックしてパネルを開きます。</li>
+            <li>
+              「読み上げ開始」ボタンを押すか、ショートカット（Alt+Shift+S / ⌥⇧S）を使用します。
+            </li>
+            <li>
+              コメントの取得と読み上げが開始されます！停止したい時は「停止」ボタンを押してください。
+            </li>
+          </ol>
+          <p>
+            ※
+            読み上げ設定（速度・音量・話者など）やフィルター機能は、配信中・停止中いつでも変更可能です。
+          </p>
+        </section>
+      </main>
+
+      <footer>
+        <p>&copy; 2024 YouTubeライブチャットずんだもんボイス読み上げ</p>
+      </footer>
+    </div>
+    <script type="module" src="./onboarding.ts"></script>
+  </body>
+</html>

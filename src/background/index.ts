@@ -25,7 +25,7 @@ chrome.storage.sync.get(['ttsEngine', 'browserVoice'], (data) => {
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === 'install') {
     chrome.tabs.create({
-      url: 'https://github.com/kat-log/chrome-extension-youtube_live-voicevox#-セットアップ方法',
+      url: chrome.runtime.getURL('onboarding/onboarding.html'),
     });
   }
 });
