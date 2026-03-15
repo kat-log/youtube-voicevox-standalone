@@ -31,6 +31,9 @@ export function startPolling(config: {
       state.nextPageToken ? `&pageToken=${state.nextPageToken}` : ''
     }`;
 
+    // YouTube APIにリクエストを送る直前にステータスを更新
+    sendStatus('fetching');
+
     fetch(requestUrl)
       .then((response) => {
         if (!response.ok) {

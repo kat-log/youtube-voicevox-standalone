@@ -67,6 +67,9 @@ function synthesizeWithRetry(
   const currentSession = getState().sessionId;
   const { apiKeyVOICEVOX, newMessage, speakerId } = comment;
 
+  // VOICEVOX APIへのリクエスト直前にステータスを更新
+  sendStatus('generating');
+
   fetchVoiceVox(apiKeyVOICEVOX, newMessage, speakerId)
     .then((audioUrl) => {
       // Stop後に完了した古いリクエストは破棄
