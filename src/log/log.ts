@@ -23,12 +23,13 @@ chrome.runtime.onMessage.addListener(function (request: { action: string; messag
     if (debugElement && logContentArea) {
       // スクロール位置の判定
       // クライアントの高さ + スクロール量が、全体の高さとほぼ同じであれば一番下にいると判定
+      // 許容誤差を大きめ(50px)にして、ほぼ底付近にいれば自動スクロールを維持する
       const isScrolledToBottom =
-        logContentArea.scrollHeight - logContentArea.clientHeight <= logContentArea.scrollTop + 5;
+        logContentArea.scrollHeight - logContentArea.clientHeight <= logContentArea.scrollTop + 50;
 
       const timestamp = new Date().toLocaleTimeString();
       const newMessage = `[${timestamp}] ${request.message}\n`;
-      debugElement.textContent += newMessage;
+      debugElement.insertAdjacentText('beforeend', newMessage);
 
       // 一番下にいた場合のみ、新しいログに合わせて一番下までスクロールさせる
       if (isScrolledToBottom) {
