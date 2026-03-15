@@ -6,6 +6,13 @@ function correctTtsRate(sliderSpeed: number): number {
   return Math.sqrt(sliderSpeed);
 }
 
+/** 指定音声が rate パラメータをサポートするか判定 */
+function isRateSupportedVoice(voiceName: string | undefined): boolean {
+  if (!voiceName) return true;
+  const name = voiceName.toLowerCase();
+  return name === 'kyoko' || name.startsWith('google');
+}
+
 // 次の音声を再生
 export function playNextAudio(): void {
   const state = getState();
@@ -89,7 +96,7 @@ function playSpeechSynthesis(
     {
       voiceName: voiceName || undefined,
       lang: 'ja-JP',
-      rate: correctTtsRate(speed),
+      rate: isRateSupportedVoice(voiceName) ? correctTtsRate(speed) : 1.0,
       volume: volume,
       onEvent: (event) => {
         if (

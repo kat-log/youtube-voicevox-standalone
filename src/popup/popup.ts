@@ -398,6 +398,41 @@ document.getElementById('filterNgWords')!.addEventListener('input', () => {
 
 // --- TTSエンジン選択 ---
 
+/** 指定音声が rate パラメータをサポートするか判定 */
+function isRateSupportedVoice(voiceName: string): boolean {
+  if (!voiceName) return true;
+  const name = voiceName.toLowerCase();
+  return name === 'kyoko' || name.startsWith('google');
+}
+
+/** エンジン・音声に応じて速度スライダーの有効/無効を切り替える */
+function updateSpeedSliderState(): void {
+  const engine = (document.getElementById('ttsEngine') as HTMLSelectElement).value;
+  const speedSlider = document.getElementById('speed') as HTMLInputElement;
+  const resetBtn = document.getElementById('reset-speed') as HTMLButtonElement;
+  const info = document.getElementById('speed-unsupported-info')!;
+
+  if (engine === 'browser') {
+    const voiceName = (document.getElementById('browserVoice') as HTMLSelectElement).value;
+    if (!isRateSupportedVoice(voiceName)) {
+      speedSlider.disabled = true;
+      resetBtn.disabled = true;
+      speedSlider.value = '1.0';
+      document.getElementById('current-speed')!.textContent = '1.0x';
+      speedSlider.setAttribute('aria-valuetext', '1.0倍速');
+      info.style.display = 'block';
+      return;
+    }
+  }
+
+  speedSlider.disabled = false;
+  resetBtn.disabled = false;
+  speedSlider.value = String(speed);
+  document.getElementById('current-speed')!.textContent = `${speed.toFixed(1)}x`;
+  speedSlider.setAttribute('aria-valuetext', `${speed.toFixed(1)}倍速`);
+  info.style.display = 'none';
+}
+
 function toggleEngineUI(engine: string): void {
   document.getElementById('voicevox-settings')!.style.display =
     engine === 'voicevox' ? 'block' : 'none';
@@ -405,6 +440,7 @@ function toggleEngineUI(engine: string): void {
     engine === 'browser' ? 'block' : 'none';
   document.getElementById('voicevox-api-key-section')!.style.display =
     engine === 'voicevox' ? 'block' : 'none';
+  updateSpeedSliderState();
 }
 
 function populateBrowserVoices(savedVoice?: string): void {
@@ -445,6 +481,7 @@ function populateBrowserVoices(savedVoice?: string): void {
     }
 
     if (savedVoice) select.value = savedVoice;
+    updateSpeedSliderState();
   });
 }
 
@@ -459,4 +496,5 @@ document.getElementById('browserVoice')!.addEventListener('change', (event) => {
   const voiceName = (event.target as HTMLSelectElement).value;
   chrome.storage.sync.set({ browserVoice: voiceName });
   chrome.runtime.sendMessage({ action: 'updateBrowserVoice', voiceName });
+  updateSpeedSliderState();
 });

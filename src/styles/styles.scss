@@ -430,10 +430,22 @@ button:disabled:hover {
   background-color: #ccc !important;
 }
 
+input[type="range"]:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 /* 警告テキスト */
 .warning-text {
   font-size: 12px;
   color: var(--error-color);
+  margin: 4px 0 8px;
+}
+
+/* 情報テキスト */
+.info-text {
+  font-size: 12px;
+  color: var(--text-secondary);
   margin: 4px 0 8px;
 }
 
