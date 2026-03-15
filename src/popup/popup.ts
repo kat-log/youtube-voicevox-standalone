@@ -147,13 +147,18 @@ function updateShortcutTooltips(): void {
   document.getElementById('stop-tooltip')!.textContent = `ショートカット: ${stopShortcut}`;
 }
 
-document.getElementById('play')!.addEventListener('click', () => {
+document.getElementById('play')!.addEventListener('click', (event) => {
+  const playBtn = event.target as HTMLButtonElement;
+  // 連打防止のため即座に無効化
+  playBtn.disabled = true;
+
   const apiKeyVOICEVOX = (document.getElementById('apiKeyVOICEVOX') as HTMLInputElement).value;
   const apiKeyYoutube = (document.getElementById('apiKeyYoutube') as HTMLInputElement).value;
   const speakerId = (document.getElementById('speaker') as HTMLSelectElement).value;
 
   if (!apiKeyYoutube) {
     document.getElementById('error')!.textContent = 'YouTube APIキーが設定されていません。';
+    validateInputs(); // 状態復元
     return;
   }
 
@@ -185,14 +190,17 @@ document.getElementById('play')!.addEventListener('click', () => {
     function (response: { status: string; message?: string; details?: string }) {
       if (chrome.runtime.lastError) {
         document.getElementById('error')!.textContent = chrome.runtime.lastError.message || '';
+        validateInputs(); // エラー時は活性状態に戻す
       } else if (response && response.status === 'error') {
         let errorMessage = response.message || '';
         if (response.details) {
           errorMessage += '\n\nデバッグ情報:\n' + response.details;
         }
         document.getElementById('error')!.textContent = errorMessage;
+        validateInputs(); // エラー時は活性状態に戻す
       } else {
         document.getElementById('error')!.textContent = 'エラーなし';
+        // 成功時のボタン状態は updateStatusUI で制御されるためここでは何もしない
       }
     }
   );
@@ -343,12 +351,18 @@ document.getElementById('speed')!.addEventListener('input', (event) => {
   target.setAttribute('aria-valuetext', `${speed.toFixed(1)}倍速`);
 });
 
-// ステータスバーのUIを更新する関数
+let currentStatus: string = 'idle';
+
+// ステータスバーとボタンのUIを更新する関数
 function updateStatusUI(status: string, message: string, count: number, queueLength = 0): void {
+  currentStatus = status;
   const dot = document.getElementById('status-dot');
   const text = document.getElementById('status-text');
   const countEl = document.getElementById('status-count');
   const queueEl = document.getElementById('queue-info');
+  const playBtn = document.getElementById('play') as HTMLButtonElement;
+  const stopBtn = document.getElementById('stop') as HTMLButtonElement;
+
   if (!dot || !text || !countEl || !queueEl) return;
 
   dot.className = 'status-dot ' + status;
@@ -384,13 +398,33 @@ function updateStatusUI(status: string, message: string, count: number, queueLen
       queueEl.textContent = '';
       break;
   }
+
+  // ステータスに応じたボタンの活性/非活性制御
+  if (status === 'idle' || status === 'error') {
+    stopBtn.disabled = true;
+    validateInputs(); // APIキー入力があればplayBtnを有効化
+  } else {
+    // 実行中（connecting, fetching, generating, listening）
+    playBtn.disabled = true;
+    stopBtn.disabled = false;
+  }
 }
 
 // 入力バリデーション
 function validateInputs(): void {
   const apiKey = (document.getElementById('apiKeyYoutube') as HTMLInputElement).value.trim();
   const playBtn = document.getElementById('play') as HTMLButtonElement;
-  playBtn.disabled = !apiKey;
+  const playTooltip = document.getElementById('play-tooltip') as HTMLElement;
+
+  if (!apiKey) {
+    playBtn.disabled = true;
+    playTooltip.textContent = 'YouTube APIキーを設定してください';
+    playTooltip.style.color = '#ef4444'; // Error color
+  } else if (currentStatus === 'idle' || currentStatus === 'error') {
+    playBtn.disabled = false;
+    updateShortcutTooltips(); // 基本のショートカットテキストに戻す
+    playTooltip.style.color = '';
+  }
 }
 
 // YouTube APIキー入力の変更を監視
