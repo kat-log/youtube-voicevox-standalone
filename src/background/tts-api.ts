@@ -41,7 +41,6 @@ export function processCommentQueue(): void {
       text: comment.newMessage,
       voiceName: browserVoiceName || undefined,
     });
-    state.commentCount++;
     sendStatus('listening');
     updateBadge();
     playNextAudio();
@@ -78,8 +77,6 @@ function synthesizeWithRetry(
       sendDebugInfo(`VOICEVOX RESPONSE：${audioUrl}`);
 
       pushAudio({ type: 'url', url: audioUrl });
-      const state = getState();
-      state.commentCount++;
       sendStatus('listening');
       updateBadge();
       playNextAudio();

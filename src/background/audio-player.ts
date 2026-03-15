@@ -163,6 +163,7 @@ export function handleAudioEnded(): void {
   if (state.playingTimeout) {
     clearTimeout(state.playingTimeout);
   }
+  state.commentCount++;
   updateState({
     isPlaying: false,
     playingTimeout: null,
