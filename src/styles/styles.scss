@@ -10,6 +10,8 @@
   --accent-hover: #047857;
   --accent-light: #d1fae5;
   --error-color: #dc2626;
+  --warning-color: #f59e0b;
+  --warning-light: #fef3c7;
   --debug-color: #0ea5e9;
   --tooltip-bg: #ffffff;
   --tooltip-text: #1e293b;
@@ -55,7 +57,12 @@ input[type='password'] {
   background-color: var(--bg-input);
   color: var(--text-primary);
   font-size: 13px;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
+
+  &.input-required-empty {
+    border-color: var(--warning-color);
+    box-shadow: 0 0 0 2px var(--warning-light);
+  }
 
   &:focus {
     outline: none;
@@ -602,6 +609,8 @@ body.dark-mode {
   --accent-hover: #34d399;
   --accent-light: #064e3b;
   --error-color: #f87171;
+  --warning-color: #f59e0b;
+  --warning-light: #78350f;
   --debug-color: #38bdf8;
   --tooltip-bg: #1e293b;
   --tooltip-text: #f1f5f9;

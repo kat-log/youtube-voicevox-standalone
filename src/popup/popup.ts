@@ -436,7 +436,8 @@ function updateStatusUI(status: string, message: string, count: number, queueLen
 
 // 入力バリデーション
 function validateInputs(): void {
-  const apiKey = (document.getElementById('apiKeyYoutube') as HTMLInputElement).value.trim();
+  const apiKeyInput = document.getElementById('apiKeyYoutube') as HTMLInputElement;
+  const apiKey = apiKeyInput.value.trim();
   const playBtn = document.getElementById('play') as HTMLButtonElement;
   const playTooltip = document.getElementById('play-tooltip') as HTMLElement;
   const banner = document.getElementById('api-key-banner');
@@ -446,8 +447,10 @@ function validateInputs(): void {
     playTooltip.textContent = 'YouTube APIキーを設定してください';
     playTooltip.style.color = '#ef4444'; // Error color
     if (banner) banner.style.display = 'flex';
+    apiKeyInput.classList.add('input-required-empty');
   } else {
     if (banner) banner.style.display = 'none';
+    apiKeyInput.classList.remove('input-required-empty');
     if (currentStatus === 'idle' || currentStatus === 'error') {
       playBtn.disabled = false;
       updateShortcutTooltips(); // 基本のショートカットテキストに戻す
