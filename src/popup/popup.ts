@@ -84,6 +84,11 @@ window.onload = function () {
       document
         .getElementById('filterSkipEmojiOnly')!
         .setAttribute('aria-checked', String(fc.skipEmojiOnly));
+      (document.getElementById('filterStripEmoji') as HTMLInputElement).checked =
+        fc.stripEmoji || false;
+      document
+        .getElementById('filterStripEmoji')!
+        .setAttribute('aria-checked', String(fc.stripEmoji || false));
       (document.getElementById('filterNgWords') as HTMLInputElement).value = (
         fc.ngWords || []
       ).join(', ');
@@ -507,13 +512,14 @@ function sendFilterConfig(): void {
   );
   const skipEmojiOnly = (document.getElementById('filterSkipEmojiOnly') as HTMLInputElement)
     .checked;
+  const stripEmoji = (document.getElementById('filterStripEmoji') as HTMLInputElement).checked;
   const ngWordsRaw = (document.getElementById('filterNgWords') as HTMLInputElement).value;
   const ngWords = ngWordsRaw
     .split(',')
     .map((w) => w.trim())
     .filter((w) => w.length > 0);
 
-  const filterConfig = { enabled, minLength, skipEmojiOnly, ngWords };
+  const filterConfig = { enabled, minLength, skipEmojiOnly, stripEmoji, ngWords };
   chrome.runtime.sendMessage({ action: 'updateFilterConfig', filterConfig });
 }
 
@@ -533,6 +539,12 @@ document.getElementById('filterMinLength')!.addEventListener('input', (event) =>
 });
 
 document.getElementById('filterSkipEmojiOnly')!.addEventListener('change', (event) => {
+  const target = event.target as HTMLInputElement;
+  target.setAttribute('aria-checked', String(target.checked));
+  sendFilterConfig();
+});
+
+document.getElementById('filterStripEmoji')!.addEventListener('change', (event) => {
   const target = event.target as HTMLInputElement;
   target.setAttribute('aria-checked', String(target.checked));
   sendFilterConfig();
