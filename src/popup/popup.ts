@@ -459,8 +459,18 @@ function validateInputs(): void {
   }
 }
 
-// YouTube APIキー入力の変更を監視
-document.getElementById('apiKeyYoutube')!.addEventListener('input', validateInputs);
+// YouTube APIキー入力の変更を監視・自動保存
+document.getElementById('apiKeyYoutube')!.addEventListener('input', () => {
+  const value = (document.getElementById('apiKeyYoutube') as HTMLInputElement).value;
+  chrome.storage.sync.set({ apiKeyYoutube: value });
+  validateInputs();
+});
+
+// VOICEVOX APIキー入力の自動保存
+document.getElementById('apiKeyVOICEVOX')!.addEventListener('input', () => {
+  const value = (document.getElementById('apiKeyVOICEVOX') as HTMLInputElement).value;
+  chrome.storage.sync.set({ apiKeyVOICEVOX: value });
+});
 
 // APIキーの表示/非表示切替 (YouTube)
 document.getElementById('toggle-api-key')!.addEventListener('click', () => {
