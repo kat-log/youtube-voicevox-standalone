@@ -1,4 +1,5 @@
-import type { ExtensionStatus } from './state';
+import type { ExtensionStatus, TtsEngine } from './state';
+import type { FilterConfig } from '@/background/comment-filter';
 
 // Popup → Background メッセージ
 export interface StartMessage {
@@ -44,6 +45,21 @@ export interface UpdateQueueSpeedMessage {
   speed: number;
 }
 
+export interface UpdateFilterConfigMessage {
+  action: 'updateFilterConfig';
+  filterConfig: FilterConfig;
+}
+
+export interface UpdateTtsEngineMessage {
+  action: 'updateTtsEngine';
+  engine: TtsEngine;
+}
+
+export interface UpdateBrowserVoiceMessage {
+  action: 'updateBrowserVoice';
+  voiceName: string;
+}
+
 // Content → Background メッセージ
 export interface AudioEndedMessage {
   action: 'audioEnded';
@@ -55,6 +71,7 @@ export interface UpdateStatusMessage {
   status: ExtensionStatus;
   message: string;
   commentCount: number;
+  queueLength: number;
 }
 
 export interface UpdateErrorMessage {

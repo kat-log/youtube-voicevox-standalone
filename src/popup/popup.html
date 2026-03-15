@@ -10,6 +10,7 @@
       <span id="status-dot" class="status-dot idle"></span>
       <span id="status-text">停止中</span>
       <span id="status-count"></span>
+      <span id="queue-info" class="queue-info"></span>
     </div>
 
     <!-- 操作セクション -->
@@ -34,8 +35,25 @@
     <!-- 音声設定セクション -->
     <div class="section">
       <div class="section-title">音声設定</div>
-      <label for="speaker">話者選択:</label>
-      <select id="speaker" name="speaker"></select>
+
+      <label for="ttsEngine">読み上げエンジン:</label>
+      <select id="ttsEngine" name="ttsEngine">
+        <option value="voicevox">VOICEVOX（TTS Quest API）</option>
+        <option value="browser">ブラウザ内蔵音声</option>
+      </select>
+
+      <div id="voicevox-settings">
+        <label for="speaker">話者選択:</label>
+        <select id="speaker" name="speaker"></select>
+      </div>
+
+      <div id="browser-tts-settings" style="display: none">
+        <label for="browserVoice">ブラウザ音声:</label>
+        <select id="browserVoice" name="browserVoice"></select>
+        <p id="no-ja-voices-warning" class="warning-text" style="display: none">
+          日本語音声が見つかりません。システム設定またはChrome TTS拡張機能で日本語音声を追加してください。
+        </p>
+      </div>
 
       <label for="speed">再生速度:</label>
       <div class="slider-group">
@@ -58,6 +76,9 @@
           リセット
         </button>
       </div>
+      <p id="speed-unsupported-info" class="info-text" style="display: none">
+        この音声では再生速度の変更はサポートされていません（等速固定）
+      </p>
 
       <label for="volume">音量:</label>
       <div class="slider-group">
@@ -79,8 +100,10 @@
     <div class="section">
       <div class="section-title">設定</div>
 
-      <label for="apiKeyVOICEVOX">VOICEVOX API Key（任意・高速化）:</label>
-      <input type="text" id="apiKeyVOICEVOX" name="apiKeyVOICEVOX" />
+      <div id="voicevox-api-key-section">
+        <label for="apiKeyVOICEVOX">VOICEVOX API Key（任意・高速化）:</label>
+        <input type="text" id="apiKeyVOICEVOX" name="apiKeyVOICEVOX" />
+      </div>
 
       <div class="label-with-help">
         <label for="apiKeyYoutube">YouTube API Key:</label>
@@ -133,6 +156,61 @@
           <span class="slider round"></span>
         </label>
         <span>ダークモード</span>
+      </div>
+    </div>
+
+    <!-- コメントフィルター設定 -->
+    <div class="section">
+      <div class="section-title">コメントフィルター</div>
+
+      <div class="toggle-container">
+        <label class="toggle-switch" aria-label="コメントフィルターを有効にする">
+          <input
+            type="checkbox"
+            id="filterEnabled"
+            role="switch"
+            aria-checked="false"
+          />
+          <span class="slider round"></span>
+        </label>
+        <span>フィルターを有効化</span>
+      </div>
+
+      <div id="filter-options" class="filter-options" style="display: none">
+        <label for="filterMinLength">最小文字数（これ未満はスキップ）:</label>
+        <div class="slider-group">
+          <input
+            type="range"
+            id="filterMinLength"
+            min="1"
+            max="20"
+            step="1"
+            value="1"
+            aria-label="最小文字数"
+            aria-valuetext="1文字"
+          />
+          <span id="current-min-length">1</span>
+        </div>
+
+        <div class="toggle-container">
+          <label class="toggle-switch" aria-label="絵文字のみのコメントをスキップ">
+            <input
+              type="checkbox"
+              id="filterSkipEmojiOnly"
+              role="switch"
+              aria-checked="false"
+            />
+            <span class="slider round"></span>
+          </label>
+          <span>絵文字のみスキップ</span>
+        </div>
+
+        <label for="filterNgWords">NGワード（カンマ区切り）:</label>
+        <input
+          type="text"
+          id="filterNgWords"
+          placeholder="例: スパム,宣伝,http"
+        />
       </div>
     </div>
 

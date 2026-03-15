@@ -1,4 +1,4 @@
-import type { ExtensionState, CommentQueueItem } from '@/types/state';
+import type { ExtensionState, CommentQueueItem, AudioQueueItem } from '@/types/state';
 
 export const ERROR_THRESHOLD_FOR_STATUS = 3;
 
@@ -54,10 +54,10 @@ export function shiftComment(): CommentQueueItem | undefined {
   return state.commentQueue.shift();
 }
 
-export function pushAudio(url: string): void {
-  state.audioQueue.push(url);
+export function pushAudio(item: AudioQueueItem): void {
+  state.audioQueue.push(item);
 }
 
-export function shiftAudio(): string | undefined {
+export function shiftAudio(): AudioQueueItem | undefined {
   return state.audioQueue.shift();
 }

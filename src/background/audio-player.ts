@@ -1,4 +1,17 @@
 import { getState, updateState, shiftAudio } from './state';
+import { sendStatus } from './messaging';
+
+/** chrome.tts の rate を補正（エンジンの指数的スケーリングを相殺） */
+function correctTtsRate(sliderSpeed: number): number {
+  return Math.sqrt(sliderSpeed);
+}
+
+/** 指定音声が rate パラメータをサポートするか判定 */
+function isRateSupportedVoice(voiceName: string | undefined): boolean {
+  if (!voiceName) return true;
+  const name = voiceName.toLowerCase();
+  return name === 'kyoko' || name.startsWith('google');
+}
 
 // 次の音声を再生
 export function playNextAudio(): void {
@@ -7,8 +20,8 @@ export function playNextAudio(): void {
     return;
   }
 
-  const audioUrl = shiftAudio();
-  if (!audioUrl) return;
+  const item = shiftAudio();
+  if (!item) return;
 
   const tabId = state.activeTabId;
   if (!tabId) return;
@@ -33,41 +46,99 @@ export function playNextAudio(): void {
     const volume = data.volume !== undefined ? data.volume : 1.0;
     const speed = data.speed !== undefined ? data.speed : 1.0;
 
-    chrome.scripting.executeScript(
-      {
-        target: { tabId },
-        func: (audioUrl: string, volume: number, speed: number) => {
-          if (window.currentAudio) {
-            window.currentAudio.pause();
-          }
-          const audio = new Audio(audioUrl);
-          audio.volume = volume;
-          audio.playbackRate = speed;
-          window.currentAudio = audio;
-          audio.play();
-          audio.onended = () => {
-            chrome.runtime.sendMessage({ action: 'audioEnded' });
-          };
-        },
-        args: [audioUrl, volume, speed],
-      },
-      () => {
-        if (chrome.runtime.lastError) {
-          // eslint-disable-next-line no-console
-          console.error('VoiceVoxエラー:', chrome.runtime.lastError.message);
-          updateState({ isPlaying: false });
-          if (getState().playingTimeout) {
-            clearTimeout(getState().playingTimeout!);
-            updateState({ playingTimeout: null });
-          }
-        }
-      }
-    );
+    if (item.type === 'url') {
+      injectAudioUrl(tabId, item.url!, volume, speed);
+    } else {
+      playSpeechSynthesis(item.text!, item.voiceName, volume, speed);
+    }
   });
 }
 
-// 現在のタブで再生中の音声を停止
+// VOICEVOX: Audio要素をタブに注入して再生
+function injectAudioUrl(tabId: number, audioUrl: string, volume: number, speed: number): void {
+  chrome.scripting.executeScript(
+    {
+      target: { tabId },
+      func: (audioUrl: string, volume: number, speed: number) => {
+        if (window.currentAudio) {
+          window.currentAudio.pause();
+        }
+        const audio = new Audio(audioUrl);
+        audio.volume = volume;
+        audio.playbackRate = speed;
+        window.currentAudio = audio;
+        audio.play();
+        audio.onended = () => {
+          chrome.runtime.sendMessage({ action: 'audioEnded' });
+        };
+      },
+      args: [audioUrl, volume, speed],
+    },
+    () => {
+      if (chrome.runtime.lastError) {
+        // eslint-disable-next-line no-console
+        console.error('VoiceVoxエラー:', chrome.runtime.lastError.message);
+        handlePlaybackError();
+      }
+    }
+  );
+}
+
+// ブラウザTTS: chrome.tts APIで再生
+function playSpeechSynthesis(
+  text: string,
+  voiceName: string | undefined,
+  volume: number,
+  speed: number
+): void {
+  chrome.tts.speak(
+    text,
+    {
+      voiceName: voiceName || undefined,
+      lang: 'ja-JP',
+      rate: isRateSupportedVoice(voiceName) ? correctTtsRate(speed) : 1.0,
+      volume: volume,
+      onEvent: (event) => {
+        if (
+          event.type === 'end' ||
+          event.type === 'interrupted' ||
+          event.type === 'cancelled' ||
+          event.type === 'error'
+        ) {
+          if (event.type === 'error') {
+            // eslint-disable-next-line no-console
+            console.error('chrome.tts error:', event.errorMessage);
+          }
+          handleAudioEnded();
+        }
+      },
+    },
+    () => {
+      if (chrome.runtime.lastError) {
+        // eslint-disable-next-line no-console
+        console.error('chrome.tts.speakエラー:', chrome.runtime.lastError.message);
+        handlePlaybackError();
+      }
+    }
+  );
+}
+
+// 再生エラー時の共通処理
+function handlePlaybackError(): void {
+  updateState({ isPlaying: false });
+  const state = getState();
+  if (state.playingTimeout) {
+    clearTimeout(state.playingTimeout);
+    updateState({ playingTimeout: null });
+  }
+}
+
+// 現在の音声を停止
 export function stopCurrentAudio(): void {
+  // ブラウザTTS（chrome.tts）を停止 - 再生中でなくても安全に呼び出し可
+  chrome.tts.stop();
+
+  // VOICEVOX: タブ内のAudio要素を停止
   const state = getState();
   if (!state.activeTabId) return;
 
@@ -97,6 +168,7 @@ export function handleAudioEnded(): void {
     playingTimeout: null,
   });
   updateBadge();
+  sendStatus('listening');
   playNextAudio();
 }
 

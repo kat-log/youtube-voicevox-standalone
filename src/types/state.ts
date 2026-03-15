@@ -1,3 +1,12 @@
+export type TtsEngine = 'voicevox' | 'browser';
+
+export interface AudioQueueItem {
+  type: 'url' | 'speech';
+  url?: string;
+  text?: string;
+  voiceName?: string;
+}
+
 export interface CommentQueueItem {
   apiKeyVOICEVOX: string;
   newMessage: string;
@@ -7,7 +16,7 @@ export interface CommentQueueItem {
 }
 
 export interface ExtensionState {
-  audioQueue: string[];
+  audioQueue: AudioQueueItem[];
   isPlaying: boolean;
   liveChatId: string | null;
   intervalId: ReturnType<typeof setTimeout> | null;
