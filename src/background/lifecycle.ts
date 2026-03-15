@@ -4,7 +4,7 @@ import { processCommentQueue } from './tts-api';
 import { stopCurrentAudio, updateBadge, clearBadge } from './audio-player';
 import { sendStatus, sendDebugInfo } from './messaging';
 import { ERROR_THRESHOLD_FOR_STATUS } from './state';
-import { shouldFilter, getFilterConfig } from './comment-filter';
+import { shouldFilter, getFilterConfig, stripEmojis } from './comment-filter';
 
 // ポーリング開始
 export function startPolling(config: {
@@ -95,13 +95,20 @@ export function startPolling(config: {
         if (isFirstFetch || currentState.latestOnlyMode) {
           // 最初の取得または最新のみモードでは最新の1件のみを取得
           const latestItem = data.items[data.items.length - 1];
-          const newMessage: string = latestItem.snippet.displayMessage;
-          if (newMessage !== latestMessage) {
-            latestMessage = newMessage;
+          const rawMessage: string = latestItem.snippet.displayMessage;
+          if (rawMessage !== latestMessage) {
+            latestMessage = rawMessage;
             updateState({
               latestTimestamp: new Date(latestItem.snippet.publishedAt).getTime(),
             });
-            if (shouldFilter(newMessage, getFilterConfig())) {
+            const filterConfig = getFilterConfig();
+            const newMessage =
+              filterConfig.enabled && filterConfig.stripEmoji
+                ? stripEmojis(rawMessage)
+                : rawMessage;
+            if (newMessage.length === 0) {
+              sendDebugInfo(`絵文字除去で空: "${rawMessage}"`);
+            } else if (shouldFilter(newMessage, filterConfig)) {
               sendDebugInfo(`フィルタ除外: "${newMessage}"`);
             } else {
               pushComment({
@@ -116,14 +123,21 @@ export function startPolling(config: {
           isFirstFetch = false;
         } else {
           // 通常モードでは差分をすべて取得
+          const filterConfig = getFilterConfig();
           for (const item of data.items) {
-            const newMessage: string = item.snippet.displayMessage;
+            const rawMessage: string = item.snippet.displayMessage;
             const timestamp = new Date(item.snippet.publishedAt).getTime();
 
             if (!currentState.latestTimestamp || timestamp > currentState.latestTimestamp) {
               updateState({ latestTimestamp: timestamp });
-              latestMessage = newMessage;
-              if (shouldFilter(newMessage, getFilterConfig())) {
+              latestMessage = rawMessage;
+              const newMessage =
+                filterConfig.enabled && filterConfig.stripEmoji
+                  ? stripEmojis(rawMessage)
+                  : rawMessage;
+              if (newMessage.length === 0) {
+                sendDebugInfo(`絵文字除去で空: "${rawMessage}"`);
+              } else if (shouldFilter(newMessage, filterConfig)) {
                 sendDebugInfo(`フィルタ除外: "${newMessage}"`);
               } else {
                 pushComment({
