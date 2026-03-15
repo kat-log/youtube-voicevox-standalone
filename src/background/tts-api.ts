@@ -2,9 +2,30 @@ import type {
   TTSQuestSynthesisResponse,
   TTSQuestAudioStatusResponse,
 } from '@/types/api-responses';
+import type { TtsEngine } from '@/types/state';
 import { getState, shiftComment, pushAudio } from './state';
 import { sendDebugInfo, sendStatus } from './messaging';
 import { playNextAudio, updateBadge } from './audio-player';
+
+// TTSエンジン設定（モジュールレベルキャッシュ）
+let currentEngine: TtsEngine = 'voicevox';
+let browserVoiceName: string | null = null;
+
+export function setTtsEngine(engine: TtsEngine): void {
+  currentEngine = engine;
+}
+
+export function getTtsEngine(): TtsEngine {
+  return currentEngine;
+}
+
+export function setBrowserVoice(voiceName: string | null): void {
+  browserVoiceName = voiceName;
+}
+
+export function getBrowserVoice(): string | null {
+  return browserVoiceName;
+}
 
 export function processCommentQueue(): void {
   const state = getState();
@@ -15,9 +36,23 @@ export function processCommentQueue(): void {
   const comment = shiftComment();
   if (!comment) return;
 
-  sendDebugInfo(`VOICEVOX REQUEST：${comment.newMessage}`);
+  if (currentEngine === 'browser') {
+    // ブラウザTTS: API不要、直接audioQueueに追加
+    sendDebugInfo(`ブラウザTTS：${comment.newMessage}`);
+    pushAudio({
+      type: 'speech',
+      text: comment.newMessage,
+      voiceName: browserVoiceName || undefined,
+    });
+    state.commentCount++;
+    sendStatus('listening');
+    updateBadge();
+    playNextAudio();
+    return;
+  }
 
-  // リトライ機構付きで音声合成を実行
+  // VOICEVOX: TTS Quest APIで音声合成
+  sendDebugInfo(`VOICEVOX REQUEST：${comment.newMessage}`);
   synthesizeWithRetry(comment, 0);
 }
 
@@ -42,7 +77,7 @@ function synthesizeWithRetry(
 
       sendDebugInfo(`VOICEVOX RESPONSE：${audioUrl}`);
 
-      pushAudio(audioUrl);
+      pushAudio({ type: 'url', url: audioUrl });
       const state = getState();
       state.commentCount++;
       sendStatus('listening');

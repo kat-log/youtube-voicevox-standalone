@@ -8,6 +8,7 @@ export function sendStatus(status: string, message = ''): void {
     status,
     message,
     commentCount: state.commentCount,
+    queueLength: state.commentQueue.length + state.audioQueue.length,
   }).catch(() => {});
 }
 

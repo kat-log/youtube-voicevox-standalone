@@ -4,9 +4,25 @@ import { handleAudioEnded } from './audio-player';
 import { initTabListeners } from './tab-manager';
 import { startPolling, stopAll } from './lifecycle';
 import { sendStatus, sendDebugInfo, updateErrorMessage } from './messaging';
+import {
+  loadFilterConfigFromStorage,
+  setFilterConfig,
+} from './comment-filter';
+import type { FilterConfig } from './comment-filter';
+import { setTtsEngine, setBrowserVoice } from './tts-api';
+import type { TtsEngine } from '@/types/state';
 
 // タブリスナー初期化
 initTabListeners();
+
+// フィルタ設定をストレージから読み込み
+loadFilterConfigFromStorage();
+
+// TTSエンジン設定をストレージから読み込み
+chrome.storage.sync.get(['ttsEngine', 'browserVoice'], (data) => {
+  if (data.ttsEngine) setTtsEngine(data.ttsEngine as TtsEngine);
+  if (data.browserVoice) setBrowserVoice(data.browserVoice as string);
+});
 
 // 初回インストール時にセットアップガイドを開く
 chrome.runtime.onInstalled.addListener((details) => {
@@ -142,7 +158,8 @@ chrome.runtime.onMessage.addListener(
         const state = getState();
         const currentStatus =
           state.intervalId !== null || state.commentIntervalId !== null ? 'listening' : 'idle';
-        sendResponse({ status: currentStatus, commentCount: state.commentCount });
+        const queueLength = state.commentQueue.length + state.audioQueue.length;
+        sendResponse({ status: currentStatus, commentCount: state.commentCount, queueLength });
         return true;
       }
 
@@ -216,6 +233,30 @@ chrome.runtime.onMessage.addListener(
           speed: request.speed as number,
         }));
         updateState({ commentQueue: updatedQueue });
+        sendResponse({ status: 'success' });
+        return true;
+      }
+
+      case 'updateFilterConfig': {
+        const config = request.filterConfig as FilterConfig;
+        setFilterConfig(config);
+        chrome.storage.sync.set({ filterConfig: config });
+        sendResponse({ status: 'success' });
+        return true;
+      }
+
+      case 'updateTtsEngine': {
+        const engine = request.engine as TtsEngine;
+        setTtsEngine(engine);
+        chrome.storage.sync.set({ ttsEngine: engine });
+        sendResponse({ status: 'success' });
+        return true;
+      }
+
+      case 'updateBrowserVoice': {
+        const voiceName = request.voiceName as string;
+        setBrowserVoice(voiceName);
+        chrome.storage.sync.set({ browserVoice: voiceName });
         sendResponse({ status: 'success' });
         return true;
       }

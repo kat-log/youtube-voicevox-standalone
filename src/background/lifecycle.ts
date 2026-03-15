@@ -4,6 +4,7 @@ import { processCommentQueue } from './tts-api';
 import { stopCurrentAudio, updateBadge, clearBadge } from './audio-player';
 import { sendStatus, sendDebugInfo } from './messaging';
 import { ERROR_THRESHOLD_FOR_STATUS } from './state';
+import { shouldFilter, getFilterConfig } from './comment-filter';
 
 // ポーリング開始
 export function startPolling(config: {
@@ -97,13 +98,17 @@ export function startPolling(config: {
             updateState({
               latestTimestamp: new Date(latestItem.snippet.publishedAt).getTime(),
             });
-            pushComment({
-              apiKeyVOICEVOX: config.apiKeyVOICEVOX,
-              newMessage,
-              speed: config.speed,
-              tabId: config.tabId,
-              speakerId: config.speakerId,
-            });
+            if (shouldFilter(newMessage, getFilterConfig())) {
+              sendDebugInfo(`フィルタ除外: "${newMessage}"`);
+            } else {
+              pushComment({
+                apiKeyVOICEVOX: config.apiKeyVOICEVOX,
+                newMessage,
+                speed: config.speed,
+                tabId: config.tabId,
+                speakerId: config.speakerId,
+              });
+            }
           }
           isFirstFetch = false;
         } else {
@@ -115,13 +120,17 @@ export function startPolling(config: {
             if (!currentState.latestTimestamp || timestamp > currentState.latestTimestamp) {
               updateState({ latestTimestamp: timestamp });
               latestMessage = newMessage;
-              pushComment({
-                apiKeyVOICEVOX: config.apiKeyVOICEVOX,
-                newMessage,
-                speed: config.speed,
-                tabId: config.tabId,
-                speakerId: config.speakerId,
-              });
+              if (shouldFilter(newMessage, getFilterConfig())) {
+                sendDebugInfo(`フィルタ除外: "${newMessage}"`);
+              } else {
+                pushComment({
+                  apiKeyVOICEVOX: config.apiKeyVOICEVOX,
+                  newMessage,
+                  speed: config.speed,
+                  tabId: config.tabId,
+                  speakerId: config.speakerId,
+                });
+              }
             }
           }
         }
