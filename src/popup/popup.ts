@@ -648,7 +648,11 @@ function populateBrowserVoices(savedVoice?: string): void {
       const googleJa = Array.from(select.options).find(
         (opt) => opt.value.startsWith('Google') && opt.value.includes('日本語')
       );
-      if (googleJa) select.value = googleJa.value;
+      if (googleJa) {
+        select.value = googleJa.value;
+        chrome.storage.sync.set({ browserVoice: googleJa.value });
+        chrome.runtime.sendMessage({ action: 'updateBrowserVoice', voiceName: googleJa.value });
+      }
     }
     updateSpeedSliderState();
   });
