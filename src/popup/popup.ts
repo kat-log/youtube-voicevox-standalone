@@ -457,7 +457,7 @@ document.getElementById('toggle-api-key')!.addEventListener('click', () => {
     btn.setAttribute('aria-label', 'APIキーを非表示にする');
   } else {
     input.type = 'password';
-    btn.textContent = '👁';
+    btn.textContent = '👀';
     btn.setAttribute('aria-label', 'APIキーを表示する');
   }
 });
@@ -472,7 +472,7 @@ document.getElementById('toggle-voicevox-key')?.addEventListener('click', () => 
     btn.setAttribute('aria-label', 'APIキーを非表示にする');
   } else {
     input.type = 'password';
-    btn.textContent = '👁';
+    btn.textContent = '👀';
     btn.setAttribute('aria-label', 'APIキーを表示する');
   }
 });
