@@ -3,6 +3,14 @@ import '../styles/styles.scss';
 let speed = 1.0;
 let volume = 1.0;
 
+/** レンジスライダーの塗りをCSS変数で更新 */
+function setRangeFill(el: HTMLInputElement): void {
+  const min = parseFloat(el.min) || 0;
+  const max = parseFloat(el.max) || 100;
+  const pct = ((parseFloat(el.value) - min) / (max - min)) * 100;
+  el.style.setProperty('--fill', `${pct}%`);
+}
+
 window.onload = function () {
   chrome.storage.sync.get(
     [
@@ -27,10 +35,13 @@ window.onload = function () {
       speedSlider.value = String(speed);
       document.getElementById('current-speed')!.textContent = `${speed.toFixed(1)}x`;
       speedSlider.setAttribute('aria-valuetext', `${speed.toFixed(1)}倍速`);
+      setRangeFill(speedSlider);
 
       volume = data.volume || 1.0;
-      (document.getElementById('volume') as HTMLInputElement).value = String(volume);
+      const volumeSlider = document.getElementById('volume') as HTMLInputElement;
+      volumeSlider.value = String(volume);
       document.getElementById('current-volume')!.textContent = `${volume}`;
+      setRangeFill(volumeSlider);
       const volumePct = Math.round(volume * 100);
       document.getElementById('volume')!.setAttribute('aria-valuetext', `音量${volumePct}%`);
 
@@ -64,7 +75,9 @@ window.onload = function () {
       (document.getElementById('filterEnabled') as HTMLInputElement).checked = fc.enabled;
       document.getElementById('filterEnabled')!.setAttribute('aria-checked', String(fc.enabled));
       document.getElementById('filter-options')!.style.display = fc.enabled ? 'block' : 'none';
-      (document.getElementById('filterMinLength') as HTMLInputElement).value = String(fc.minLength);
+      const filterMinLengthSlider = document.getElementById('filterMinLength') as HTMLInputElement;
+      filterMinLengthSlider.value = String(fc.minLength);
+      setRangeFill(filterMinLengthSlider);
       document.getElementById('current-min-length')!.textContent = String(fc.minLength);
       (document.getElementById('filterSkipEmojiOnly') as HTMLInputElement).checked =
         fc.skipEmojiOnly;
@@ -235,6 +248,7 @@ document.getElementById('reset-speed')!.addEventListener('click', () => {
   const speedSlider = document.getElementById('speed') as HTMLInputElement;
   speedSlider.value = String(speed);
   speedSlider.setAttribute('aria-valuetext', '1.0倍速');
+  setRangeFill(speedSlider);
 });
 
 document.getElementById('volume')!.addEventListener('input', (event) => {
@@ -246,6 +260,7 @@ document.getElementById('volume')!.addEventListener('input', (event) => {
 
   const pct = Math.round(volume * 100);
   target.setAttribute('aria-valuetext', `音量${pct}%`);
+  setRangeFill(target);
 });
 
 document.getElementById('latestOnlyMode')!.addEventListener('change', (event) => {
@@ -350,6 +365,7 @@ document.getElementById('speed')!.addEventListener('input', (event) => {
   chrome.runtime.sendMessage({ action: 'updateQueueSpeed', speed: speed });
 
   target.setAttribute('aria-valuetext', `${speed.toFixed(1)}倍速`);
+  setRangeFill(target);
 });
 
 let currentStatus: string = 'idle';
@@ -505,6 +521,7 @@ document.getElementById('filterMinLength')!.addEventListener('input', (event) =>
   const target = event.target as HTMLInputElement;
   document.getElementById('current-min-length')!.textContent = target.value;
   target.setAttribute('aria-valuetext', `${target.value}文字`);
+  setRangeFill(target);
   sendFilterConfig();
 });
 
@@ -544,6 +561,7 @@ function updateSpeedSliderState(): void {
       speedSlider.value = '1.0';
       document.getElementById('current-speed')!.textContent = '1.0x';
       speedSlider.setAttribute('aria-valuetext', '1.0倍速');
+      setRangeFill(speedSlider);
       info.style.display = 'block';
       return;
     }
@@ -554,6 +572,7 @@ function updateSpeedSliderState(): void {
   speedSlider.value = String(speed);
   document.getElementById('current-speed')!.textContent = `${speed.toFixed(1)}x`;
   speedSlider.setAttribute('aria-valuetext', `${speed.toFixed(1)}倍速`);
+  setRangeFill(speedSlider);
   info.style.display = 'none';
 }
 

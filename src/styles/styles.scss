@@ -1,23 +1,25 @@
 /* CSS変数（テーマ） */
 :root {
-  --bg-primary: #f0f0f0;
+  --bg-primary: #f8fafc;
   --bg-section: #ffffff;
   --bg-input: #ffffff;
-  --text-primary: #333333;
-  --text-secondary: #666666;
-  --border-color: #e5e7eb;
-  --accent-color: #4caf50;
-  --accent-hover: #45a049;
-  --error-color: #dc3545;
-  --debug-color: #3ac9ff;
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --border-color: #e2e8f0;
+  --accent-color: #059669;
+  --accent-hover: #047857;
+  --accent-light: #d1fae5;
+  --error-color: #dc2626;
+  --debug-color: #0ea5e9;
 }
 
 /* 全体設定 */
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  font-size: 13px;
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  padding: 20px;
+  padding: 16px;
   width: 400px;
   min-height: 200px;
   max-height: 600px;
@@ -27,8 +29,9 @@ body {
 /* label */
 label {
   display: block;
-  margin-bottom: 5px;
-  font-weight: bold;
+  margin-bottom: 4px;
+  font-weight: 600;
+  font-size: 12px;
   color: var(--text-secondary);
 }
 
@@ -36,18 +39,26 @@ label {
 p {
   margin-top: 0;
   line-height: 1.5;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 input[type='text'],
 input[type='password'] {
   width: 95%;
-  padding: 8px;
+  padding: 7px 8px;
   border: 1px solid var(--border-color);
-  border-radius: 4px;
-  margin-bottom: 15px;
+  border-radius: 6px;
+  margin-bottom: 10px;
   background-color: var(--bg-input);
   color: var(--text-primary);
+  font-size: 13px;
+  transition: border-color 0.15s;
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px var(--accent-light);
+  }
 }
 
 /* ボタン */
@@ -55,14 +66,16 @@ button {
   background-color: var(--accent-color);
   border: none;
   color: white;
-  padding: 10px 20px;
+  padding: 8px 18px;
   text-align: center;
   text-decoration: none;
   display: inline-block;
-  font-size: 16px;
+  font-size: 14px;
+  font-weight: 500;
   margin: 4px 2px;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 6px;
+  transition: background-color 0.15s;
 }
 
 button:hover {
@@ -71,18 +84,18 @@ button:hover {
 
 /* スピードリセットボタン */
 #reset-speed {
-  background-color: #ccc;
-  color: #333;
+  background-color: #e2e8f0;
+  color: #475569;
 }
 
 #reset-speed:hover {
-  background-color: #aaa;
+  background-color: #cbd5e1;
 }
 
 /* メッセージ表示 */
 #error,
 #debug {
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 /* エラーメッセージ */
@@ -100,17 +113,54 @@ button:hover {
   background-color: var(--bg-section);
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  padding: 12px 16px;
-  margin-bottom: 12px;
+  padding: 10px 14px;
+  margin-bottom: 10px;
 }
 
 .section-title {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
   margin-bottom: 8px;
+}
+
+/* レンジスライダー */
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    var(--accent-color) 0%,
+    var(--accent-color) var(--fill, 0%),
+    var(--border-color) var(--fill, 0%),
+    var(--border-color) 100%
+  );
+  cursor: pointer;
+  outline: none;
+
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    transition: transform 0.12s, box-shadow 0.12s;
+  }
+
+  &:not(:disabled):hover::-webkit-slider-thumb {
+    transform: scale(1.2);
+    box-shadow: 0 2px 8px rgba(5, 150, 105, 0.35);
+  }
+
+  &:focus::-webkit-slider-thumb {
+    box-shadow: 0 0 0 3px var(--accent-light);
+  }
 }
 
 /* スライダーグループ */
@@ -118,7 +168,7 @@ button:hover {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 
   input[type='range'] {
     flex: 1;
@@ -134,13 +184,14 @@ button:hover {
 
 /* 小さいボタン */
 .small-btn {
-  font-size: 11px;
-  padding: 4px 8px;
-  background-color: #e5e7eb;
-  color: #374151;
+  font-size: 12px;
+  padding: 4px 10px;
+  background-color: #e2e8f0;
+  color: #475569;
+  border-radius: 5px;
 
   &:hover {
-    background-color: #d1d5db;
+    background-color: #cbd5e1;
   }
 }
 
@@ -149,7 +200,7 @@ button:hover {
   display: flex;
   align-items: center;
   gap: 4px;
-  margin-bottom: 15px;
+  margin-bottom: 10px;
 
   input {
     flex: 1;
@@ -160,12 +211,13 @@ button:hover {
 .toggle-visibility {
   background: none;
   border: 1px solid var(--border-color);
-  border-radius: 4px;
-  padding: 6px 8px;
+  border-radius: 5px;
+  padding: 5px 8px;
   cursor: pointer;
   font-size: 14px;
-  min-width: 36px;
+  min-width: 34px;
   color: var(--text-primary);
+  margin: 0;
 
   &:hover {
     background-color: var(--bg-primary);
@@ -177,23 +229,25 @@ button:hover {
   display: flex;
   align-items: center;
   gap: 6px;
+  margin-bottom: 5px;
 
   .help-link {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
-    background-color: #e5e7eb;
-    color: #6b7280;
-    font-size: 11px;
-    font-weight: bold;
+    background-color: #e2e8f0;
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 700;
     text-decoration: none;
+    flex-shrink: 0;
 
     &:hover {
-      background-color: #d1d5db;
-      color: #374151;
+      background-color: #cbd5e1;
+      color: #334155;
     }
   }
 }
@@ -202,15 +256,16 @@ button:hover {
 .toggle-container {
   display: flex;
   align-items: center;
-  margin: 15px 0;
+  margin: 8px 0;
 }
 
 .toggle-switch {
   position: relative;
   display: inline-block;
-  width: 60px;
-  height: 34px;
-  margin-right: 10px;
+  width: 40px;
+  height: 22px;
+  margin-right: 8px;
+  flex-shrink: 0;
 }
 
 .toggle-switch input {
@@ -226,19 +281,20 @@ button:hover {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #ccc;
-  transition: 0.4s;
+  background-color: #cbd5e1;
+  transition: 0.25s;
 }
 
 .slider:before {
   position: absolute;
   content: '';
-  height: 26px;
-  width: 26px;
-  left: 4px;
-  bottom: 4px;
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
   background-color: white;
-  transition: 0.4s;
+  transition: 0.25s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 input:checked + .slider {
@@ -246,11 +302,11 @@ input:checked + .slider {
 }
 
 input:checked + .slider:before {
-  transform: translateX(26px);
+  transform: translateX(18px);
 }
 
 .slider.round {
-  border-radius: 34px;
+  border-radius: 22px;
 }
 
 .slider.round:before {
@@ -260,35 +316,38 @@ input:checked + .slider:before {
 /* 話者選択ドロップダウン */
 select {
   width: 95%;
-  padding: 8px;
+  padding: 7px 8px;
   border: 1px solid var(--border-color);
-  border-radius: 4px;
-  margin-bottom: 15px;
+  border-radius: 6px;
+  margin-bottom: 10px;
   background-color: var(--bg-input);
   color: var(--text-primary);
+  font-size: 13px;
 }
 
 select:focus {
   outline: none;
   border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px var(--accent-light);
 }
 
 /* アコーディオン */
 .accordion {
-  margin-top: 15px;
+  margin-top: 8px;
 }
 
 .accordion-button {
-  background-color: #ddd;
-  color: #444;
+  background-color: var(--bg-primary);
+  color: var(--text-secondary);
   cursor: pointer;
-  padding: 10px;
+  padding: 8px 12px;
   width: 100%;
   text-align: left;
-  border: none;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
   outline: none;
-  transition: 0.4s;
-  font-size: 12px;
+  transition: background-color 0.15s, color 0.15s;
+  font-size: 13px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -296,16 +355,18 @@ select:focus {
 
 .accordion-button::after {
   content: '\25BC'; /* ▼ */
-  font-size: 10px;
-  transition: transform 0.3s ease;
+  font-size: 9px;
+  transition: transform 0.25s ease;
+  opacity: 0.6;
 }
 
 .accordion-button.active::after {
-  transform: rotate(-180deg); /* ▲ */
+  transform: rotate(-180deg);
 }
 
 .accordion-button:hover {
-  background-color: #ccc;
+  background-color: var(--bg-section);
+  color: var(--text-primary);
 }
 
 .accordion-content {
@@ -320,7 +381,9 @@ select:focus {
   overflow-y: auto;
   overflow-x: auto;
   padding: 10px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
+  border-top: none;
+  border-radius: 0 0 6px 6px;
   width: 95%;
 }
 
@@ -336,7 +399,7 @@ select:focus {
 /* ボタンコンテナ */
 .button-container {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
 /* ツールチップ */
@@ -355,19 +418,21 @@ select:focus {
 .tooltip-block .tooltiptext {
   visibility: hidden;
   width: 180px;
-  background-color: #555;
-  color: #fff;
+  background-color: #1e293b;
+  color: #f1f5f9;
   text-align: center;
   border-radius: 6px;
-  padding: 5px;
+  padding: 6px 8px;
+  border: 1px solid #334155;
   position: absolute;
   z-index: 1;
   bottom: 125%;
   left: 50%;
   margin-left: -90px;
   opacity: 0;
-  transition: opacity 0.3s;
+  transition: opacity 0.2s;
   font-size: 12px;
+  line-height: 1.4;
 }
 
 .tooltip .tooltiptext::after,
@@ -379,7 +444,7 @@ select:focus {
   margin-left: -5px;
   border-width: 5px;
   border-style: solid;
-  border-color: #555 transparent transparent transparent;
+  border-color: #1e293b transparent transparent transparent;
 }
 
 .tooltip:hover .tooltiptext,
@@ -392,23 +457,23 @@ select:focus {
 .status-bar {
   display: flex;
   align-items: center;
-  padding: 8px 12px;
+  padding: 6px 12px;
   margin-bottom: 10px;
   background-color: var(--bg-section);
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 13px;
   border: 1px solid var(--border-color);
 }
 
 .status-dot {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   margin-right: 8px;
   flex-shrink: 0;
 
   &.idle {
-    background-color: #999;
+    background-color: #94a3b8;
   }
 
   &.connecting {
@@ -417,17 +482,17 @@ select:focus {
   }
 
   &.fetching {
-    background-color: #3b82f6; /* Blue */
+    background-color: #3b82f6;
     animation: pulse 1.5s infinite;
   }
 
   &.generating {
-    background-color: #8b5cf6; /* Purple */
+    background-color: #8b5cf6;
     animation: pulse 1.5s infinite;
   }
 
   &.listening {
-    background-color: #22c55e;
+    background-color: #10b981;
   }
 
   &.error {
@@ -441,7 +506,7 @@ select:focus {
     opacity: 1;
   }
   50% {
-    opacity: 0.4;
+    opacity: 0.35;
   }
 }
 
@@ -452,13 +517,13 @@ select:focus {
 
 /* ボタン無効化スタイル */
 button:disabled {
-  background-color: #ccc !important;
-  color: #999;
+  background-color: #e2e8f0 !important;
+  color: #94a3b8;
   cursor: not-allowed;
 }
 
 button:disabled:hover {
-  background-color: #ccc !important;
+  background-color: #e2e8f0 !important;
 }
 
 input[type='range']:disabled {
@@ -483,29 +548,30 @@ input[type='range']:disabled {
 /* キュー情報 */
 .queue-info {
   margin-left: auto;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--accent-color);
-  font-weight: 500;
+  font-weight: 600;
   white-space: nowrap;
 }
 
 /* フィルターオプション */
 .filter-options {
   padding-left: 8px;
-  border-left: 2px solid var(--border-color);
-  margin-top: 8px;
+  border-left: 2px solid var(--accent-light);
+  margin-top: 6px;
 }
 
 /* ダークモード（システム連動・手動トグル共通） */
 body.dark-mode {
-  --bg-primary: #1a1a2e;
-  --bg-section: #16213e;
-  --bg-input: #0f3460;
-  --text-primary: #e0e0e0;
-  --text-secondary: #a0a0a0;
-  --border-color: #2a2a4a;
-  --accent-color: #4caf50;
-  --accent-hover: #66bb6a;
-  --error-color: #ff6b6b;
-  --debug-color: #64b5f6;
+  --bg-primary: #0f172a;
+  --bg-section: #1e293b;
+  --bg-input: #0f172a;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --border-color: #334155;
+  --accent-color: #10b981;
+  --accent-hover: #34d399;
+  --accent-light: #064e3b;
+  --error-color: #f87171;
+  --debug-color: #38bdf8;
 }
