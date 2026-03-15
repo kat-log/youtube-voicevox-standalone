@@ -1,18 +1,19 @@
 :root {
-  --bg-primary: #f9fafb;
+  --bg-primary: #f8fafc;
   --bg-section: #ffffff;
-  --text-primary: #1f2937;
-  --text-secondary: #4b5563;
-  --accent-color: #3b82f6;
-  --accent-hover: #2563eb;
-  --border-color: #e5e7eb;
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --accent-color: #059669;
+  --accent-hover: #047857;
+  --border-color: #e2e8f0;
 }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  font-size: 15px;
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  line-height: 1.6;
+  line-height: 1.7;
   margin: 0;
   padding: 0;
 }
@@ -20,7 +21,7 @@ body {
 .container {
   max-width: 800px;
   margin: 0 auto;
-  padding: 40px 20px;
+  padding: 40px 24px;
 }
 
 header {
@@ -28,14 +29,15 @@ header {
   margin-bottom: 40px;
 
   h1 {
-    font-size: 1.8rem;
+    font-size: 2rem;
     color: var(--text-primary);
     margin-bottom: 10px;
     word-break: keep-all;
+    line-height: 1.4;
   }
 
   p {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     color: var(--text-secondary);
   }
 }
@@ -43,13 +45,14 @@ header {
 .toc {
   background-color: var(--bg-section);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 20px 30px;
-  margin-bottom: 40px;
+  border-radius: 10px;
+  padding: 20px 28px;
+  margin-bottom: 36px;
 
   h2 {
     margin-top: 0;
-    font-size: 1.25rem;
+    font-size: 1.1rem;
+    color: var(--text-primary);
   }
 
   ul {
@@ -59,6 +62,7 @@ header {
 
     li {
       margin-bottom: 10px;
+      font-size: 0.95rem;
 
       a {
         color: var(--accent-color);
@@ -76,33 +80,41 @@ header {
 .guide-section {
   background-color: var(--bg-section);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 30px;
-  margin-bottom: 30px;
+  border-radius: 10px;
+  padding: 24px 32px;
+  margin-bottom: 24px;
 
   h2 {
+    font-size: 1.2rem;
     color: var(--text-primary);
     border-bottom: 2px solid var(--border-color);
     padding-bottom: 10px;
     margin-top: 0;
+    margin-bottom: 16px;
     background-color: transparent;
   }
 
   p {
-    margin-bottom: 20px;
+    margin-bottom: 18px;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    line-height: 1.75;
   }
 
   ol {
     padding-left: 20px;
 
     li {
-      margin-bottom: 15px;
+      margin-bottom: 14px;
+      font-size: 0.95rem;
+      line-height: 1.8;
     }
   }
 
   a {
     color: var(--accent-color);
     text-decoration: none;
+    font-weight: 500;
 
     &:hover {
       text-decoration: underline;
@@ -113,11 +125,12 @@ header {
 .note {
   background-color: #fef3c7;
   color: #92400e;
-  padding: 15px;
-  border-radius: 6px;
+  padding: 14px 18px;
+  border-radius: 8px;
   margin-top: 20px;
   font-size: 0.9rem;
   font-weight: 500;
+  line-height: 1.6;
 }
 
 footer {
