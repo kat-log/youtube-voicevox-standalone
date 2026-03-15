@@ -625,7 +625,14 @@ function populateBrowserVoices(savedVoice?: string): void {
       select.appendChild(group);
     }
 
-    if (savedVoice) select.value = savedVoice;
+    if (savedVoice) {
+      select.value = savedVoice;
+    } else {
+      const googleJa = Array.from(select.options).find(
+        (opt) => opt.value.startsWith('Google') && opt.value.includes('日本語')
+      );
+      if (googleJa) select.value = googleJa.value;
+    }
     updateSpeedSliderState();
   });
 }
