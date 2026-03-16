@@ -4,6 +4,7 @@ export interface FilterConfig {
   skipEmojiOnly: boolean;
   stripEmoji: boolean;
   ngWords: string[];
+  ngWordAction: 'skip' | 'remove';
 }
 
 export const DEFAULT_FILTER_CONFIG: FilterConfig = {
@@ -12,6 +13,7 @@ export const DEFAULT_FILTER_CONFIG: FilterConfig = {
   skipEmojiOnly: false,
   stripEmoji: false,
   ngWords: [],
+  ngWordAction: 'skip',
 };
 
 const EMOJI_ONLY_REGEX = /^[\p{Emoji_Presentation}\p{Extended_Pictographic}\uFE0F\s]+$/u;
@@ -78,4 +80,12 @@ export function stripEmojis(text: string): string {
     .replace(EMOJI_SHORTCODE_REGEX, '')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+/** テキストからNGワードを除去する（大文字小文字無視） */
+export function removeNgWords(text: string, ngWords: string[]): string {
+  if (ngWords.length === 0) return text;
+  const escaped = ngWords.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const pattern = new RegExp(escaped.join('|'), 'gi');
+  return text.replace(pattern, '').replace(/\s+/g, ' ').trim();
 }

@@ -92,6 +92,13 @@ window.onload = function () {
       (document.getElementById('filterNgWords') as HTMLInputElement).value = (
         fc.ngWords || []
       ).join(', ');
+      const ngWordAction = fc.ngWordAction || 'skip';
+      const ngWordActionRadio = document.querySelector(
+        `input[name="ngWordAction"][value="${ngWordAction}"]`
+      ) as HTMLInputElement | null;
+      if (ngWordActionRadio) ngWordActionRadio.checked = true;
+      const hasNgWords = (fc.ngWords || []).length > 0;
+      document.getElementById('ngWordActionGroup')!.style.display = hasNgWords ? 'block' : 'none';
 
       // TTSエンジン設定を復元
       const engine = data.ttsEngine || 'voicevox';
@@ -544,8 +551,13 @@ function sendFilterConfig(): void {
     .split(',')
     .map((w) => w.trim())
     .filter((w) => w.length > 0);
+  const ngWordAction =
+    (document.querySelector('input[name="ngWordAction"]:checked') as HTMLInputElement)?.value ===
+    'remove'
+      ? ('remove' as const)
+      : ('skip' as const);
 
-  const filterConfig = { enabled, minLength, skipEmojiOnly, stripEmoji, ngWords };
+  const filterConfig = { enabled, minLength, skipEmojiOnly, stripEmoji, ngWords, ngWordAction };
   chrome.runtime.sendMessage({ action: 'updateFilterConfig', filterConfig });
 }
 
@@ -580,6 +592,14 @@ let ngWordsDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 document.getElementById('filterNgWords')!.addEventListener('input', () => {
   if (ngWordsDebounceTimer) clearTimeout(ngWordsDebounceTimer);
   ngWordsDebounceTimer = setTimeout(sendFilterConfig, 500);
+  const hasWords = (document.getElementById('filterNgWords') as HTMLInputElement).value
+    .split(',')
+    .some((w) => w.trim().length > 0);
+  document.getElementById('ngWordActionGroup')!.style.display = hasWords ? 'block' : 'none';
+});
+
+document.querySelectorAll('input[name="ngWordAction"]').forEach((radio) => {
+  radio.addEventListener('change', sendFilterConfig);
 });
 
 // --- TTSエンジン選択 ---
