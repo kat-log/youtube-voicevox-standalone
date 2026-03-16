@@ -226,6 +226,16 @@
 
         <label for="filterNgWords">NGワード（カンマ区切り・部分一致）:</label>
         <input type="text" id="filterNgWords" placeholder="例: スパム,宣伝,http" />
+        <div id="ngWordActionGroup" class="radio-group" style="margin-top: 6px; display: none">
+          <label>
+            <input type="radio" name="ngWordAction" value="skip" checked />
+            コメントごとスキップ
+          </label>
+          <label>
+            <input type="radio" name="ngWordAction" value="remove" />
+            該当ワードのみ除去して読み上げ
+          </label>
+        </div>
       </div>
     </div>
 

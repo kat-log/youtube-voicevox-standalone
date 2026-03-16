@@ -4,7 +4,7 @@ import { processCommentQueue } from './tts-api';
 import { stopCurrentAudio, updateBadge, clearBadge } from './audio-player';
 import { sendStatus, sendDebugInfo, clearDebugLogs } from './messaging';
 import { ERROR_THRESHOLD_FOR_STATUS } from './state';
-import { shouldFilter, getFilterConfig, stripEmojis } from './comment-filter';
+import { shouldFilter, getFilterConfig, stripEmojis, removeNgWords } from './comment-filter';
 
 // ポーリング開始
 export function startPolling(config: {
@@ -105,22 +105,32 @@ export function startPolling(config: {
               latestTimestamp: new Date(latestItem.snippet.publishedAt).getTime(),
             });
             const filterConfig = getFilterConfig();
-            const newMessage =
+            let newMessage =
               filterConfig.enabled && filterConfig.stripEmoji
                 ? stripEmojis(rawMessage)
                 : rawMessage;
             if (newMessage.length === 0) {
               sendDebugInfo(`絵文字除去で空: "${rawMessage}"`);
-            } else if (shouldFilter(newMessage, filterConfig)) {
-              sendDebugInfo(`フィルタ除外: "${newMessage}"`);
             } else {
-              pushComment({
-                apiKeyVOICEVOX: config.apiKeyVOICEVOX,
-                newMessage,
-                speed: config.speed,
-                tabId: config.tabId,
-                speakerId: config.speakerId,
-              });
+              if (filterConfig.enabled && filterConfig.ngWordAction === 'remove') {
+                newMessage = removeNgWords(newMessage, filterConfig.ngWords);
+                if (newMessage.length === 0) {
+                  sendDebugInfo(`NGワード除去で空: "${rawMessage}"`);
+                  isFirstFetch = false;
+                  return;
+                }
+              }
+              if (shouldFilter(newMessage, filterConfig)) {
+                sendDebugInfo(`フィルタ除外: "${newMessage}"`);
+              } else {
+                pushComment({
+                  apiKeyVOICEVOX: config.apiKeyVOICEVOX,
+                  newMessage,
+                  speed: config.speed,
+                  tabId: config.tabId,
+                  speakerId: config.speakerId,
+                });
+              }
             }
           }
           isFirstFetch = false;
@@ -134,22 +144,31 @@ export function startPolling(config: {
             if (!currentState.latestTimestamp || timestamp > currentState.latestTimestamp) {
               updateState({ latestTimestamp: timestamp });
               latestMessage = rawMessage;
-              const newMessage =
+              let newMessage =
                 filterConfig.enabled && filterConfig.stripEmoji
                   ? stripEmojis(rawMessage)
                   : rawMessage;
               if (newMessage.length === 0) {
                 sendDebugInfo(`絵文字除去で空: "${rawMessage}"`);
-              } else if (shouldFilter(newMessage, filterConfig)) {
-                sendDebugInfo(`フィルタ除外: "${newMessage}"`);
               } else {
-                pushComment({
-                  apiKeyVOICEVOX: config.apiKeyVOICEVOX,
-                  newMessage,
-                  speed: config.speed,
-                  tabId: config.tabId,
-                  speakerId: config.speakerId,
-                });
+                if (filterConfig.enabled && filterConfig.ngWordAction === 'remove') {
+                  newMessage = removeNgWords(newMessage, filterConfig.ngWords);
+                  if (newMessage.length === 0) {
+                    sendDebugInfo(`NGワード除去で空: "${rawMessage}"`);
+                    continue;
+                  }
+                }
+                if (shouldFilter(newMessage, filterConfig)) {
+                  sendDebugInfo(`フィルタ除外: "${newMessage}"`);
+                } else {
+                  pushComment({
+                    apiKeyVOICEVOX: config.apiKeyVOICEVOX,
+                    newMessage,
+                    speed: config.speed,
+                    tabId: config.tabId,
+                    speakerId: config.speakerId,
+                  });
+                }
               }
             }
           }
