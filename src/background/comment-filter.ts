@@ -13,7 +13,7 @@ export const DEFAULT_FILTER_CONFIG: FilterConfig = {
   skipEmojiOnly: false,
   stripEmoji: false,
   ngWords: [],
-  ngWordAction: 'skip',
+  ngWordAction: 'remove',
 };
 
 const EMOJI_ONLY_REGEX = /^[\p{Emoji_Presentation}\p{Extended_Pictographic}\uFE0F\s]+$/u;
@@ -24,6 +24,13 @@ const UNICODE_EMOJI_REGEX =
 
 // YouTube絵文字ショートコード: :_2BROOtojya: や :thumbsup: 等
 const EMOJI_SHORTCODE_REGEX = /:[a-zA-Z_][a-zA-Z0-9_]*:/g;
+
+/** 全角ASCII文字（！〜～）を半角に正規化する */
+function normalizeWidth(str: string): string {
+  return str.replace(/[\uFF01-\uFF5E]/g, (ch) =>
+    String.fromCharCode(ch.charCodeAt(0) - 0xFEE0)
+  );
+}
 
 // モジュール内キャッシュ
 let cachedConfig: FilterConfig = { ...DEFAULT_FILTER_CONFIG };
@@ -64,8 +71,8 @@ export function shouldFilter(message: string, config: FilterConfig): boolean {
 
   // NGワードチェック
   if (config.ngWords.length > 0) {
-    const lowerText = message.toLowerCase();
-    if (config.ngWords.some((word) => lowerText.includes(word.toLowerCase()))) {
+    const normalized = normalizeWidth(message.toLowerCase());
+    if (config.ngWords.some((word) => normalized.includes(normalizeWidth(word.toLowerCase())))) {
       return true;
     }
   }
@@ -82,10 +89,15 @@ export function stripEmojis(text: string): string {
     .trim();
 }
 
-/** テキストからNGワードを除去する（大文字小文字無視） */
+/** テキストからNGワードを除去する（大文字小文字・全角半角無視） */
 export function removeNgWords(text: string, ngWords: string[]): string {
   if (ngWords.length === 0) return text;
-  const escaped = ngWords.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const normalizedText = normalizeWidth(text);
+  const escaped = ngWords.map((w) =>
+    normalizeWidth(w).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  );
   const pattern = new RegExp(escaped.join('|'), 'gi');
-  return text.replace(pattern, '').replace(/\s+/g, ' ').trim();
+  if (!pattern.test(normalizedText)) return text;
+  pattern.lastIndex = 0;
+  return normalizedText.replace(pattern, '').replace(/\s+/g, ' ').trim();
 }

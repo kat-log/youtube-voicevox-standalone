@@ -92,7 +92,7 @@ window.onload = function () {
       (document.getElementById('filterNgWords') as HTMLInputElement).value = (
         fc.ngWords || []
       ).join(', ');
-      const ngWordAction = fc.ngWordAction || 'skip';
+      const ngWordAction = fc.ngWordAction || 'remove';
       const ngWordActionRadio = document.querySelector(
         `input[name="ngWordAction"][value="${ngWordAction}"]`
       ) as HTMLInputElement | null;

@@ -224,16 +224,16 @@
           <span>絵文字を除去して読み上げ</span>
         </div>
 
-        <label for="filterNgWords">NGワード（カンマ区切り・部分一致）:</label>
+        <label for="filterNgWords">NGワード（カンマ区切り・部分一致・全角半角同一視）:</label>
         <input type="text" id="filterNgWords" placeholder="例: スパム,宣伝,http" />
         <div id="ngWordActionGroup" class="radio-group" style="margin-top: 6px; display: none">
           <label>
-            <input type="radio" name="ngWordAction" value="skip" checked />
-            コメントごとスキップ
+            <input type="radio" name="ngWordAction" value="remove" checked />
+            該当ワードのみ除去して読み上げ
           </label>
           <label>
-            <input type="radio" name="ngWordAction" value="remove" />
-            該当ワードのみ除去して読み上げ
+            <input type="radio" name="ngWordAction" value="skip" />
+            コメントごとスキップ
           </label>
         </div>
       </div>
