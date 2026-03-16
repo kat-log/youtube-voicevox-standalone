@@ -113,11 +113,15 @@ export function startPolling(config: {
               sendDebugInfo(`絵文字除去で空: "${rawMessage}"`);
             } else {
               if (filterConfig.enabled && filterConfig.ngWordAction === 'remove') {
+                const before = newMessage;
                 newMessage = removeNgWords(newMessage, filterConfig.ngWords);
                 if (newMessage.length === 0) {
                   sendDebugInfo(`NGワード除去で空: "${rawMessage}"`);
                   isFirstFetch = false;
                   return;
+                }
+                if (newMessage !== before) {
+                  sendDebugInfo(`NGワード除去: "${before}" → "${newMessage}"`);
                 }
               }
               if (shouldFilter(newMessage, filterConfig)) {
@@ -152,10 +156,14 @@ export function startPolling(config: {
                 sendDebugInfo(`絵文字除去で空: "${rawMessage}"`);
               } else {
                 if (filterConfig.enabled && filterConfig.ngWordAction === 'remove') {
+                  const before = newMessage;
                   newMessage = removeNgWords(newMessage, filterConfig.ngWords);
                   if (newMessage.length === 0) {
                     sendDebugInfo(`NGワード除去で空: "${rawMessage}"`);
                     continue;
+                  }
+                  if (newMessage !== before) {
+                    sendDebugInfo(`NGワード除去: "${before}" → "${newMessage}"`);
                   }
                 }
                 if (shouldFilter(newMessage, filterConfig)) {
