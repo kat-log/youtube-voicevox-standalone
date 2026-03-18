@@ -23,7 +23,7 @@ const UNICODE_EMOJI_REGEX =
   /[\p{Emoji_Presentation}\p{Extended_Pictographic}][\uFE0F\u200D\p{Emoji_Presentation}\p{Extended_Pictographic}\u{1F3FB}-\u{1F3FF}]*/gu;
 
 // YouTube絵文字ショートコード: :_2BROOtojya: や :thumbsup: 等
-const EMOJI_SHORTCODE_REGEX = /:[a-zA-Z_][a-zA-Z0-9_]*:/g;
+const EMOJI_SHORTCODE_REGEX = /:[a-zA-Z_][a-zA-Z0-9_-]*:/g;
 
 /** 全角ASCII文字（！〜～）を半角に正規化する */
 function normalizeWidth(str: string): string {
