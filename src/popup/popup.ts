@@ -641,6 +641,34 @@ function updateSpeedSliderState(): void {
   info.style.display = 'none';
 }
 
+/** エンジン・音声に応じて音量スライダーの有効/無効を切り替える */
+function updateVolumeSliderState(): void {
+  const engine = (document.getElementById('ttsEngine') as HTMLSelectElement).value;
+  const volumeSlider = document.getElementById('volume') as HTMLInputElement;
+  const info = document.getElementById('volume-unsupported-info')!;
+
+  if (engine === 'browser') {
+    const voiceName = (document.getElementById('browserVoice') as HTMLSelectElement).value;
+    if (!isRateSupportedVoice(voiceName)) {
+      volumeSlider.disabled = true;
+      volumeSlider.value = '1';
+      document.getElementById('current-volume')!.textContent = '1.0';
+      volumeSlider.setAttribute('aria-valuetext', '音量100%');
+      setRangeFill(volumeSlider);
+      info.style.display = 'block';
+      return;
+    }
+  }
+
+  volumeSlider.disabled = false;
+  volumeSlider.value = String(volume);
+  document.getElementById('current-volume')!.textContent = `${volume}`;
+  const pct = Math.round(volume * 100);
+  volumeSlider.setAttribute('aria-valuetext', `音量${pct}%`);
+  setRangeFill(volumeSlider);
+  info.style.display = 'none';
+}
+
 function toggleEngineUI(engine: string): void {
   document.getElementById('voicevox-settings')!.style.display =
     engine === 'voicevox' ? 'block' : 'none';
@@ -649,6 +677,7 @@ function toggleEngineUI(engine: string): void {
   document.getElementById('voicevox-api-key-section')!.style.display =
     engine === 'voicevox' ? 'block' : 'none';
   updateSpeedSliderState();
+  updateVolumeSliderState();
 }
 
 function populateBrowserVoices(savedVoice?: string): void {
@@ -701,6 +730,7 @@ function populateBrowserVoices(savedVoice?: string): void {
       }
     }
     updateSpeedSliderState();
+    updateVolumeSliderState();
   });
 }
 
@@ -716,4 +746,5 @@ document.getElementById('browserVoice')!.addEventListener('change', (event) => {
   chrome.storage.sync.set({ browserVoice: voiceName });
   chrome.runtime.sendMessage({ action: 'updateBrowserVoice', voiceName });
   updateSpeedSliderState();
+  updateVolumeSliderState();
 });

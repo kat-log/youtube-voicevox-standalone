@@ -97,7 +97,7 @@ function playSpeechSynthesis(
       voiceName: voiceName || undefined,
       lang: 'ja-JP',
       rate: isRateSupportedVoice(voiceName) ? correctTtsRate(speed) : 1.0,
-      volume: volume,
+      volume: isRateSupportedVoice(voiceName) ? volume : 1.0,
       onEvent: (event) => {
         if (
           event.type === 'end' ||
