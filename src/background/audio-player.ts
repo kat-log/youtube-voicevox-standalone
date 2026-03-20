@@ -183,6 +183,7 @@ export function handleAudioEnded(): void {
     isPlaying: false,
     playingTimeout: null,
   });
+  incrementCumulativeCount();
   updateBadge();
   sendDebugInfo(`■ 再生終了 | Queue: ${formatQueueState()}`);
 
@@ -194,6 +195,17 @@ export function handleAudioEnded(): void {
 
   playNextAudio();
   scheduleNextProcessing();
+}
+
+// 累計読み上げ数を永続化してブロードキャスト
+function incrementCumulativeCount(): void {
+  chrome.storage.local.get({ stats: { totalCount: 0, lastActiveDate: '' } }, (data) => {
+    const stats = data.stats;
+    stats.totalCount++;
+    stats.lastActiveDate = new Date().toISOString().split('T')[0];
+    chrome.storage.local.set({ stats });
+    chrome.runtime.sendMessage({ action: 'updateStats', totalCount: stats.totalCount }).catch(() => {});
+  });
 }
 
 // アイコンバッジ更新

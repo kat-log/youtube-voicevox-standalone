@@ -1,4 +1,5 @@
 import '../styles/styles.scss';
+import { getCurrentRank } from '../stats/ranks';
 
 let speed = 1.0;
 let volume = 1.0;
@@ -193,6 +194,11 @@ window.onload = function () {
     }
   );
 
+  // 累計読み上げ数を読み込んで実績ウィジェットを更新
+  chrome.storage.local.get({ stats: { totalCount: 0 } }, (data) => {
+    updateStatsLink(data.stats.totalCount);
+  });
+
   // session storage から保存済みログを復元
   chrome.storage.session.get({ debugLogs: [] }, (data) => {
     const debugElement = document.getElementById('debug');
@@ -365,6 +371,7 @@ chrome.runtime.onMessage.addListener(function (request: {
   timestamp?: string;
   commentCount?: number;
   queueLength?: number;
+  totalCount?: number;
 }) {
   // ステータス更新
   if (request.action === 'updateStatus') {
@@ -379,6 +386,10 @@ chrome.runtime.onMessage.addListener(function (request: {
     if (errorElement) {
       errorElement.textContent = request.message || '';
     }
+  }
+  // 累計読み上げ数の更新
+  else if (request.action === 'updateStats') {
+    updateStatsLink(request.totalCount || 0);
   }
   // デバッグメッセージリスナー
   else if (request.action === 'debugInfo') {
@@ -403,6 +414,22 @@ chrome.runtime.onMessage.addListener(function (request: {
       }
     }
   }
+});
+
+// 実績ウィジェット更新
+function updateStatsLink(totalCount: number): void {
+  const rank = getCurrentRank(totalCount);
+  const emoji = document.getElementById('stats-emoji');
+  const name = document.getElementById('stats-rank-name');
+  const count = document.getElementById('stats-total-count');
+  if (emoji) emoji.textContent = rank.emoji;
+  if (name) name.textContent = rank.name;
+  if (count) count.textContent = `${totalCount.toLocaleString()}件`;
+}
+
+// 実績ページを開く
+document.getElementById('stats-link')?.addEventListener('click', () => {
+  chrome.tabs.create({ url: chrome.runtime.getURL('stats/stats.html') });
 });
 
 // 専用ページを開く

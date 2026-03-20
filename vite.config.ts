@@ -15,6 +15,7 @@ export default defineConfig({
         popup: resolve(__dirname, 'src/popup/popup.html'),
         log: resolve(__dirname, 'src/log/log.html'),
         onboarding: resolve(__dirname, 'src/onboarding/onboarding.html'),
+        stats: resolve(__dirname, 'src/stats/stats.html'),
       },
       output: {
         entryFileNames: '[name].js',

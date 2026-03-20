@@ -85,6 +85,17 @@ export interface DebugInfoMessage {
   timestamp?: string;
 }
 
+// Background → Stats Page メッセージ
+export interface UpdateStatsMessage {
+  action: 'updateStats';
+  totalCount: number;
+}
+
+// Stats Page → Background メッセージ
+export interface GetStatsMessage {
+  action: 'getStats';
+}
+
 // メッセージレスポンス
 export interface MessageResponse {
   status: 'success' | 'error';

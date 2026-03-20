@@ -724,3 +724,44 @@ body.dark-mode {
     }
   }
 }
+
+/* Popup: 実績リンクウィジェット */
+.stats-link-container {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  background-color: var(--bg-section);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+  gap: 8px;
+  font-size: 13px;
+
+  &:hover {
+    background-color: var(--bg-primary);
+    border-color: var(--accent-color);
+  }
+}
+
+.stats-emoji {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.stats-rank-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.stats-total-count {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.stats-open-arrow {
+  margin-left: auto;
+  color: var(--text-secondary);
+  font-size: 14px;
+}

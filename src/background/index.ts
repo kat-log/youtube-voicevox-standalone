@@ -247,6 +247,13 @@ chrome.runtime.onMessage.addListener(
         sendResponse({ status: 'success' });
         return true;
       }
+
+      case 'getStats': {
+        chrome.storage.local.get({ stats: { totalCount: 0, lastActiveDate: '' } }, (data) => {
+          sendResponse({ status: 'success', stats: data.stats });
+        });
+        return true;
+      }
     }
 
     return true;
