@@ -476,9 +476,19 @@ function updateStatusUI(status: string, message: string, count: number, queueLen
       queueEl.textContent = queueLength > 0 ? `待機: ${queueLength}件` : '';
       break;
     case 'listening':
-      text.textContent = '読み上げ中';
+      text.textContent = '再生中';
       countEl.textContent = count > 0 ? `（${count}件読上済）` : '';
       queueEl.textContent = queueLength > 0 ? `待機: ${queueLength}件` : '';
+      break;
+    case 'rate-limited':
+      text.textContent = 'レート制限待機中...';
+      countEl.textContent = count > 0 ? `（${count}件読上済）` : '';
+      queueEl.textContent = queueLength > 0 ? `待機: ${queueLength}件` : '';
+      break;
+    case 'waiting':
+      text.textContent = 'コメント待ち';
+      countEl.textContent = count > 0 ? `（${count}件読上済）` : '';
+      queueEl.textContent = '';
       break;
     case 'error':
       text.textContent = 'エラー: ' + (message || '不明');

@@ -595,6 +595,15 @@ select:focus {
     background-color: #10b981;
   }
 
+  &.rate-limited {
+    background-color: #f59e0b;
+    animation: pulse 1.5s infinite;
+  }
+
+  &.waiting {
+    background-color: #06b6d4;
+  }
+
   &.error {
     background-color: #ef4444;
   }

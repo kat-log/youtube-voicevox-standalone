@@ -1,7 +1,9 @@
-import { getState } from './state';
+import type { ExtensionStatus } from '@/types/state';
+import { getState, updateState } from './state';
 
 // ステータス情報をポップアップに送信する関数
-export function sendStatus(status: string, message = ''): void {
+export function sendStatus(status: ExtensionStatus, message = ''): void {
+  updateState({ currentStatus: status });
   const state = getState();
   chrome.runtime
     .sendMessage({
