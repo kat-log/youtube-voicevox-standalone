@@ -1,6 +1,6 @@
 import { getState, updateState, resetState, incrementSessionId, pushComment } from './state';
 import { LiveChatEndedError } from './youtube-api';
-import { processCommentQueue } from './tts-api';
+import { scheduleNextProcessing, cancelScheduledProcessing } from './tts-api';
 import { stopCurrentAudio, updateBadge, clearBadge } from './audio-player';
 import { sendStatus, sendDebugInfo, formatQueueState, clearDebugLogs } from './messaging';
 import { ERROR_THRESHOLD_FOR_STATUS } from './state';
@@ -16,8 +16,6 @@ export function startPolling(config: {
 }): void {
   // 新セッション開始時に前回のログをクリア
   clearDebugLogs();
-
-  const state = getState();
 
   // ポーリング開始時にエラーカウンタとポーリング間隔をリセット
   updateState({ consecutiveErrors: 0, pollingIntervalMs: 5000 });
@@ -194,6 +192,7 @@ export function startPolling(config: {
 
         updateState({ nextPageToken: data.nextPageToken || null });
         updateBadge();
+        scheduleNextProcessing();
       })
       .catch((error: Error & { isRateLimit?: boolean }) => {
         if (error instanceof LiveChatEndedError) {
@@ -244,10 +243,8 @@ export function startPolling(config: {
       });
   };
 
-  // コメント処理インターバル開始
-  if (!state.commentIntervalId) {
-    updateState({ commentIntervalId: setInterval(processCommentQueue, 2000) });
-  }
+  // コメント処理開始
+  scheduleNextProcessing();
 
   checkNewComments();
 }
@@ -271,11 +268,8 @@ export function stopAll(): void {
     updateState({ intervalId: null });
   }
 
-  // コメント処理インターバルをクリア
-  if (state.commentIntervalId) {
-    clearInterval(state.commentIntervalId);
-    updateState({ commentIntervalId: null });
-  }
+  // コメント処理スケジュールをキャンセル
+  cancelScheduledProcessing();
 
   // 音声停止
   stopCurrentAudio();

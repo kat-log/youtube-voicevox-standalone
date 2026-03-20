@@ -22,7 +22,6 @@ export interface ExtensionState {
   intervalId: ReturnType<typeof setTimeout> | null;
   nextPageToken: string | null;
   commentQueue: CommentQueueItem[];
-  commentIntervalId: ReturnType<typeof setInterval> | null;
   latestTimestamp: number | null;
   latestOnlyMode: boolean;
   activeTabId: number | null;

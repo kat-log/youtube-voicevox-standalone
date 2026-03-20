@@ -9,7 +9,6 @@ const state: ExtensionState = {
   intervalId: null,
   nextPageToken: null,
   commentQueue: [],
-  commentIntervalId: null,
   latestTimestamp: null,
   latestOnlyMode: false,
   activeTabId: null,

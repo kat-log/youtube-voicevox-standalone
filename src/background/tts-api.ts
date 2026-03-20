@@ -8,6 +8,37 @@ import { playNextAudio, updateBadge } from './audio-player';
 let currentEngine: TtsEngine = 'voicevox';
 let browserVoiceName: string | null = null;
 
+// 先読みパイプライン制御
+let isTtsProcessing = false;
+let processingTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+const PREFETCH_THRESHOLD = 3;   // audioQueue にこの数まで先読み
+const MIN_PROCESS_DELAY = 500;  // TTS API呼出の最低間隔(ms)
+
+// 次のコメント処理をスケジュール（audioQueue が閾値未満なら先読み）
+export function scheduleNextProcessing(): void {
+  if (processingTimeoutId !== null) return;
+  if (isTtsProcessing) return;
+
+  const state = getState();
+  if (state.commentQueue.length === 0) return;
+  if (state.audioQueue.length >= PREFETCH_THRESHOLD) return;
+
+  processingTimeoutId = setTimeout(() => {
+    processingTimeoutId = null;
+    processCommentQueue();
+  }, MIN_PROCESS_DELAY);
+}
+
+// スケジュール済み処理のキャンセル（停止用）
+export function cancelScheduledProcessing(): void {
+  if (processingTimeoutId !== null) {
+    clearTimeout(processingTimeoutId);
+    processingTimeoutId = null;
+  }
+  isTtsProcessing = false;
+}
+
 export function setTtsEngine(engine: TtsEngine): void {
   currentEngine = engine;
 }
@@ -26,9 +57,8 @@ export function getBrowserVoice(): string | null {
 
 export function processCommentQueue(): void {
   const state = getState();
-  if (state.commentQueue.length === 0) {
-    return;
-  }
+  if (state.commentQueue.length === 0) return;
+  if (isTtsProcessing) return;
 
   const comment = shiftComment();
   if (!comment) return;
@@ -44,10 +74,12 @@ export function processCommentQueue(): void {
     sendStatus('listening');
     updateBadge();
     playNextAudio();
+    scheduleNextProcessing();
     return;
   }
 
   // VOICEVOX: TTS Quest APIで音声合成
+  isTtsProcessing = true;
   sendDebugInfo(`VOICEVOX REQUEST：${comment.newMessage} | Queue: ${formatQueueState()}`);
   synthesizeWithRetry(comment, 0);
 }
@@ -71,6 +103,7 @@ function synthesizeWithRetry(
 
   fetchVoiceVox(apiKeyVOICEVOX, newMessage, speakerId)
     .then((audioUrl) => {
+      isTtsProcessing = false;
       // Stop後に完了した古いリクエストは破棄
       if (getState().sessionId !== currentSession) return;
 
@@ -80,19 +113,26 @@ function synthesizeWithRetry(
       sendStatus('listening');
       updateBadge();
       playNextAudio();
+      scheduleNextProcessing();
     })
     .catch((error: Error) => {
       // Stop後に完了した古いリクエストは破棄
-      if (getState().sessionId !== currentSession) return;
+      if (getState().sessionId !== currentSession) {
+        isTtsProcessing = false;
+        return;
+      }
 
       if (retryCount < maxRetries) {
         sendDebugInfo(`VOICEVOXリトライ（${retryCount + 1}/${maxRetries}）: ${newMessage}`);
+        // リトライ中は isTtsProcessing = true のまま
         setTimeout(() => synthesizeWithRetry(comment, retryCount + 1), 1000);
       } else {
         // リトライ上限到達: コメントをスキップ
+        isTtsProcessing = false;
         sendDebugInfo(`VOICEVOXエラー（スキップ）: ${error.message} - "${newMessage}"`);
         // eslint-disable-next-line no-console
         console.error('VoiceVoxエラー:', error);
+        scheduleNextProcessing();
       }
     });
 }
