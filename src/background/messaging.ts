@@ -14,6 +14,12 @@ export function sendStatus(status: string, message = ''): void {
     .catch(() => {});
 }
 
+// キュー状態を [C:x, A:y] 形式でフォーマット
+export function formatQueueState(): string {
+  const state = getState();
+  return `[C:${state.commentQueue.length}, A:${state.audioQueue.length}]`;
+}
+
 const MAX_LOG_ENTRIES = 500;
 
 // デバッグ情報をポップアップに送信し、session storage に永続化する関数

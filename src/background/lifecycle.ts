@@ -2,7 +2,7 @@ import { getState, updateState, resetState, incrementSessionId, pushComment } fr
 import { LiveChatEndedError } from './youtube-api';
 import { processCommentQueue } from './tts-api';
 import { stopCurrentAudio, updateBadge, clearBadge } from './audio-player';
-import { sendStatus, sendDebugInfo, clearDebugLogs } from './messaging';
+import { sendStatus, sendDebugInfo, formatQueueState, clearDebugLogs } from './messaging';
 import { ERROR_THRESHOLD_FOR_STATUS } from './state';
 import { shouldFilter, getFilterConfig, stripEmojis, removeNgWords } from './comment-filter';
 
@@ -33,6 +33,11 @@ export function startPolling(config: {
     const requestUrl = `https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId=${state.liveChatId}&part=snippet,authorDetails&key=${config.apiKeyYoutube}${
       state.nextPageToken ? `&pageToken=${state.nextPageToken}` : ''
     }`;
+
+    // ポーリングサイクルのセパレータログ
+    const cycleNum = state.pollingCycleCount + 1;
+    updateState({ pollingCycleCount: cycleNum });
+    sendDebugInfo(`══════ Poll #${cycleNum} (interval: ${state.pollingIntervalMs}ms) ══════`);
 
     // YouTube APIにリクエストを送る直前にステータスを更新
     sendStatus('fetching');
@@ -89,7 +94,7 @@ export function startPolling(config: {
         sendStatus('listening');
 
         if (!data.items || data.items.length === 0) {
-          sendDebugInfo('新規コメントなし');
+          sendDebugInfo(`0件 | Queue: ${formatQueueState()} | 次回: ${getState().pollingIntervalMs}ms`);
           updateState({ nextPageToken: data.nextPageToken || null });
           return;
         }
@@ -97,6 +102,7 @@ export function startPolling(config: {
         const currentState = getState();
         if (isFirstFetch || currentState.latestOnlyMode) {
           // 最初の取得または最新のみモードでは最新の1件のみを取得
+          sendDebugInfo(`📥 1件取得（最新のみ） | Queue: ${formatQueueState()} | 次回: ${getState().pollingIntervalMs}ms`);
           const latestItem = data.items[data.items.length - 1];
           const rawMessage: string = latestItem.snippet.displayMessage;
           if (rawMessage !== latestMessage) {
@@ -140,6 +146,7 @@ export function startPolling(config: {
           isFirstFetch = false;
         } else {
           // 通常モードでは差分をすべて取得
+          const beforeQueueSize = currentState.commentQueue.length;
           const filterConfig = getFilterConfig();
           for (const item of data.items) {
             const rawMessage: string = item.snippet.displayMessage;
@@ -180,6 +187,9 @@ export function startPolling(config: {
               }
             }
           }
+          const afterQueueSize = getState().commentQueue.length;
+          const addedCount = afterQueueSize - beforeQueueSize;
+          sendDebugInfo(`📥 ${addedCount}件追加（${data.items.length}件取得） | Queue: [C:${beforeQueueSize}→${afterQueueSize}, A:${getState().audioQueue.length}] | 次回: ${getState().pollingIntervalMs}ms`);
         }
 
         updateState({ nextPageToken: data.nextPageToken || null });

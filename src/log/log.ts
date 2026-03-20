@@ -17,7 +17,14 @@ chrome.storage.sync.get(['darkMode'], function (data) {
 chrome.storage.session.get({ debugLogs: [] }, (data) => {
   const debugElement = document.getElementById('debug');
   if (debugElement && data.debugLogs.length > 0) {
-    debugElement.textContent = data.debugLogs.join('\n') + '\n';
+    for (const log of data.debugLogs) {
+      const span = document.createElement('span');
+      if (log.includes('══════')) {
+        span.className = 'log-separator';
+      }
+      span.textContent = log + '\n';
+      debugElement.appendChild(span);
+    }
     const logContentArea = document.getElementById('log-content-area');
     if (logContentArea) {
       logContentArea.scrollTop = logContentArea.scrollHeight;
@@ -40,8 +47,13 @@ chrome.runtime.onMessage.addListener(function (request: { action: string; messag
         logContentArea.scrollHeight - logContentArea.clientHeight <= logContentArea.scrollTop + 50;
 
       const timestamp = request.timestamp || new Date().toLocaleTimeString();
-      const newMessage = `[${timestamp}] ${request.message}\n`;
-      debugElement.insertAdjacentText('beforeend', newMessage);
+      const isSeparator = request.message?.includes('══════');
+      const newLine = document.createElement('span');
+      if (isSeparator) {
+        newLine.className = 'log-separator';
+      }
+      newLine.textContent = `[${timestamp}] ${request.message}\n`;
+      debugElement.appendChild(newLine);
 
       // 一番下にいた場合のみ、新しいログに合わせて一番下までスクロールさせる
       if (isScrolledToBottom) {

@@ -1,7 +1,7 @@
 import type { TTSQuestSynthesisResponse, TTSQuestAudioStatusResponse } from '@/types/api-responses';
 import type { TtsEngine } from '@/types/state';
 import { getState, shiftComment, pushAudio } from './state';
-import { sendDebugInfo, sendStatus } from './messaging';
+import { sendDebugInfo, formatQueueState, sendStatus } from './messaging';
 import { playNextAudio, updateBadge } from './audio-player';
 
 // TTSエンジン設定（モジュールレベルキャッシュ）
@@ -35,7 +35,7 @@ export function processCommentQueue(): void {
 
   if (currentEngine === 'browser') {
     // ブラウザTTS: API不要、直接audioQueueに追加
-    sendDebugInfo(`ブラウザTTS：${comment.newMessage}`);
+    sendDebugInfo(`ブラウザTTS：${comment.newMessage} | Queue: ${formatQueueState()}`);
     pushAudio({
       type: 'speech',
       text: comment.newMessage,
@@ -48,7 +48,7 @@ export function processCommentQueue(): void {
   }
 
   // VOICEVOX: TTS Quest APIで音声合成
-  sendDebugInfo(`VOICEVOX REQUEST：${comment.newMessage}`);
+  sendDebugInfo(`VOICEVOX REQUEST：${comment.newMessage} | Queue: ${formatQueueState()}`);
   synthesizeWithRetry(comment, 0);
 }
 
@@ -74,7 +74,7 @@ function synthesizeWithRetry(
       // Stop後に完了した古いリクエストは破棄
       if (getState().sessionId !== currentSession) return;
 
-      sendDebugInfo(`VOICEVOX RESPONSE：${audioUrl}`);
+      sendDebugInfo(`VOICEVOX RESPONSE：${audioUrl} | Queue: ${formatQueueState()}`);
 
       pushAudio({ type: 'url', url: audioUrl });
       sendStatus('listening');

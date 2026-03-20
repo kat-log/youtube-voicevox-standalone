@@ -31,6 +31,7 @@ export interface ExtensionState {
   pollingIntervalMs: number;
   commentCount: number;
   sessionId: number;
+  pollingCycleCount: number;
 }
 
 export type ExtensionStatus =
