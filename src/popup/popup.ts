@@ -11,6 +11,42 @@ function setRangeFill(el: HTMLInputElement): void {
   el.style.setProperty('--fill', `${pct}%`);
 }
 
+/** デュアルレンジスライダーの中間塗りを更新 */
+function updateDualRangeFill(): void {
+  const minSlider = document.getElementById('filterMinLength') as HTMLInputElement;
+  const maxSlider = document.getElementById('filterMaxLength') as HTMLInputElement;
+  const fill = document.getElementById('dualRangeFill');
+  if (!minSlider || !maxSlider || !fill) return;
+
+  const sliderMin = parseFloat(minSlider.min);
+  const sliderMax = parseFloat(minSlider.max);
+  const range = sliderMax - sliderMin;
+
+  const minVal = parseFloat(minSlider.value);
+  const maxVal = parseFloat(maxSlider.value);
+
+  const leftPct = ((minVal - sliderMin) / range) * 100;
+  const rightPct = ((maxVal - sliderMin) / range) * 100;
+
+  fill.style.left = `${leftPct}%`;
+  fill.style.width = `${rightPct - leftPct}%`;
+}
+
+/** 最大文字数の表示テキスト（100 = 無制限） */
+function formatMaxLength(sliderValue: number): string {
+  return sliderValue >= 100 ? '無制限' : String(sliderValue);
+}
+
+/** maxLength slider値を FilterConfig の maxLength値に変換（100 → 0 = 無制限） */
+function sliderToMaxLength(sliderValue: number): number {
+  return sliderValue >= 100 ? 0 : sliderValue;
+}
+
+/** FilterConfig の maxLength値を slider値に変換（0 → 100 = 無制限） */
+function maxLengthToSlider(configValue: number): number {
+  return configValue === 0 ? 100 : configValue;
+}
+
 window.onload = function () {
   chrome.storage.sync.get(
     [
@@ -69,6 +105,7 @@ window.onload = function () {
       const fc = data.filterConfig || {
         enabled: false,
         minLength: 1,
+        maxLength: 0,
         skipEmojiOnly: false,
         ngWords: [],
       };
@@ -77,8 +114,15 @@ window.onload = function () {
       document.getElementById('filter-options')!.style.display = fc.enabled ? 'block' : 'none';
       const filterMinLengthSlider = document.getElementById('filterMinLength') as HTMLInputElement;
       filterMinLengthSlider.value = String(fc.minLength);
-      setRangeFill(filterMinLengthSlider);
       document.getElementById('current-min-length')!.textContent = String(fc.minLength);
+      document.getElementById('min-length-display')!.textContent = String(fc.minLength);
+      const maxSliderVal = maxLengthToSlider(fc.maxLength || 0);
+      const filterMaxLengthSlider = document.getElementById('filterMaxLength') as HTMLInputElement;
+      filterMaxLengthSlider.value = String(maxSliderVal);
+      const maxDisplay = formatMaxLength(maxSliderVal);
+      document.getElementById('current-max-length')!.textContent = maxDisplay;
+      document.getElementById('max-length-display')!.textContent = maxDisplay;
+      updateDualRangeFill();
       (document.getElementById('filterSkipEmojiOnly') as HTMLInputElement).checked =
         fc.skipEmojiOnly;
       document
@@ -543,6 +587,9 @@ function sendFilterConfig(): void {
     (document.getElementById('filterMinLength') as HTMLInputElement).value,
     10
   );
+  const maxLength = sliderToMaxLength(
+    parseInt((document.getElementById('filterMaxLength') as HTMLInputElement).value, 10)
+  );
   const skipEmojiOnly = (document.getElementById('filterSkipEmojiOnly') as HTMLInputElement)
     .checked;
   const stripEmoji = (document.getElementById('filterStripEmoji') as HTMLInputElement).checked;
@@ -557,7 +604,15 @@ function sendFilterConfig(): void {
       ? ('remove' as const)
       : ('skip' as const);
 
-  const filterConfig = { enabled, minLength, skipEmojiOnly, stripEmoji, ngWords, ngWordAction };
+  const filterConfig = {
+    enabled,
+    minLength,
+    maxLength,
+    skipEmojiOnly,
+    stripEmoji,
+    ngWords,
+    ngWordAction,
+  };
   chrome.runtime.sendMessage({ action: 'updateFilterConfig', filterConfig });
 }
 
@@ -569,10 +624,43 @@ document.getElementById('filterEnabled')!.addEventListener('change', (event) => 
 });
 
 document.getElementById('filterMinLength')!.addEventListener('input', (event) => {
-  const target = event.target as HTMLInputElement;
-  document.getElementById('current-min-length')!.textContent = target.value;
-  target.setAttribute('aria-valuetext', `${target.value}文字`);
-  setRangeFill(target);
+  const minSlider = event.target as HTMLInputElement;
+  const maxSlider = document.getElementById('filterMaxLength') as HTMLInputElement;
+  let minVal = parseInt(minSlider.value, 10);
+  const maxVal = parseInt(maxSlider.value, 10);
+
+  if (minVal >= maxVal) {
+    minVal = maxVal - 1;
+    minSlider.value = String(minVal);
+  }
+
+  document.getElementById('current-min-length')!.textContent = String(minVal);
+  document.getElementById('min-length-display')!.textContent = String(minVal);
+  minSlider.setAttribute('aria-valuetext', `${minVal}文字`);
+  updateDualRangeFill();
+
+  const midpoint = (parseInt(minSlider.max, 10) + parseInt(minSlider.min, 10)) / 2;
+  minSlider.style.zIndex = minVal > midpoint ? '4' : '2';
+
+  sendFilterConfig();
+});
+
+document.getElementById('filterMaxLength')!.addEventListener('input', (event) => {
+  const maxSlider = event.target as HTMLInputElement;
+  const minSlider = document.getElementById('filterMinLength') as HTMLInputElement;
+  let maxVal = parseInt(maxSlider.value, 10);
+  const minVal = parseInt(minSlider.value, 10);
+
+  if (maxVal <= minVal) {
+    maxVal = minVal + 1;
+    maxSlider.value = String(maxVal);
+  }
+
+  const displayText = formatMaxLength(maxVal);
+  document.getElementById('current-max-length')!.textContent = displayText;
+  document.getElementById('max-length-display')!.textContent = displayText;
+  maxSlider.setAttribute('aria-valuetext', maxVal >= 100 ? '無制限' : `${maxVal}文字`);
+  updateDualRangeFill();
   sendFilterConfig();
 });
 

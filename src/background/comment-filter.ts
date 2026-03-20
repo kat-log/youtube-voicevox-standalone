@@ -1,6 +1,7 @@
 export interface FilterConfig {
   enabled: boolean;
   minLength: number;
+  maxLength: number; // 0 = 無制限
   skipEmojiOnly: boolean;
   stripEmoji: boolean;
   ngWords: string[];
@@ -10,6 +11,7 @@ export interface FilterConfig {
 export const DEFAULT_FILTER_CONFIG: FilterConfig = {
   enabled: false,
   minLength: 1,
+  maxLength: 0,
   skipEmojiOnly: false,
   stripEmoji: false,
   ngWords: [],
@@ -61,6 +63,11 @@ export function shouldFilter(message: string, config: FilterConfig): boolean {
 
   // 最小文字数チェック
   if (config.minLength > 1 && message.length < config.minLength) {
+    return true;
+  }
+
+  // 最大文字数チェック (0 = 無制限)
+  if (config.maxLength > 0 && message.length > config.maxLength) {
     return true;
   }
 

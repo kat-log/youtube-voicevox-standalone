@@ -196,19 +196,42 @@
       </div>
 
       <div id="filter-options" class="filter-options" style="display: none">
-        <label for="filterMinLength">読み上げ最小文字数（これ未満をスキップ）:</label>
-        <div class="slider-group">
-          <input
-            type="range"
-            id="filterMinLength"
-            min="1"
-            max="20"
-            step="1"
-            value="1"
-            aria-label="最小文字数"
-            aria-valuetext="1文字"
-          />
-          <span id="current-min-length">1</span>
+        <label>読み上げ文字数フィルター:</label>
+        <div class="dual-range-container">
+          <div class="dual-range-labels">
+            <span id="current-min-length">1</span>
+            <span id="current-max-length">無制限</span>
+          </div>
+          <div class="dual-range-track-wrapper">
+            <div class="dual-range-track"></div>
+            <div class="dual-range-fill" id="dualRangeFill"></div>
+            <input
+              type="range"
+              id="filterMinLength"
+              class="dual-range-input dual-range-min"
+              min="1"
+              max="100"
+              step="1"
+              value="1"
+              aria-label="最小文字数"
+              aria-valuetext="1文字"
+            />
+            <input
+              type="range"
+              id="filterMaxLength"
+              class="dual-range-input dual-range-max"
+              min="1"
+              max="100"
+              step="1"
+              value="100"
+              aria-label="最大文字数"
+              aria-valuetext="無制限"
+            />
+          </div>
+          <div class="dual-range-legend">
+            <span>最小: <strong id="min-length-display">1</strong>文字未満スキップ</span>
+            <span>最大: <strong id="max-length-display">無制限</strong></span>
+          </div>
         </div>
 
         <div class="toggle-container">
