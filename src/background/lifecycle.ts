@@ -37,8 +37,10 @@ export function startPolling(config: {
     updateState({ pollingCycleCount: cycleNum });
     sendDebugInfo(`══════ Poll #${cycleNum} (interval: ${state.pollingIntervalMs}ms) ══════`);
 
-    // YouTube APIにリクエストを送る直前にステータスを更新
-    sendStatus('fetching');
+    // YouTube APIにリクエストを送る直前にステータスを更新（再生中はちらつき防止）
+    if (!getState().isPlaying) {
+      sendStatus('fetching');
+    }
 
     fetch(requestUrl)
       .then((response) => {
@@ -88,8 +90,14 @@ export function startPolling(config: {
           updateState({ pollingIntervalMs: data.pollingIntervalMillis });
         }
 
-        // エラー状態からの復帰
-        sendStatus('listening');
+        // エラー状態からの復帰: 実際の状態に応じたステータス設定
+        const currentState2 = getState();
+        if (currentState2.isPlaying) {
+          // 再生中はそのまま維持
+        } else if (currentState2.audioQueue.length === 0 && currentState2.commentQueue.length === 0) {
+          sendStatus('waiting');
+        }
+        // それ以外（キューにアイテムあり）は generating/listening が適宜セットされる
 
         if (!data.items || data.items.length === 0) {
           sendDebugInfo(`0件 | Queue: ${formatQueueState()} | 次回: ${getState().pollingIntervalMs}ms`);

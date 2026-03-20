@@ -23,7 +23,10 @@ export function playNextAudio(): void {
   if (state.isPlaying || state.audioQueue.length === 0) {
     if (!state.isPlaying && state.audioQueue.length === 0 && state.commentQueue.length === 0 && !lastQueueEmptyLogged) {
       sendDebugInfo(`⏸ キュー空 - 次のポーリング待ち`);
+      sendStatus('waiting');
       lastQueueEmptyLogged = true;
+    } else if (!state.isPlaying && state.audioQueue.length === 0 && state.commentQueue.length > 0) {
+      sendDebugInfo(`⏳ audioQueue空 / commentQueue: ${state.commentQueue.length}件 - TTS生成待ち`);
     }
     return;
   }
@@ -36,6 +39,7 @@ export function playNextAudio(): void {
   if (!tabId) return;
 
   updateState({ isPlaying: true });
+  sendStatus('listening');
   sendDebugInfo(`▶ 再生開始 | Queue: ${formatQueueState()}`);
 
   // フェイルセーフタイマー（30秒で強制リセット）
@@ -181,7 +185,13 @@ export function handleAudioEnded(): void {
   });
   updateBadge();
   sendDebugInfo(`■ 再生終了 | Queue: ${formatQueueState()}`);
-  sendStatus('listening');
+
+  // キュー状態に応じたステータス設定（playNextAudio/scheduleNextProcessingが適切に更新）
+  const updatedState = getState();
+  if (updatedState.audioQueue.length === 0 && updatedState.commentQueue.length === 0) {
+    sendStatus('waiting');
+  }
+
   playNextAudio();
   scheduleNextProcessing();
 }

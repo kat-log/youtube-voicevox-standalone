@@ -12,7 +12,7 @@ let browserVoiceName: string | null = null;
 let isTtsProcessing = false;
 let processingTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
-const PREFETCH_THRESHOLD = 3;   // audioQueue にこの数まで先読み
+const PREFETCH_THRESHOLD = 5;   // audioQueue にこの数まで先読み
 const MIN_PROCESS_DELAY = 500;  // TTS API呼出の最低間隔(ms)
 
 // 次のコメント処理をスケジュール（audioQueue が閾値未満なら先読み）
@@ -22,7 +22,10 @@ export function scheduleNextProcessing(): void {
 
   const state = getState();
   if (state.commentQueue.length === 0) return;
-  if (state.audioQueue.length >= PREFETCH_THRESHOLD) return;
+  if (state.audioQueue.length >= PREFETCH_THRESHOLD) {
+    sendDebugInfo(`⏳ audioQueue満杯 (${state.audioQueue.length}/${PREFETCH_THRESHOLD}) - TTS先読み一時停止`);
+    return;
+  }
 
   processingTimeoutId = setTimeout(() => {
     processingTimeoutId = null;
@@ -71,7 +74,6 @@ export function processCommentQueue(): void {
       text: comment.newMessage,
       voiceName: browserVoiceName || undefined,
     });
-    sendStatus('listening');
     updateBadge();
     playNextAudio();
     scheduleNextProcessing();
@@ -110,7 +112,6 @@ function synthesizeWithRetry(
       sendDebugInfo(`VOICEVOX RESPONSE：${audioUrl} | Queue: ${formatQueueState()}`);
 
       pushAudio({ type: 'url', url: audioUrl });
-      sendStatus('listening');
       updateBadge();
       playNextAudio();
       scheduleNextProcessing();
@@ -154,8 +155,10 @@ async function fetchVoiceVox(apiKey: string, text: string, speakerId?: string): 
   if (response.status === 429) {
     const data = await response.json();
     const waitMs = (data.retryAfter || 5) * 1000;
-    sendDebugInfo(`レート制限: ${data.retryAfter || 5}秒待機中...`);
+    sendStatus('rate-limited');
+    sendDebugInfo(`⚠ レート制限: ${data.retryAfter || 5}秒待機 | text="${text.substring(0, 20)}..." | Queue: ${formatQueueState()}`);
     await new Promise((r) => setTimeout(r, waitMs));
+    sendStatus('generating');
     return fetchVoiceVox(apiKey, text, speakerId);
   }
 
@@ -188,6 +191,7 @@ async function waitForAudio(
   maxAttempts = 30,
   intervalMs = 1000
 ): Promise<void> {
+  sendDebugInfo(`音声生成ポーリング開始（最大${maxAttempts}秒）`);
   for (let i = 0; i < maxAttempts; i++) {
     await new Promise((r) => setTimeout(r, intervalMs));
     try {

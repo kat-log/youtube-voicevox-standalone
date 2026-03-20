@@ -18,6 +18,7 @@ export interface CommentQueueItem {
 export interface ExtensionState {
   audioQueue: AudioQueueItem[];
   isPlaying: boolean;
+  currentStatus: ExtensionStatus;
   liveChatId: string | null;
   intervalId: ReturnType<typeof setTimeout> | null;
   nextPageToken: string | null;
@@ -39,4 +40,6 @@ export type ExtensionStatus =
   | 'fetching'
   | 'generating'
   | 'listening'
+  | 'rate-limited'
+  | 'waiting'
   | 'error';

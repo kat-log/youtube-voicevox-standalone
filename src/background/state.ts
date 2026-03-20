@@ -5,6 +5,7 @@ export const ERROR_THRESHOLD_FOR_STATUS = 3;
 const state: ExtensionState = {
   audioQueue: [],
   isPlaying: false,
+  currentStatus: 'idle',
   liveChatId: null,
   intervalId: null,
   nextPageToken: null,
@@ -36,6 +37,7 @@ export function resetState(): void {
   state.nextPageToken = null;
   state.latestTimestamp = null;
   state.commentCount = 0;
+  state.currentStatus = 'idle';
   state.consecutiveErrors = 0;
   state.pollingIntervalMs = 5000;
   state.pollingCycleCount = 0;
