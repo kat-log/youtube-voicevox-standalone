@@ -1,5 +1,6 @@
 import { getState, updateState, shiftAudio } from './state';
-import { sendStatus } from './messaging';
+import { sendStatus, sendDebugInfo, formatQueueState } from './messaging';
+import { scheduleNextProcessing } from './tts-api';
 
 /** chrome.tts の rate を補正（エンジンの指数的スケーリングを相殺） */
 function correctTtsRate(sliderSpeed: number): number {
@@ -13,12 +14,20 @@ function isRateSupportedVoice(voiceName: string | undefined): boolean {
   return name === 'kyoko' || name.startsWith('google');
 }
 
+// キュー空通知の重複防止フラグ
+let lastQueueEmptyLogged = false;
+
 // 次の音声を再生
 export function playNextAudio(): void {
   const state = getState();
   if (state.isPlaying || state.audioQueue.length === 0) {
+    if (!state.isPlaying && state.audioQueue.length === 0 && state.commentQueue.length === 0 && !lastQueueEmptyLogged) {
+      sendDebugInfo(`⏸ キュー空 - 次のポーリング待ち`);
+      lastQueueEmptyLogged = true;
+    }
     return;
   }
+  lastQueueEmptyLogged = false;
 
   const item = shiftAudio();
   if (!item) return;
@@ -27,6 +36,7 @@ export function playNextAudio(): void {
   if (!tabId) return;
 
   updateState({ isPlaying: true });
+  sendDebugInfo(`▶ 再生開始 | Queue: ${formatQueueState()}`);
 
   // フェイルセーフタイマー（30秒で強制リセット）
   if (state.playingTimeout) {
@@ -131,6 +141,7 @@ function handlePlaybackError(): void {
     clearTimeout(state.playingTimeout);
     updateState({ playingTimeout: null });
   }
+  scheduleNextProcessing();
 }
 
 // 現在の音声を停止
@@ -169,8 +180,10 @@ export function handleAudioEnded(): void {
     playingTimeout: null,
   });
   updateBadge();
+  sendDebugInfo(`■ 再生終了 | Queue: ${formatQueueState()}`);
   sendStatus('listening');
   playNextAudio();
+  scheduleNextProcessing();
 }
 
 // アイコンバッジ更新
@@ -178,7 +191,7 @@ export function updateBadge(): void {
   const state = getState();
   const queueLen = state.commentQueue.length + state.audioQueue.length;
 
-  if (queueLen > 0 && (state.intervalId !== null || state.commentIntervalId !== null)) {
+  if (queueLen > 0 && state.intervalId !== null) {
     chrome.action.setBadgeText({ text: String(queueLen) });
     chrome.action.setBadgeBackgroundColor({ color: '#4caf50' });
   } else {

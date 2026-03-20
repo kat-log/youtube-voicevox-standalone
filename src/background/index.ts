@@ -146,7 +146,7 @@ chrome.runtime.onMessage.addListener(
         // popup再オープン時に現在のステータスを返す
         const state = getState();
         const currentStatus =
-          state.intervalId !== null || state.commentIntervalId !== null ? 'listening' : 'idle';
+          state.intervalId !== null ? 'listening' : 'idle';
         const queueLength = state.commentQueue.length + state.audioQueue.length;
         sendResponse({ status: currentStatus, commentCount: state.commentCount, queueLength });
         return true;

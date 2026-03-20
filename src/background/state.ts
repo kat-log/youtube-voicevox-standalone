@@ -9,7 +9,6 @@ const state: ExtensionState = {
   intervalId: null,
   nextPageToken: null,
   commentQueue: [],
-  commentIntervalId: null,
   latestTimestamp: null,
   latestOnlyMode: false,
   activeTabId: null,
@@ -18,6 +17,7 @@ const state: ExtensionState = {
   pollingIntervalMs: 5000,
   commentCount: 0,
   sessionId: 0,
+  pollingCycleCount: 0,
 };
 
 export function getState(): ExtensionState {
@@ -38,6 +38,7 @@ export function resetState(): void {
   state.commentCount = 0;
   state.consecutiveErrors = 0;
   state.pollingIntervalMs = 5000;
+  state.pollingCycleCount = 0;
 }
 
 export function incrementSessionId(): number {
