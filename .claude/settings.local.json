@@ -44,7 +44,8 @@
       "WebFetch(domain:su-shiki.com)",
       "WebFetch(domain:voicevox.github.io)",
       "Bash(gh issue edit:*)",
-      "Bash(gh pr list:*)"
+      "Bash(gh pr list:*)",
+      "Bash(git log:*)"
     ],
     "deny": []
   }
