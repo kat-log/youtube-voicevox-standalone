@@ -7,6 +7,7 @@ import { playNextAudio, updateBadge } from './audio-player';
 // TTSエンジン設定（モジュールレベルキャッシュ）
 let currentEngine: TtsEngine = 'voicevox';
 let browserVoiceName: string | null = null;
+let localVoicevoxHost: string = 'http://localhost:50021';
 
 // 先読みパイプライン制御
 let isTtsProcessing = false;
@@ -58,6 +59,14 @@ export function getBrowserVoice(): string | null {
   return browserVoiceName;
 }
 
+export function setLocalVoicevoxHost(host: string): void {
+  localVoicevoxHost = host;
+}
+
+export function getLocalVoicevoxHost(): string {
+  return localVoicevoxHost;
+}
+
 export function processCommentQueue(): void {
   const state = getState();
   if (state.commentQueue.length === 0) return;
@@ -77,6 +86,14 @@ export function processCommentQueue(): void {
     updateBadge();
     playNextAudio();
     scheduleNextProcessing();
+    return;
+  }
+
+  if (currentEngine === 'local-voicevox') {
+    // ローカルVOICEVOX: ローカルエンジンで音声合成
+    isTtsProcessing = true;
+    sendDebugInfo(`ローカルVOICEVOX REQUEST：${comment.newMessage} | Queue: ${formatQueueState()}`);
+    synthesizeLocalWithRetry(comment, 0);
     return;
   }
 
@@ -206,4 +223,108 @@ async function waitForAudio(
     }
   }
   throw new Error(`音声生成タイムアウト（${maxAttempts}秒）`);
+}
+
+// --- ローカル VOICEVOX エンジン ---
+
+function synthesizeLocalWithRetry(
+  comment: {
+    newMessage: string;
+  },
+  retryCount: number
+): void {
+  const maxRetries = 3;
+  const currentSession = getState().sessionId;
+  const { newMessage } = comment;
+
+  sendStatus('generating');
+
+  // ローカルVOICEVOXはTTS Quest用のspeakerIdではなくlocalSpeakerIdを使用
+  fetchLocalVoiceVox(newMessage)
+    .then((dataUri) => {
+      isTtsProcessing = false;
+      if (getState().sessionId !== currentSession) return;
+
+      sendDebugInfo(`ローカルVOICEVOX RESPONSE：data URI (${dataUri.length} chars) | Queue: ${formatQueueState()}`);
+
+      pushAudio({ type: 'url', url: dataUri });
+      updateBadge();
+      playNextAudio();
+      scheduleNextProcessing();
+    })
+    .catch((error: Error) => {
+      if (getState().sessionId !== currentSession) {
+        isTtsProcessing = false;
+        return;
+      }
+
+      if (retryCount < maxRetries) {
+        sendDebugInfo(`ローカルVOICEVOXリトライ（${retryCount + 1}/${maxRetries}）: ${newMessage}`);
+        setTimeout(() => synthesizeLocalWithRetry(comment, retryCount + 1), 1000);
+      } else {
+        isTtsProcessing = false;
+        sendDebugInfo(`ローカルVOICEVOXエラー（スキップ）: ${error.message} - "${newMessage}"`);
+        // eslint-disable-next-line no-console
+        console.error('ローカルVOICEVOXエラー:', error);
+        scheduleNextProcessing();
+      }
+    });
+}
+
+// ローカル VOICEVOX API で音声合成（audio_query → synthesis → data URI）
+async function fetchLocalVoiceVox(text: string): Promise<string> {
+  const effectiveSpeakerId =
+    (await chrome.storage.sync.get(['localSpeakerId'])).localSpeakerId || '1';
+  const encodedText = encodeURIComponent(text);
+
+  // Step 1: audio_query
+  let audioQueryRes: Response;
+  try {
+    audioQueryRes = await fetch(
+      `${localVoicevoxHost}/audio_query?text=${encodedText}&speaker=${effectiveSpeakerId}`,
+      { method: 'POST' }
+    );
+  } catch {
+    throw new Error('VOICEVOXエンジンに接続できません。アプリが起動しているか確認してください。');
+  }
+
+  if (!audioQueryRes.ok) {
+    throw new Error(`audio_query エラー (${audioQueryRes.status})`);
+  }
+
+  const audioQuery: unknown = await audioQueryRes.json();
+
+  // Step 2: synthesis
+  let synthesisRes: Response;
+  try {
+    synthesisRes = await fetch(
+      `${localVoicevoxHost}/synthesis?speaker=${effectiveSpeakerId}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(audioQuery),
+      }
+    );
+  } catch {
+    throw new Error('VOICEVOXエンジンとの通信中にエラーが発生しました。');
+  }
+
+  if (!synthesisRes.ok) {
+    throw new Error(`synthesis エラー (${synthesisRes.status})`);
+  }
+
+  // Step 3: WAV バイナリ → data URI
+  const arrayBuffer = await synthesisRes.arrayBuffer();
+  const base64 = arrayBufferToBase64(arrayBuffer);
+  return `data:audio/wav;base64,${base64}`;
+}
+
+// ArrayBuffer → Base64 文字列変換
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
 }

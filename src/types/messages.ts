@@ -60,6 +60,21 @@ export interface UpdateBrowserVoiceMessage {
   voiceName: string;
 }
 
+export interface TestLocalVoicevoxMessage {
+  action: 'testLocalVoicevox';
+  host: string;
+}
+
+export interface GetLocalSpeakersMessage {
+  action: 'getLocalSpeakers';
+  host: string;
+}
+
+export interface UpdateLocalVoicevoxHostMessage {
+  action: 'updateLocalVoicevoxHost';
+  host: string;
+}
+
 // Content → Background メッセージ
 export interface AudioEndedMessage {
   action: 'audioEnded';
@@ -102,4 +117,5 @@ export interface MessageResponse {
   message?: string;
   details?: string;
   commentCount?: number;
+  speakers?: Array<{ name: string; styles: Array<{ id: number; name: string }> }>;
 }

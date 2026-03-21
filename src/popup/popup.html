@@ -42,6 +42,7 @@
       <select id="ttsEngine" name="ttsEngine">
         <option value="voicevox">VOICEVOX（TTS Quest API）</option>
         <option value="browser">ブラウザ内蔵音声</option>
+        <option value="local-voicevox">ローカルVOICEVOX</option>
       </select>
 
       <div id="voicevox-settings">
@@ -56,6 +57,24 @@
           日本語音声が見つかりません。システム設定またはChrome
           TTS拡張機能で日本語音声を追加してください。
         </p>
+      </div>
+
+      <div id="local-voicevox-settings" style="display: none">
+        <label for="localVoicevoxHost">エンジンURL:</label>
+        <div class="api-key-container">
+          <input
+            type="text"
+            id="localVoicevoxHost"
+            value="http://localhost:50021"
+            placeholder="http://localhost:50021"
+          />
+          <button type="button" id="test-local-voicevox" class="small-btn">接続テスト</button>
+        </div>
+        <p id="local-voicevox-status" class="info-text" style="display: none"></p>
+        <label for="localSpeaker">話者選択:</label>
+        <select id="localSpeaker" name="localSpeaker">
+          <option value="">接続テストを実行してください</option>
+        </select>
       </div>
 
       <label for="speed">再生速度:</label>
