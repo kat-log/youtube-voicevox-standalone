@@ -1,4 +1,4 @@
-import type { ExtensionStatus, TtsEngine, RushModeConfig } from './state';
+import type { ExtensionStatus, TtsEngine, RushModeConfig, AutoCatchUpConfig } from './state';
 import type { FilterConfig } from '@/background/comment-filter';
 
 // Popup → Background メッセージ
@@ -78,6 +78,11 @@ export interface UpdateLocalVoicevoxHostMessage {
 export interface UpdateRushModeConfigMessage {
   action: 'updateRushModeConfig';
   rushModeConfig: RushModeConfig;
+}
+
+export interface UpdateAutoCatchUpConfigMessage {
+  action: 'updateAutoCatchUpConfig';
+  autoCatchUpConfig: AutoCatchUpConfig;
 }
 
 // Content → Background メッセージ

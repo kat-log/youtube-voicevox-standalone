@@ -6,6 +6,7 @@ import { sendStatus, sendDebugInfo, formatQueueState, clearDebugLogs } from './m
 import { ERROR_THRESHOLD_FOR_STATUS } from './state';
 import { shouldFilter, getFilterConfig, stripEmojis, removeNgWords } from './comment-filter';
 import { evaluateRushMode } from './rush-mode';
+import { evaluateAutoCatchUp } from './auto-catchup';
 
 // ポーリング開始
 export function startPolling(config: {
@@ -201,6 +202,7 @@ export function startPolling(config: {
 
         updateState({ nextPageToken: data.nextPageToken || null });
         updateBadge();
+        evaluateAutoCatchUp();
         evaluateRushMode();
         scheduleNextProcessing();
       })

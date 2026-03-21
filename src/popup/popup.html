@@ -222,6 +222,33 @@
       </div>
 
       <div class="toggle-container">
+        <label class="toggle-switch" aria-label="最新コメントのみ取得モードを自動発動">
+          <input type="checkbox" id="autoCatchUpEnabled" role="switch" aria-checked="false" />
+          <span class="slider round"></span>
+        </label>
+        <span>最新コメントのみ取得モードを自動発動</span>
+      </div>
+
+      <div id="auto-catchup-options" style="display: none">
+        <label for="autoCatchUpThreshold">発動しきい値（待機コメント数）:</label>
+        <div class="slider-group">
+          <input
+            type="range"
+            id="autoCatchUpThreshold"
+            min="5"
+            max="200"
+            step="5"
+            value="50"
+            aria-label="自動発動しきい値"
+            aria-valuetext="50件"
+          />
+          <span id="current-catchup-threshold">50件</span>
+        </div>
+
+        <button id="reset-auto-catchup" class="small-btn" aria-label="自動発動の設定をリセット">デフォルトに戻す</button>
+      </div>
+
+      <div class="toggle-container">
         <label class="toggle-switch" aria-label="コメントフィルターを有効にする">
           <input type="checkbox" id="filterEnabled" role="switch" aria-checked="false" />
           <span class="slider round"></span>

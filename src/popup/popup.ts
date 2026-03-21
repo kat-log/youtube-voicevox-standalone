@@ -64,6 +64,7 @@ window.onload = function () {
       'localVoicevoxHost',
       'localSpeakerId',
       'rushModeConfig',
+      'autoCatchUpConfig',
     ],
     function (data) {
       (document.getElementById('apiKeyVOICEVOX') as HTMLInputElement).value =
@@ -177,6 +178,21 @@ window.onload = function () {
       document.getElementById('current-rush-return')!.textContent = `${rc.returnThreshold}件`;
       rushReturnSlider.setAttribute('aria-valuetext', `${rc.returnThreshold}件`);
       setRangeFill(rushReturnSlider);
+
+      // 自動キャッチアップ設定を復元
+      const ac = data.autoCatchUpConfig || {
+        enabled: false,
+        threshold: 50,
+      };
+      (document.getElementById('autoCatchUpEnabled') as HTMLInputElement).checked = ac.enabled;
+      document.getElementById('autoCatchUpEnabled')!.setAttribute('aria-checked', String(ac.enabled));
+      document.getElementById('auto-catchup-options')!.style.display = ac.enabled ? 'block' : 'none';
+
+      const catchUpThresholdSlider = document.getElementById('autoCatchUpThreshold') as HTMLInputElement;
+      catchUpThresholdSlider.value = String(ac.threshold);
+      document.getElementById('current-catchup-threshold')!.textContent = `${ac.threshold}件`;
+      catchUpThresholdSlider.setAttribute('aria-valuetext', `${ac.threshold}件`);
+      setRangeFill(catchUpThresholdSlider);
 
       // TTSエンジン設定を復元
       const engine = data.ttsEngine || 'voicevox';
@@ -587,6 +603,42 @@ document.getElementById('reset-rush-mode')!.addEventListener('click', () => {
   setRangeFill(returnSlider);
 
   sendRushModeConfig();
+});
+
+// --- 自動キャッチアップ設定 ---
+function sendAutoCatchUpConfig(): void {
+  const enabled = (document.getElementById('autoCatchUpEnabled') as HTMLInputElement).checked;
+  const threshold = parseInt(
+    (document.getElementById('autoCatchUpThreshold') as HTMLInputElement).value, 10
+  );
+  const autoCatchUpConfig = { enabled, threshold };
+  chrome.runtime.sendMessage({ action: 'updateAutoCatchUpConfig', autoCatchUpConfig });
+}
+
+document.getElementById('autoCatchUpEnabled')!.addEventListener('change', (event) => {
+  const target = event.target as HTMLInputElement;
+  target.setAttribute('aria-checked', String(target.checked));
+  document.getElementById('auto-catchup-options')!.style.display = target.checked ? 'block' : 'none';
+  sendAutoCatchUpConfig();
+});
+
+document.getElementById('autoCatchUpThreshold')!.addEventListener('input', (event) => {
+  const target = event.target as HTMLInputElement;
+  const val = parseInt(target.value, 10);
+  document.getElementById('current-catchup-threshold')!.textContent = `${val}件`;
+  target.setAttribute('aria-valuetext', `${val}件`);
+  setRangeFill(target);
+  sendAutoCatchUpConfig();
+});
+
+document.getElementById('reset-auto-catchup')!.addEventListener('click', () => {
+  const thresholdSlider = document.getElementById('autoCatchUpThreshold') as HTMLInputElement;
+  thresholdSlider.value = '50';
+  document.getElementById('current-catchup-threshold')!.textContent = '50件';
+  thresholdSlider.setAttribute('aria-valuetext', '50件');
+  setRangeFill(thresholdSlider);
+
+  sendAutoCatchUpConfig();
 });
 
 let currentStatus: string = 'idle';

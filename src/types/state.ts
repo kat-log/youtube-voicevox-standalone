@@ -7,6 +7,11 @@ export interface RushModeConfig {
   rushSpeed: number;
 }
 
+export interface AutoCatchUpConfig {
+  enabled: boolean;
+  threshold: number;
+}
+
 export interface AudioQueueItem {
   type: 'url' | 'speech';
   url?: string;

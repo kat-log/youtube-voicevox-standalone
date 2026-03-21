@@ -8,7 +8,8 @@ import { loadFilterConfigFromStorage, setFilterConfig } from './comment-filter';
 import type { FilterConfig } from './comment-filter';
 import { setTtsEngine, setBrowserVoice, setLocalVoicevoxHost } from './tts-api';
 import { loadRushConfigFromStorage, setRushConfig, evaluateRushMode } from './rush-mode';
-import type { TtsEngine, RushModeConfig } from '@/types/state';
+import { loadAutoCatchUpConfigFromStorage, setAutoCatchUpConfig } from './auto-catchup';
+import type { TtsEngine, RushModeConfig, AutoCatchUpConfig } from '@/types/state';
 
 // ポップアップ・ログページから session storage にアクセスできるようにする
 chrome.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' });
@@ -21,6 +22,9 @@ loadFilterConfigFromStorage();
 
 // ラッシュモード設定をストレージから読み込み
 loadRushConfigFromStorage();
+
+// 自動キャッチアップ設定をストレージから読み込み
+loadAutoCatchUpConfigFromStorage();
 
 // TTSエンジン設定をストレージから読み込み
 chrome.storage.sync.get(['ttsEngine', 'browserVoice', 'localVoicevoxHost'], (data) => {
@@ -242,6 +246,14 @@ chrome.runtime.onMessage.addListener(
         setRushConfig(config);
         chrome.storage.sync.set({ rushModeConfig: config });
         evaluateRushMode();
+        sendResponse({ status: 'success' });
+        return true;
+      }
+
+      case 'updateAutoCatchUpConfig': {
+        const config = request.autoCatchUpConfig as AutoCatchUpConfig;
+        setAutoCatchUpConfig(config);
+        chrome.storage.sync.set({ autoCatchUpConfig: config });
         sendResponse({ status: 'success' });
         return true;
       }

@@ -59,6 +59,16 @@ export function shiftComment(): CommentQueueItem | undefined {
   return state.commentQueue.shift();
 }
 
+export function clearCommentQueue(keepCount = 1): CommentQueueItem[] {
+  const kept = state.commentQueue.slice(-keepCount);
+  state.commentQueue = [];
+  return kept;
+}
+
+export function clearAudioQueue(): void {
+  state.audioQueue = [];
+}
+
 export function pushAudio(item: AudioQueueItem): void {
   state.audioQueue.push(item);
 }
