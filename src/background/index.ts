@@ -6,7 +6,7 @@ import { startPolling, stopAll } from './lifecycle';
 import { sendStatus, sendDebugInfo, updateErrorMessage } from './messaging';
 import { loadFilterConfigFromStorage, setFilterConfig } from './comment-filter';
 import type { FilterConfig } from './comment-filter';
-import { setTtsEngine, setBrowserVoice } from './tts-api';
+import { setTtsEngine, setBrowserVoice, setLocalVoicevoxHost } from './tts-api';
 import type { TtsEngine } from '@/types/state';
 
 // ポップアップ・ログページから session storage にアクセスできるようにする
@@ -19,9 +19,10 @@ initTabListeners();
 loadFilterConfigFromStorage();
 
 // TTSエンジン設定をストレージから読み込み
-chrome.storage.sync.get(['ttsEngine', 'browserVoice'], (data) => {
+chrome.storage.sync.get(['ttsEngine', 'browserVoice', 'localVoicevoxHost'], (data) => {
   if (data.ttsEngine) setTtsEngine(data.ttsEngine as TtsEngine);
   if (data.browserVoice) setBrowserVoice(data.browserVoice as string);
+  if (data.localVoicevoxHost) setLocalVoicevoxHost(data.localVoicevoxHost as string);
 });
 
 // 共通の読み上げ開始フロー（onMessageとonCommandで共有）
@@ -245,6 +246,46 @@ chrome.runtime.onMessage.addListener(
         setBrowserVoice(voiceName);
         chrome.storage.sync.set({ browserVoice: voiceName });
         sendResponse({ status: 'success' });
+        return true;
+      }
+
+      case 'updateLocalVoicevoxHost': {
+        const host = request.host as string;
+        setLocalVoicevoxHost(host);
+        chrome.storage.sync.set({ localVoicevoxHost: host });
+        sendResponse({ status: 'success' });
+        return true;
+      }
+
+      case 'testLocalVoicevox': {
+        const host = request.host as string;
+        fetch(`${host}/version`)
+          .then((res) => {
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.json();
+          })
+          .then((version) => {
+            sendResponse({ status: 'success', message: String(version) });
+          })
+          .catch((error: Error) => {
+            sendResponse({ status: 'error', message: error.message });
+          });
+        return true;
+      }
+
+      case 'getLocalSpeakers': {
+        const host = request.host as string;
+        fetch(`${host}/speakers`)
+          .then((res) => {
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.json();
+          })
+          .then((speakers) => {
+            sendResponse({ status: 'success', speakers });
+          })
+          .catch((error: Error) => {
+            sendResponse({ status: 'error', message: error.message });
+          });
         return true;
       }
 

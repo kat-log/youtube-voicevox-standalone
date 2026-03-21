@@ -61,6 +61,8 @@ window.onload = function () {
       'filterConfig',
       'ttsEngine',
       'browserVoice',
+      'localVoicevoxHost',
+      'localSpeakerId',
     ],
     function (data) {
       (document.getElementById('apiKeyVOICEVOX') as HTMLInputElement).value =
@@ -153,6 +155,20 @@ window.onload = function () {
 
       // ブラウザ音声リストを取得
       populateBrowserVoices(data.browserVoice);
+
+      // ローカルVOICEVOXホスト設定を復元
+      if (data.localVoicevoxHost) {
+        (document.getElementById('localVoicevoxHost') as HTMLInputElement).value =
+          data.localVoicevoxHost;
+      }
+
+      // ローカルVOICEVOX選択時にスピーカーリストを自動取得
+      if (engine === 'local-voicevox') {
+        const host =
+          data.localVoicevoxHost ||
+          (document.getElementById('localVoicevoxHost') as HTMLInputElement).value;
+        fetchLocalSpeakers(host, data.localSpeakerId);
+      }
 
       // 話者一覧を取得して選択メニューを作成
       fetch('https://static.tts.quest/voicevox_speakers.json')
@@ -852,6 +868,8 @@ function toggleEngineUI(engine: string): void {
     engine === 'voicevox' ? 'block' : 'none';
   document.getElementById('browser-tts-settings')!.style.display =
     engine === 'browser' ? 'block' : 'none';
+  document.getElementById('local-voicevox-settings')!.style.display =
+    engine === 'local-voicevox' ? 'block' : 'none';
   document.getElementById('voicevox-api-key-section')!.style.display =
     engine === 'voicevox' ? 'block' : 'none';
   updateSpeedSliderState();
@@ -925,4 +943,105 @@ document.getElementById('browserVoice')!.addEventListener('change', (event) => {
   chrome.runtime.sendMessage({ action: 'updateBrowserVoice', voiceName });
   updateSpeedSliderState();
   updateVolumeSliderState();
+});
+
+// --- ローカルVOICEVOX ---
+
+function fetchLocalSpeakers(host: string, savedSpeakerId?: string): void {
+  const select = document.getElementById('localSpeaker') as HTMLSelectElement;
+  select.innerHTML = '<option value="">取得中...</option>';
+
+  chrome.runtime.sendMessage(
+    { action: 'getLocalSpeakers', host },
+    (response: { status: string; speakers?: Array<{ name: string; styles: Array<{ id: number; name: string }> }> }) => {
+      if (chrome.runtime.lastError || !response || response.status !== 'success' || !response.speakers) {
+        select.innerHTML = '<option value="">接続テストを実行してください</option>';
+        return;
+      }
+
+      select.innerHTML = '';
+      response.speakers.forEach((speaker) => {
+        const group = document.createElement('optgroup');
+        group.label = speaker.name;
+        speaker.styles.forEach((style) => {
+          const opt = document.createElement('option');
+          opt.value = String(style.id);
+          opt.textContent = `${speaker.name} (${style.name})`;
+          group.appendChild(opt);
+        });
+        select.appendChild(group);
+      });
+
+      if (savedSpeakerId) {
+        select.value = savedSpeakerId;
+      } else if (select.options.length > 0) {
+        // 未保存時は最初の話者IDをストレージに保存して同期
+        const firstValue = select.options[0].value;
+        if (firstValue) {
+          chrome.storage.sync.set({ localSpeakerId: firstValue });
+        }
+      }
+    }
+  );
+}
+
+// 接続テストボタン
+document.getElementById('test-local-voicevox')!.addEventListener('click', () => {
+  const host = (document.getElementById('localVoicevoxHost') as HTMLInputElement).value.trim();
+  const statusEl = document.getElementById('local-voicevox-status')!;
+  const btn = document.getElementById('test-local-voicevox') as HTMLButtonElement;
+
+  if (!host) {
+    statusEl.textContent = 'エンジンURLを入力してください';
+    statusEl.className = 'info-text warning-text';
+    statusEl.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  statusEl.textContent = '接続中...';
+  statusEl.className = 'info-text';
+  statusEl.style.display = 'block';
+
+  chrome.runtime.sendMessage(
+    { action: 'testLocalVoicevox', host },
+    (response: { status: string; message?: string }) => {
+      btn.disabled = false;
+      if (chrome.runtime.lastError) {
+        statusEl.textContent = '接続エラー: ' + (chrome.runtime.lastError.message || '不明');
+        statusEl.className = 'info-text warning-text';
+        return;
+      }
+
+      if (response && response.status === 'success') {
+        statusEl.textContent = '接続成功 (version: ' + (response.message || '不明') + ')';
+        statusEl.className = 'info-text';
+        // 接続成功時にスピーカーリスト取得
+        chrome.storage.sync.get(['localSpeakerId'], (data) => {
+          fetchLocalSpeakers(host, data.localSpeakerId);
+        });
+      } else {
+        statusEl.textContent =
+          '接続失敗: VOICEVOXアプリが起動しているか確認してください';
+        statusEl.className = 'info-text warning-text';
+      }
+    }
+  );
+});
+
+// ローカルVOICEVOXホストの自動保存（debounce付き）
+let localHostDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+document.getElementById('localVoicevoxHost')!.addEventListener('input', () => {
+  if (localHostDebounceTimer) clearTimeout(localHostDebounceTimer);
+  localHostDebounceTimer = setTimeout(() => {
+    const host = (document.getElementById('localVoicevoxHost') as HTMLInputElement).value.trim();
+    chrome.storage.sync.set({ localVoicevoxHost: host });
+    chrome.runtime.sendMessage({ action: 'updateLocalVoicevoxHost', host });
+  }, 500);
+});
+
+// ローカル話者選択の変更
+document.getElementById('localSpeaker')!.addEventListener('change', (event) => {
+  const speakerId = (event.target as HTMLSelectElement).value;
+  chrome.storage.sync.set({ localSpeakerId: speakerId });
 });

@@ -3,7 +3,7 @@
   "name": "YouTubeライブチャットずんだもんボイス読み上げ",
   "version": "5.20",
   "permissions": ["activeTab", "storage", "scripting", "tts"],
-  "host_permissions": ["https://www.youtube.com/*", "https://*.tts.quest/*"],
+  "host_permissions": ["https://www.youtube.com/*", "https://*.tts.quest/*", "http://localhost/*"],
   "action": {
     "default_popup": "popup/popup.html",
     "default_icon": "./icon/youtube-live-comment-icon.png",

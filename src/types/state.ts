@@ -1,4 +1,4 @@
-export type TtsEngine = 'voicevox' | 'browser';
+export type TtsEngine = 'voicevox' | 'browser' | 'local-voicevox';
 
 export interface AudioQueueItem {
   type: 'url' | 'speech';
