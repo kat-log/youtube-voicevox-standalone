@@ -101,7 +101,7 @@ export function startPolling(config: {
         // それ以外（キューにアイテムあり）は generating/listening が適宜セットされる
 
         if (!data.items || data.items.length === 0) {
-          sendDebugInfo(`0件 | Queue: ${formatQueueState()} | 次回: ${getState().pollingIntervalMs}ms`);
+          sendDebugInfo(`0件 | Queue: ${formatQueueState()} | 次回取得まで: ${getState().pollingIntervalMs}ms`);
           updateState({ nextPageToken: data.nextPageToken || null });
           return;
         }
@@ -109,7 +109,7 @@ export function startPolling(config: {
         const currentState = getState();
         if (isFirstFetch || currentState.latestOnlyMode) {
           // 最初の取得または最新のみモードでは最新の1件のみを取得
-          sendDebugInfo(`📥 1件取得（最新のみ） | Queue: ${formatQueueState()} | 次回: ${getState().pollingIntervalMs}ms`);
+          sendDebugInfo(`📥 1件取得（最新のみ） | Queue: ${formatQueueState()} | 次回取得まで: ${getState().pollingIntervalMs}ms`);
           const latestItem = data.items[data.items.length - 1];
           const rawMessage: string = latestItem.snippet.displayMessage;
           if (rawMessage !== latestMessage) {
@@ -196,7 +196,7 @@ export function startPolling(config: {
           }
           const afterQueueSize = getState().commentQueue.length;
           const addedCount = afterQueueSize - beforeQueueSize;
-          sendDebugInfo(`📥 ${addedCount}件追加（${data.items.length}件取得） | Queue: [コメント:${beforeQueueSize}→${afterQueueSize}, 音声:${getState().audioQueue.length}] | 次回: ${getState().pollingIntervalMs}ms`);
+          sendDebugInfo(`📥 ${addedCount}件追加（${data.items.length}件取得） | Queue: [コメント:${beforeQueueSize}→${afterQueueSize}, 音声:${getState().audioQueue.length}] | 次回取得まで: ${getState().pollingIntervalMs}ms`);
         }
 
         updateState({ nextPageToken: data.nextPageToken || null });
