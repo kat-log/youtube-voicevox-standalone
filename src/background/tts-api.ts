@@ -78,7 +78,7 @@ export function processCommentQueue(): void {
 
   if (currentEngine === 'browser') {
     // ブラウザTTS: API不要、直接audioQueueに追加
-    sendDebugInfo(`ブラウザTTS：${comment.newMessage} | Queue: ${formatQueueState()}`);
+    sendDebugInfo(`ブラウザTTS：${comment.newMessage} | キュー: ${formatQueueState()}`);
     pushAudio({
       type: 'speech',
       text: comment.newMessage,
@@ -94,14 +94,14 @@ export function processCommentQueue(): void {
   if (currentEngine === 'local-voicevox') {
     // ローカルVOICEVOX: ローカルエンジンで音声合成
     isTtsProcessing = true;
-    sendDebugInfo(`ローカルVOICEVOX REQUEST：${comment.newMessage} | Queue: ${formatQueueState()}`);
+    sendDebugInfo(`ローカルVOICEVOX REQUEST：${comment.newMessage} | キュー: ${formatQueueState()}`);
     synthesizeLocalWithRetry(comment, 0);
     return;
   }
 
   // VOICEVOX: TTS Quest APIで音声合成
   isTtsProcessing = true;
-  sendDebugInfo(`VOICEVOX REQUEST：${comment.newMessage} | Queue: ${formatQueueState()}`);
+  sendDebugInfo(`VOICEVOX REQUEST：${comment.newMessage} | キュー: ${formatQueueState()}`);
   synthesizeWithRetry(comment, 0);
 }
 
@@ -128,7 +128,7 @@ function synthesizeWithRetry(
       // Stop後に完了した古いリクエストは破棄
       if (getState().sessionId !== currentSession) return;
 
-      sendDebugInfo(`VOICEVOX RESPONSE：${audioUrl} | Queue: ${formatQueueState()}`);
+      sendDebugInfo(`VOICEVOX RESPONSE：${audioUrl} | キュー: ${formatQueueState()}`);
 
       pushAudio({ type: 'url', url: audioUrl });
       updateBadge();
@@ -176,7 +176,7 @@ async function fetchVoiceVox(apiKey: string, text: string, speakerId?: string): 
     const data = await response.json();
     const waitMs = (data.retryAfter || 5) * 1000;
     sendStatus('rate-limited');
-    sendDebugInfo(`⚠ レート制限: ${data.retryAfter || 5}秒待機 | text="${text.substring(0, 20)}..." | Queue: ${formatQueueState()}`);
+    sendDebugInfo(`⚠ レート制限: ${data.retryAfter || 5}秒待機 | text="${text.substring(0, 20)}..." | キュー: ${formatQueueState()}`);
     await new Promise((r) => setTimeout(r, waitMs));
     sendStatus('generating');
     return fetchVoiceVox(apiKey, text, speakerId);
@@ -248,7 +248,7 @@ function synthesizeLocalWithRetry(
       isTtsProcessing = false;
       if (getState().sessionId !== currentSession) return;
 
-      sendDebugInfo(`ローカルVOICEVOX RESPONSE：data URI (${dataUri.length} chars) | Queue: ${formatQueueState()}`);
+      sendDebugInfo(`ローカルVOICEVOX RESPONSE：data URI (${dataUri.length} chars) | キュー: ${formatQueueState()}`);
 
       pushAudio({ type: 'url', url: dataUri });
       updateBadge();
