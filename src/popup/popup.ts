@@ -67,6 +67,7 @@ window.onload = function () {
         data.apiKeyVOICEVOX || '';
       (document.getElementById('apiKeyYoutube') as HTMLInputElement).value =
         data.apiKeyYoutube || '';
+      updateVoicevoxBalanceVisibility();
       speed = data.speed || 1.0;
       const speedSlider = document.getElementById('speed') as HTMLInputElement;
       speedSlider.value = String(speed);
@@ -558,6 +559,23 @@ function validateInputs(): void {
       playTooltip.style.color = '';
     }
   }
+
+  // YouTubeクォータリンクの表示/非表示
+  const youtubeQuotaLink = document.getElementById('youtube-quota-link');
+  if (youtubeQuotaLink) {
+    youtubeQuotaLink.style.display = apiKey ? 'block' : 'none';
+  }
+}
+
+// VOICEVOX残高確認行の表示/非表示
+function updateVoicevoxBalanceVisibility(): void {
+  const key = (document.getElementById('apiKeyVOICEVOX') as HTMLInputElement).value.trim();
+  const row = document.getElementById('voicevox-balance-row');
+  const note = document.getElementById('voicevox-balance-note');
+  if (row) row.style.display = key ? 'flex' : 'none';
+  if (note) note.style.display = key ? 'block' : 'none';
+  const result = document.getElementById('voicevox-balance-result');
+  if (result) result.textContent = '';
 }
 
 // YouTube APIキー入力の変更を監視・自動保存
@@ -571,6 +589,7 @@ document.getElementById('apiKeyYoutube')!.addEventListener('input', () => {
 document.getElementById('apiKeyVOICEVOX')!.addEventListener('input', () => {
   const value = (document.getElementById('apiKeyVOICEVOX') as HTMLInputElement).value;
   chrome.storage.sync.set({ apiKeyVOICEVOX: value });
+  updateVoicevoxBalanceVisibility();
 });
 
 // APIキーの表示/非表示切替 (YouTube)
@@ -600,6 +619,40 @@ document.getElementById('toggle-voicevox-key')?.addEventListener('click', () => 
     input.type = 'password';
     btn.textContent = '👀';
     btn.setAttribute('aria-label', 'APIキーを表示する');
+  }
+});
+
+// VOICEVOX残高確認
+document.getElementById('check-voicevox-balance')?.addEventListener('click', async () => {
+  const apiKey = (document.getElementById('apiKeyVOICEVOX') as HTMLInputElement).value.trim();
+  const resultEl = document.getElementById('voicevox-balance-result')!;
+  const btn = document.getElementById('check-voicevox-balance') as HTMLButtonElement;
+
+  if (!apiKey) return;
+
+  btn.disabled = true;
+  resultEl.textContent = '確認中...';
+  resultEl.className = 'balance-result balance-loading';
+
+  try {
+    const res = await fetch(
+      `https://api.tts.quest/v3/key/points?key=${encodeURIComponent(apiKey)}`
+    );
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data: { isApiKeyValid: boolean; points: number } = await res.json();
+
+    if (!data.isApiKeyValid) {
+      resultEl.textContent = 'APIキーが無効です';
+      resultEl.className = 'balance-result balance-error';
+    } else {
+      resultEl.textContent = `残高: ${data.points.toLocaleString()} pt`;
+      resultEl.className = 'balance-result balance-ok';
+    }
+  } catch (e) {
+    resultEl.textContent = `エラー: ${e instanceof Error ? e.message : '不明'}`;
+    resultEl.className = 'balance-result balance-error';
+  } finally {
+    btn.disabled = false;
   }
 });
 

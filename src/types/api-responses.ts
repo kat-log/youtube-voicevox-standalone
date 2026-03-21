@@ -62,3 +62,9 @@ export interface TTSQuestAudioStatusResponse {
   mp3DownloadUrl?: string;
   wavDownloadUrl?: string;
 }
+
+// TTS Quest v3 Key Points API
+export interface TTSQuestKeyPointsResponse {
+  isApiKeyValid: boolean;
+  points: number;
+}
