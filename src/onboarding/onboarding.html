@@ -15,7 +15,13 @@
         <h2>目次</h2>
         <ul>
           <li><a href="#youtube-api">1. YouTube APIキーの取得と設定（必須）</a></li>
-          <li><a href="#voicevox-api">2. VOICEVOXとの連携（推奨・任意）</a></li>
+          <li>
+            <a href="#voicevox-api">2. VOICEVOXとの連携（任意）</a>
+            <ul>
+              <li><a href="#local-voicevox">2a. ローカルVOICEVOXの導入（推奨）</a></li>
+              <li><a href="#web-voicevox-api">2b. WEB版VOICEVOX API（代替）</a></li>
+            </ul>
+          </li>
           <li><a href="#how-to-use">3. 基本的な使い方</a></li>
         </ul>
       </nav>
@@ -53,21 +59,56 @@
         </section>
 
         <section id="voicevox-api" class="guide-section">
-          <h2>2. VOICEVOXとの連携（推奨・任意）</h2>
+          <h2>2. VOICEVOXとの連携（任意）</h2>
           <p>
             標準のブラウザ音声以外に、高品質な「VOICEVOX」の音声を利用できます。<br />
-            音声生成を高速かつ安定させるため、無料のWEB版VOICEVOX
-            API（高速）APIキーの取得をおすすめしています。
+            ローカルVOICEVOXの導入を推奨しますが、WEB版APIも利用可能です。
+          </p>
+
+          <h3 id="local-voicevox">2a. ローカルVOICEVOXの導入（推奨）</h3>
+          <p>
+            お使いのPCにVOICEVOXをインストールすることで、レート制限なし・高速で利用できます。
           </p>
           <ol>
             <li>
-              <a href="https://voicevox.su-shiki.com/su-shikiapis/" target="_blank">su-shiki API</a>
-              様のWebサイトへアクセスします。（当拡張機能はVOICEVOXの公式提供ではなく、サードパーティのAPIを利用しています）
+              <a href="https://voicevox.hiroshiba.jp/" target="_blank">VOICEVOX公式サイト</a>
+              からアプリをダウンロード・インストールします。
             </li>
-            <li>利用規約を確認後、ご自身用のAPIキーを発行・取得します。</li>
+            <li>VOICEVOXアプリを起動します（音声エンジンがバックグラウンドで自動的に起動します）。</li>
+            <li>拡張機能の「読み上げエンジン」で「ローカルVOICEVOX」を選択します。</li>
+            <li>「接続テスト」ボタンで接続を確認し、お好みの話者を選択します。</li>
+          </ol>
+          <div class="note">
+            ※ 読み上げ中はVOICEVOXアプリを起動したままにしてください。
+          </div>
+
+          <h3 id="web-voicevox-api">2b. WEB版VOICEVOX API（代替）</h3>
+          <p>
+            ローカルインストールが難しい場合は、WEB版APIも利用できます。<br />
+            APIキーの有無で2つのモードがあります。いずれも無料ですが、レート制限があり
+            連続使用時に一時的に音声生成が停止する場合があります。
+          </p>
+
+          <h4>WEB版VOICEVOX API（高速）— APIキーあり</h4>
+          <p>APIキーを設定すると、WEB版の中ではより高速に音声を生成できます。</p>
+          <ol>
+            <li>
+              <a href="https://voicevox.su-shiki.com/su-shikiapis/" target="_blank">su-shiki API</a>
+              様のWebサイトへアクセスし、APIキーを発行・取得します。
+            </li>
             <li>
               拡張機能の設定画面の「詳細設定（VOICEVOX API）」を開き、取得したAPIキーを入力します。
             </li>
+          </ol>
+
+          <h4>WEB版VOICEVOX API（低速）— APIキー不要</h4>
+          <p>APIキーなしでもそのまま利用できます。高速版と比べて応答が遅くなります。</p>
+          <ol>
+            <li>
+              <a href="https://voicevox.su-shiki.com/su-shikiapis/ttsquest/" target="_blank">TTS Quest API</a>
+              の詳細はこちらをご確認ください。
+            </li>
+            <li>特別な設定は不要です。読み上げエンジンで「VOICEVOX（TTS Quest API）」を選択するだけで利用できます。</li>
           </ol>
         </section>
 
