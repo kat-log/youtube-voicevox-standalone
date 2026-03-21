@@ -27,7 +27,7 @@ export function playNextAudio(): void {
       sendStatus('waiting');
       lastQueueEmptyLogged = true;
     } else if (!state.isPlaying && state.audioQueue.length === 0 && state.commentQueue.length > 0) {
-      sendDebugInfo(`⏳ audioQueue空 / commentQueue: ${state.commentQueue.length}件 - TTS生成待ち`);
+      sendDebugInfo(`⏳ audioQueue空 / commentキュー: ${state.commentQueue.length}件 - TTS生成待ち`);
     }
     return;
   }
@@ -41,7 +41,7 @@ export function playNextAudio(): void {
 
   updateState({ isPlaying: true });
   sendStatus('listening');
-  sendDebugInfo(`▶ 再生開始 | Queue: ${formatQueueState()}`);
+  sendDebugInfo(`▶ 再生開始 | キュー: ${formatQueueState()}`);
 
   // フェイルセーフタイマー（30秒で強制リセット）
   if (state.playingTimeout) {
@@ -188,7 +188,7 @@ export function handleAudioEnded(): void {
   incrementCumulativeCount();
   updateBadge();
   evaluateRushMode();
-  sendDebugInfo(`■ 再生終了 | Queue: ${formatQueueState()}`);
+  sendDebugInfo(`■ 再生終了 | キュー: ${formatQueueState()}`);
 
   // キュー状態に応じたステータス設定（playNextAudio/scheduleNextProcessingが適切に更新）
   const updatedState = getState();
