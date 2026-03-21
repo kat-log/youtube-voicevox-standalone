@@ -98,15 +98,15 @@
       </p>
 
       <div class="toggle-container">
-        <label class="toggle-switch" aria-label="自動倍速モード">
+        <label class="toggle-switch" aria-label="ラッシュモード（自動倍速モード）">
           <input type="checkbox" id="rushModeEnabled" role="switch" aria-checked="false" />
           <span class="slider round"></span>
         </label>
-        <span>自動倍速モード</span>
+        <span>ラッシュモード（自動倍速モード）</span>
       </div>
 
       <div id="rush-mode-options" style="display: none">
-        <label for="rushActivateThreshold">倍速開始（待機コメント数）:</label>
+        <label for="rushActivateThreshold">ラッシュモード開始（待機コメント数）:</label>
         <div class="slider-group">
           <input
             type="range"
@@ -115,13 +115,13 @@
             max="100"
             step="5"
             value="20"
-            aria-label="倍速開始しきい値"
+            aria-label="ラッシュモード開始しきい値"
             aria-valuetext="20件"
           />
           <span id="current-rush-activate">20件</span>
         </div>
 
-        <label for="rushSpeed">倍速時の再生速度:</label>
+        <label for="rushSpeed">ラッシュモード時の再生速度:</label>
         <div class="slider-group">
           <input
             type="range"
@@ -130,7 +130,7 @@
             max="3.0"
             step="0.1"
             value="2.0"
-            aria-label="倍速時の再生速度"
+            aria-label="ラッシュモード時の再生速度"
             aria-valuetext="2.0倍速"
           />
           <span id="current-rush-speed">2.0x</span>

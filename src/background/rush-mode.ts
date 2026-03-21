@@ -37,7 +37,7 @@ export function evaluateRushMode(): void {
   if (!rushConfig.enabled) {
     if (state.isRushActive) {
       updateState({ isRushActive: false });
-      sendDebugInfo('自動倍速モード: 設定無効のため解除');
+      sendDebugInfo('ラッシュモード: 設定無効のため解除');
       sendStatus(state.currentStatus);
     }
     return;
@@ -49,7 +49,7 @@ export function evaluateRushMode(): void {
   if (!wasActive && pending >= rushConfig.activateThreshold) {
     updateState({ isRushActive: true });
     sendDebugInfo(
-      `自動倍速モード ON: 待機${pending}件 >= しきい値${rushConfig.activateThreshold} | 速度${rushConfig.rushSpeed}x`
+      `ラッシュモード ON: 待機${pending}件 >= しきい値${rushConfig.activateThreshold} | 速度${rushConfig.rushSpeed}x`
     );
     sendStatus(getState().currentStatus);
     return;
@@ -58,7 +58,7 @@ export function evaluateRushMode(): void {
   if (wasActive && pending <= rushConfig.returnThreshold) {
     updateState({ isRushActive: false });
     sendDebugInfo(
-      `自動倍速モード OFF: 待機${pending}件 <= 復帰しきい値${rushConfig.returnThreshold}`
+      `ラッシュモード OFF: 待機${pending}件 <= 復帰しきい値${rushConfig.returnThreshold}`
     );
     sendStatus(getState().currentStatus);
   }
