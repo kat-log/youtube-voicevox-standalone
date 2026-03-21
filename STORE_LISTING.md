@@ -41,7 +41,7 @@ VOICEVOX API、ブラウザ内蔵音声、またはローカルVOICEVOXエンジ
 ✨ 機能紹介
 
 【3つの読み上げエンジン】
-・VOICEVOX（TTS Quest API）
+・WEB版VOICEVOX API
 　→ ずんだもん、四国めたん、春日部つむぎ ほか多数のキャラクターから選択可能！
 　→ APIキーなしで動作。APIキーを設定すると生成が高速化されます
 ・ブラウザ内蔵音声
