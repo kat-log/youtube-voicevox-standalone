@@ -5,6 +5,7 @@ import { stopCurrentAudio, updateBadge, clearBadge } from './audio-player';
 import { sendStatus, sendDebugInfo, formatQueueState, clearDebugLogs } from './messaging';
 import { ERROR_THRESHOLD_FOR_STATUS } from './state';
 import { shouldFilter, getFilterConfig, stripEmojis, removeNgWords } from './comment-filter';
+import { evaluateRushMode } from './rush-mode';
 
 // ポーリング開始
 export function startPolling(config: {
@@ -200,6 +201,7 @@ export function startPolling(config: {
 
         updateState({ nextPageToken: data.nextPageToken || null });
         updateBadge();
+        evaluateRushMode();
         scheduleNextProcessing();
       })
       .catch((error: Error & { isRateLimit?: boolean }) => {

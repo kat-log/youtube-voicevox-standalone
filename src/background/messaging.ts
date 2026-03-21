@@ -12,6 +12,7 @@ export function sendStatus(status: ExtensionStatus, message = ''): void {
       message,
       commentCount: state.commentCount,
       queueLength: state.commentQueue.length + state.audioQueue.length,
+      isRushActive: state.isRushActive,
     })
     .catch(() => {});
 }

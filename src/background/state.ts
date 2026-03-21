@@ -19,6 +19,7 @@ const state: ExtensionState = {
   commentCount: 0,
   sessionId: 0,
   pollingCycleCount: 0,
+  isRushActive: false,
 };
 
 export function getState(): ExtensionState {
@@ -41,6 +42,7 @@ export function resetState(): void {
   state.consecutiveErrors = 0;
   state.pollingIntervalMs = 5000;
   state.pollingCycleCount = 0;
+  state.isRushActive = false;
 }
 
 export function incrementSessionId(): number {

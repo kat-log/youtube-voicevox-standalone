@@ -1,6 +1,7 @@
 import { getState, updateState, shiftAudio } from './state';
 import { sendStatus, sendDebugInfo, formatQueueState } from './messaging';
 import { scheduleNextProcessing } from './tts-api';
+import { evaluateRushMode, resolveEffectiveSpeed } from './rush-mode';
 
 /** chrome.tts の rate を補正（エンジンの指数的スケーリングを相殺） */
 function correctTtsRate(sliderSpeed: number): number {
@@ -58,7 +59,8 @@ export function playNextAudio(): void {
 
   chrome.storage.sync.get(['volume', 'speed'], (data) => {
     const volume = data.volume !== undefined ? data.volume : 1.0;
-    const speed = data.speed !== undefined ? data.speed : 1.0;
+    const baseSpeed = data.speed !== undefined ? data.speed : 1.0;
+    const speed = resolveEffectiveSpeed(baseSpeed);
 
     if (item.type === 'url') {
       injectAudioUrl(tabId, item.url!, volume, speed);
@@ -185,6 +187,7 @@ export function handleAudioEnded(): void {
   });
   incrementCumulativeCount();
   updateBadge();
+  evaluateRushMode();
   sendDebugInfo(`■ 再生終了 | Queue: ${formatQueueState()}`);
 
   // キュー状態に応じたステータス設定（playNextAudio/scheduleNextProcessingが適切に更新）

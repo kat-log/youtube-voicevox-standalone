@@ -3,6 +3,7 @@ import type { TtsEngine } from '@/types/state';
 import { getState, shiftComment, pushAudio } from './state';
 import { sendDebugInfo, formatQueueState, sendStatus } from './messaging';
 import { playNextAudio, updateBadge } from './audio-player';
+import { evaluateRushMode } from './rush-mode';
 
 // TTSエンジン設定（モジュールレベルキャッシュ）
 let currentEngine: TtsEngine = 'voicevox';
@@ -84,6 +85,7 @@ export function processCommentQueue(): void {
       voiceName: browserVoiceName || undefined,
     });
     updateBadge();
+    evaluateRushMode();
     playNextAudio();
     scheduleNextProcessing();
     return;
@@ -130,6 +132,7 @@ function synthesizeWithRetry(
 
       pushAudio({ type: 'url', url: audioUrl });
       updateBadge();
+      evaluateRushMode();
       playNextAudio();
       scheduleNextProcessing();
     })
@@ -249,6 +252,7 @@ function synthesizeLocalWithRetry(
 
       pushAudio({ type: 'url', url: dataUri });
       updateBadge();
+      evaluateRushMode();
       playNextAudio();
       scheduleNextProcessing();
     })
