@@ -1,5 +1,12 @@
 export type TtsEngine = 'voicevox' | 'browser' | 'local-voicevox';
 
+export interface RushModeConfig {
+  enabled: boolean;
+  activateThreshold: number;
+  returnThreshold: number;
+  rushSpeed: number;
+}
+
 export interface AudioQueueItem {
   type: 'url' | 'speech';
   url?: string;
@@ -32,6 +39,7 @@ export interface ExtensionState {
   commentCount: number;
   sessionId: number;
   pollingCycleCount: number;
+  isRushActive: boolean;
 }
 
 export type ExtensionStatus =

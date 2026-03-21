@@ -11,6 +11,7 @@
       <span id="status-text">停止中</span>
       <span id="status-count"></span>
       <span id="queue-info" class="queue-info"></span>
+      <span id="rush-indicator" class="rush-indicator" style="display: none">AUTO</span>
     </div>
 
     <!-- APIキー未設定バナー -->
@@ -95,6 +96,63 @@
       <p id="speed-unsupported-info" class="info-text" style="display: none">
         この音声では再生速度の変更はサポートされていません（等速固定）
       </p>
+
+      <div class="toggle-container">
+        <label class="toggle-switch" aria-label="ラッシュモード（自動倍速モード）">
+          <input type="checkbox" id="rushModeEnabled" role="switch" aria-checked="false" />
+          <span class="slider round"></span>
+        </label>
+        <span>ラッシュモード（自動倍速モード）</span>
+      </div>
+
+      <div id="rush-mode-options" style="display: none">
+        <label for="rushActivateThreshold">ラッシュモード開始（待機コメント数）:</label>
+        <div class="slider-group">
+          <input
+            type="range"
+            id="rushActivateThreshold"
+            min="5"
+            max="100"
+            step="5"
+            value="20"
+            aria-label="ラッシュモード開始しきい値"
+            aria-valuetext="20件"
+          />
+          <span id="current-rush-activate">20件</span>
+        </div>
+
+        <label for="rushSpeed">ラッシュモード時の再生速度:</label>
+        <div class="slider-group">
+          <input
+            type="range"
+            id="rushSpeed"
+            min="1.5"
+            max="3.0"
+            step="0.1"
+            value="2.0"
+            aria-label="ラッシュモード時の再生速度"
+            aria-valuetext="2.0倍速"
+          />
+          <span id="current-rush-speed">2.0x</span>
+        </div>
+
+        <label for="rushReturnThreshold">通常速度に戻す（待機コメント数）:</label>
+        <div class="slider-group">
+          <input
+            type="range"
+            id="rushReturnThreshold"
+            min="0"
+            max="100"
+            step="1"
+            value="0"
+            aria-label="通常速度復帰しきい値"
+            aria-valuetext="0件"
+          />
+          <span id="current-rush-return">0件</span>
+        </div>
+
+        <button id="reset-rush-mode" class="small-btn" aria-label="自動倍速モードの設定をリセット">デフォルトに戻す</button>
+      </div>
 
       <label for="volume">音量:</label>
       <div class="slider-group">

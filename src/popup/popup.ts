@@ -63,6 +63,7 @@ window.onload = function () {
       'browserVoice',
       'localVoicevoxHost',
       'localSpeakerId',
+      'rushModeConfig',
     ],
     function (data) {
       (document.getElementById('apiKeyVOICEVOX') as HTMLInputElement).value =
@@ -148,6 +149,35 @@ window.onload = function () {
       const hasNgWords = (fc.ngWords || []).length > 0;
       document.getElementById('ngWordActionGroup')!.style.display = hasNgWords ? 'block' : 'none';
 
+      // ラッシュモード設定を復元
+      const rc = data.rushModeConfig || {
+        enabled: false,
+        activateThreshold: 20,
+        returnThreshold: 0,
+        rushSpeed: 2.0,
+      };
+      (document.getElementById('rushModeEnabled') as HTMLInputElement).checked = rc.enabled;
+      document.getElementById('rushModeEnabled')!.setAttribute('aria-checked', String(rc.enabled));
+      document.getElementById('rush-mode-options')!.style.display = rc.enabled ? 'block' : 'none';
+
+      const rushActivateSlider = document.getElementById('rushActivateThreshold') as HTMLInputElement;
+      rushActivateSlider.value = String(rc.activateThreshold);
+      document.getElementById('current-rush-activate')!.textContent = `${rc.activateThreshold}件`;
+      rushActivateSlider.setAttribute('aria-valuetext', `${rc.activateThreshold}件`);
+      setRangeFill(rushActivateSlider);
+
+      const rushSpeedSlider = document.getElementById('rushSpeed') as HTMLInputElement;
+      rushSpeedSlider.value = String(rc.rushSpeed);
+      document.getElementById('current-rush-speed')!.textContent = `${rc.rushSpeed.toFixed(1)}x`;
+      rushSpeedSlider.setAttribute('aria-valuetext', `${rc.rushSpeed.toFixed(1)}倍速`);
+      setRangeFill(rushSpeedSlider);
+
+      const rushReturnSlider = document.getElementById('rushReturnThreshold') as HTMLInputElement;
+      rushReturnSlider.value = String(rc.returnThreshold);
+      document.getElementById('current-rush-return')!.textContent = `${rc.returnThreshold}件`;
+      rushReturnSlider.setAttribute('aria-valuetext', `${rc.returnThreshold}件`);
+      setRangeFill(rushReturnSlider);
+
       // TTSエンジン設定を復元
       const engine = data.ttsEngine || 'voicevox';
       (document.getElementById('ttsEngine') as HTMLSelectElement).value = engine;
@@ -193,14 +223,15 @@ window.onload = function () {
       // 現在のステータスを取得
       chrome.runtime.sendMessage(
         { action: 'getStatus' },
-        function (response: { status?: string; commentCount?: number; queueLength?: number }) {
+        function (response: { status?: string; commentCount?: number; queueLength?: number; isRushActive?: boolean }) {
           if (chrome.runtime.lastError) return;
           if (response) {
             updateStatusUI(
               response.status || 'idle',
               '',
               response.commentCount || 0,
-              response.queueLength || 0
+              response.queueLength || 0,
+              response.isRushActive || false
             );
           }
         }
@@ -389,6 +420,7 @@ chrome.runtime.onMessage.addListener(function (request: {
   commentCount?: number;
   queueLength?: number;
   totalCount?: number;
+  isRushActive?: boolean;
 }) {
   // ステータス更新
   if (request.action === 'updateStatus') {
@@ -396,7 +428,8 @@ chrome.runtime.onMessage.addListener(function (request: {
       request.status || 'idle',
       request.message || '',
       request.commentCount || 0,
-      request.queueLength || 0
+      request.queueLength || 0,
+      request.isRushActive || false
     );
   } else if (request.action === 'updateErrorMessage') {
     const errorElement = document.getElementById('error');
@@ -483,10 +516,83 @@ document.getElementById('speed')!.addEventListener('input', (event) => {
   setRangeFill(target);
 });
 
+// --- 自動倍速モード ---
+
+function sendRushModeConfig(): void {
+  const enabled = (document.getElementById('rushModeEnabled') as HTMLInputElement).checked;
+  const activateThreshold = parseInt(
+    (document.getElementById('rushActivateThreshold') as HTMLInputElement).value, 10
+  );
+  const returnThreshold = parseInt(
+    (document.getElementById('rushReturnThreshold') as HTMLInputElement).value, 10
+  );
+  const rushSpeed = parseFloat(
+    (document.getElementById('rushSpeed') as HTMLInputElement).value
+  );
+  const rushModeConfig = { enabled, activateThreshold, returnThreshold, rushSpeed };
+  chrome.runtime.sendMessage({ action: 'updateRushModeConfig', rushModeConfig });
+}
+
+document.getElementById('rushModeEnabled')!.addEventListener('change', (event) => {
+  const target = event.target as HTMLInputElement;
+  target.setAttribute('aria-checked', String(target.checked));
+  document.getElementById('rush-mode-options')!.style.display = target.checked ? 'block' : 'none';
+  sendRushModeConfig();
+});
+
+document.getElementById('rushActivateThreshold')!.addEventListener('input', (event) => {
+  const target = event.target as HTMLInputElement;
+  const val = parseInt(target.value, 10);
+  document.getElementById('current-rush-activate')!.textContent = `${val}件`;
+  target.setAttribute('aria-valuetext', `${val}件`);
+  setRangeFill(target);
+  sendRushModeConfig();
+});
+
+document.getElementById('rushSpeed')!.addEventListener('input', (event) => {
+  const target = event.target as HTMLInputElement;
+  const val = parseFloat(target.value);
+  document.getElementById('current-rush-speed')!.textContent = `${val.toFixed(1)}x`;
+  target.setAttribute('aria-valuetext', `${val.toFixed(1)}倍速`);
+  setRangeFill(target);
+  sendRushModeConfig();
+});
+
+document.getElementById('rushReturnThreshold')!.addEventListener('input', (event) => {
+  const target = event.target as HTMLInputElement;
+  const val = parseInt(target.value, 10);
+  document.getElementById('current-rush-return')!.textContent = `${val}件`;
+  target.setAttribute('aria-valuetext', `${val}件`);
+  setRangeFill(target);
+  sendRushModeConfig();
+});
+
+document.getElementById('reset-rush-mode')!.addEventListener('click', () => {
+  const activateSlider = document.getElementById('rushActivateThreshold') as HTMLInputElement;
+  activateSlider.value = '20';
+  document.getElementById('current-rush-activate')!.textContent = '20件';
+  activateSlider.setAttribute('aria-valuetext', '20件');
+  setRangeFill(activateSlider);
+
+  const rushSpeedSlider = document.getElementById('rushSpeed') as HTMLInputElement;
+  rushSpeedSlider.value = '2.0';
+  document.getElementById('current-rush-speed')!.textContent = '2.0x';
+  rushSpeedSlider.setAttribute('aria-valuetext', '2.0倍速');
+  setRangeFill(rushSpeedSlider);
+
+  const returnSlider = document.getElementById('rushReturnThreshold') as HTMLInputElement;
+  returnSlider.value = '0';
+  document.getElementById('current-rush-return')!.textContent = '0件';
+  returnSlider.setAttribute('aria-valuetext', '0件');
+  setRangeFill(returnSlider);
+
+  sendRushModeConfig();
+});
+
 let currentStatus: string = 'idle';
 
 // ステータスバーとボタンのUIを更新する関数
-function updateStatusUI(status: string, message: string, count: number, queueLength = 0): void {
+function updateStatusUI(status: string, message: string, count: number, queueLength = 0, isRushActive = false): void {
   currentStatus = status;
   const dot = document.getElementById('status-dot');
   const text = document.getElementById('status-text');
@@ -549,6 +655,12 @@ function updateStatusUI(status: string, message: string, count: number, queueLen
     // 実行中（connecting, fetching, generating, listening）
     playBtn.disabled = true;
     stopBtn.disabled = false;
+  }
+
+  // ラッシュモードインジケーター
+  const rushIndicator = document.getElementById('rush-indicator');
+  if (rushIndicator) {
+    rushIndicator.style.display = isRushActive ? 'inline' : 'none';
   }
 }
 

@@ -7,7 +7,8 @@ import { sendStatus, sendDebugInfo, updateErrorMessage } from './messaging';
 import { loadFilterConfigFromStorage, setFilterConfig } from './comment-filter';
 import type { FilterConfig } from './comment-filter';
 import { setTtsEngine, setBrowserVoice, setLocalVoicevoxHost } from './tts-api';
-import type { TtsEngine } from '@/types/state';
+import { loadRushConfigFromStorage, setRushConfig, evaluateRushMode } from './rush-mode';
+import type { TtsEngine, RushModeConfig } from '@/types/state';
 
 // ポップアップ・ログページから session storage にアクセスできるようにする
 chrome.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' });
@@ -17,6 +18,9 @@ initTabListeners();
 
 // フィルタ設定をストレージから読み込み
 loadFilterConfigFromStorage();
+
+// ラッシュモード設定をストレージから読み込み
+loadRushConfigFromStorage();
 
 // TTSエンジン設定をストレージから読み込み
 chrome.storage.sync.get(['ttsEngine', 'browserVoice', 'localVoicevoxHost'], (data) => {
@@ -147,7 +151,7 @@ chrome.runtime.onMessage.addListener(
         // popup再オープン時に現在のステータスを返す
         const state = getState();
         const queueLength = state.commentQueue.length + state.audioQueue.length;
-        sendResponse({ status: state.currentStatus, commentCount: state.commentCount, queueLength });
+        sendResponse({ status: state.currentStatus, commentCount: state.commentCount, queueLength, isRushActive: state.isRushActive });
         return true;
       }
 
@@ -229,6 +233,15 @@ chrome.runtime.onMessage.addListener(
         const config = request.filterConfig as FilterConfig;
         setFilterConfig(config);
         chrome.storage.sync.set({ filterConfig: config });
+        sendResponse({ status: 'success' });
+        return true;
+      }
+
+      case 'updateRushModeConfig': {
+        const config = request.rushModeConfig as RushModeConfig;
+        setRushConfig(config);
+        chrome.storage.sync.set({ rushModeConfig: config });
+        evaluateRushMode();
         sendResponse({ status: 'success' });
         return true;
       }
