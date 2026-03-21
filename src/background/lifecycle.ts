@@ -195,7 +195,7 @@ export function startPolling(config: {
           }
           const afterQueueSize = getState().commentQueue.length;
           const addedCount = afterQueueSize - beforeQueueSize;
-          sendDebugInfo(`📥 ${addedCount}件追加（${data.items.length}件取得） | Queue: [C:${beforeQueueSize}→${afterQueueSize}, A:${getState().audioQueue.length}] | 次回: ${getState().pollingIntervalMs}ms`);
+          sendDebugInfo(`📥 ${addedCount}件追加（${data.items.length}件取得） | Queue: [コメント:${beforeQueueSize}→${afterQueueSize}, 音声:${getState().audioQueue.length}] | 次回: ${getState().pollingIntervalMs}ms`);
         }
 
         updateState({ nextPageToken: data.nextPageToken || null });
