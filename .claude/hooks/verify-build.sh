@@ -1,9 +1,18 @@
 #!/bin/bash
-# Stop フック: src/ に変更があればビルド検証を実行
+# PostToolUse フック (Edit|Write): src/ に変更があればビルド検証を実行
+
+# stdin を消費（PostToolUse はツール情報を stdin に送る）
+INPUT=$(cat)
 
 cd "$CLAUDE_PROJECT_DIR" || exit 0
 
-# src/ に変更がなければスキップ
+# 編集されたファイルパスを取得し、src/ 配下でなければスキップ
+FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
+if [[ -n "$FILE_PATH" && "$FILE_PATH" != */src/* ]]; then
+  exit 0
+fi
+
+# src/ に変更がなければスキップ（フォールバック）
 git diff --quiet HEAD -- 'src/' && exit 0
 
 # 型チェック
