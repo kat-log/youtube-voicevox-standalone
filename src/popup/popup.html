@@ -126,6 +126,12 @@
           👀
         </button>
       </div>
+      <div id="youtube-quota-link" class="quota-link" style="display: none">
+        <a href="https://console.cloud.google.com/apis/api/youtube.googleapis.com/quotas"
+           target="_blank" rel="noopener noreferrer">
+          Google Cloud Console でクォータを確認 &#8599;
+        </a>
+      </div>
 
       <div id="voicevox-api-key-section" class="accordion">
         <div class="tooltip-block">
@@ -163,6 +169,13 @@
               👀
             </button>
           </div>
+          <div id="voicevox-balance-row" class="balance-check-row" style="display: none">
+            <button type="button" id="check-voicevox-balance" class="small-btn">残高確認</button>
+            <span id="voicevox-balance-result" class="balance-result"></span>
+          </div>
+          <p id="voicevox-balance-note" class="info-text" style="display: none">
+            ※ ポイントは毎日AM9時(JST)にリセットされます
+          </p>
         </div>
       </div>
 

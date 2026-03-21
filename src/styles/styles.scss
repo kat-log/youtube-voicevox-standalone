@@ -307,6 +307,48 @@ input[type='range'] {
   }
 }
 
+/* 残高確認行 */
+.balance-check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.balance-result {
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+
+  &.balance-ok {
+    color: var(--accent-color);
+  }
+
+  &.balance-error {
+    color: var(--error-color);
+  }
+
+  &.balance-loading {
+    color: var(--text-secondary);
+  }
+}
+
+/* クォータリンク */
+.quota-link {
+  margin-bottom: 10px;
+  font-size: 11px;
+
+  a {
+    color: var(--text-secondary);
+    text-decoration: none;
+
+    &:hover {
+      color: var(--accent-color);
+      text-decoration: underline;
+    }
+  }
+}
+
 .toggle-visibility {
   background: none;
   border: 1px solid var(--border-color);
@@ -476,7 +518,7 @@ select:focus {
 }
 
 .accordion-content.active {
-  max-height: 200px;
+  max-height: 260px;
   overflow-y: auto;
   overflow-x: auto;
   padding: 10px;
