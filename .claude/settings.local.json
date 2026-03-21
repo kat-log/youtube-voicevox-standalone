@@ -39,7 +39,11 @@
       "Bash(xargs ls:*)",
       "WebFetch(domain:developers.google.com)",
       "Skill(ship)",
-      "Skill(ship:*)"
+      "Skill(ship:*)",
+      "Bash(xargs cat:*)",
+      "WebFetch(domain:su-shiki.com)",
+      "WebFetch(domain:voicevox.github.io)",
+      "Bash(gh issue edit:*)"
     ],
     "deny": []
   }
