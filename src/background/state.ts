@@ -60,6 +60,10 @@ export function shiftComment(): CommentQueueItem | undefined {
   return state.commentQueue.shift();
 }
 
+export function unshiftComment(item: CommentQueueItem): void {
+  state.commentQueue.unshift(item);
+}
+
 export function clearCommentQueue(keepCount = 1): CommentQueueItem[] {
   const kept = state.commentQueue.slice(-keepCount);
   state.commentQueue = [];
