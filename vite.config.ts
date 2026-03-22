@@ -16,6 +16,7 @@ export default defineConfig({
         log: resolve(__dirname, 'src/log/log.html'),
         onboarding: resolve(__dirname, 'src/onboarding/onboarding.html'),
         stats: resolve(__dirname, 'src/stats/stats.html'),
+        offscreen: resolve(__dirname, 'src/offscreen/offscreen.html'),
       },
       output: {
         entryFileNames: '[name].js',

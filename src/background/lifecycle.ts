@@ -305,6 +305,11 @@ export function stopAll(): void {
   // 音声停止
   stopCurrentAudio();
 
+  // Offscreen documentを閉じる
+  chrome.offscreen.closeDocument().catch(() => {
+    // ドキュメントが存在しない場合は無視
+  });
+
   // 状態リセット
   resetState();
   sendStatus('idle');
