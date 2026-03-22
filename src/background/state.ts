@@ -21,6 +21,7 @@ const state: ExtensionState = {
   sessionId: 0,
   pollingCycleCount: 0,
   isRushActive: false,
+  isYouTubeRateLimited: false,
 };
 
 export function getState(): ExtensionState {
@@ -44,6 +45,7 @@ export function resetState(): void {
   state.pollingIntervalMs = 5000;
   state.pollingCycleCount = 0;
   state.isRushActive = false;
+  state.isYouTubeRateLimited = false;
 }
 
 export function incrementSessionId(): number {
