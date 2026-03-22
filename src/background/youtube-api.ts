@@ -17,6 +17,14 @@ export function extractVideoId(url: string): string | null {
 export async function fetchLiveChatId(videoId: string, apiKey: string): Promise<string> {
   const url = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=liveStreamingDetails,snippet&key=${apiKey}`;
   const response = await fetch(url);
+
+  if (!response.ok) {
+    if (response.status === 403) {
+      throw new Error('YouTube APIレート制限（403）');
+    }
+    throw new Error(`YouTube APIリクエストに失敗しました（${response.status}）。`);
+  }
+
   const data: YouTubeVideoResponse = await response.json();
 
   // デバッグ情報をコンソールに出力

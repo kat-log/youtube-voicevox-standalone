@@ -20,7 +20,13 @@ export function startPolling(config: {
   clearDebugLogs();
 
   // ポーリング開始時にエラーカウンタとポーリング間隔をリセット
+  const wasRateLimited = getState().isYouTubeRateLimited;
   updateState({ consecutiveErrors: 0, pollingIntervalMs: 5000 });
+
+  if (wasRateLimited) {
+    sendStatus('error', 'YouTube APIレート制限（403）');
+    sendDebugInfo('🚫 前回のセッションでYouTube APIレート制限が検知されています');
+  }
   let latestMessage = '';
   let isFirstFetch = true;
 
@@ -84,8 +90,8 @@ export function startPolling(config: {
       .then((data) => {
         if (!data) return;
 
-        // 成功時にエラーカウンタをリセット
-        updateState({ consecutiveErrors: 0 });
+        // 成功時にエラーカウンタとレート制限フラグをリセット
+        updateState({ consecutiveErrors: 0, isYouTubeRateLimited: false });
 
         // YouTube APIの推奨ポーリング間隔を保存
         if (data.pollingIntervalMillis) {
@@ -238,23 +244,24 @@ export function startPolling(config: {
         updateState({ consecutiveErrors: state.consecutiveErrors + 1 });
 
         if (error.isRateLimit) {
-          // レート制限: デバッグログのみ
+          // レート制限: 即座にUIに表示（閾値チェック不要）
           // eslint-disable-next-line no-console
           console.warn('YouTube APIレート制限:', error.message);
           sendDebugInfo(
-            `レート制限検知（${state.consecutiveErrors + 1}回連続）- ポーリング間隔を延長`
+            `🚫 レート制限検知（${state.consecutiveErrors + 1}回連続）- ポーリング間隔を延長`
           );
+          updateState({ isYouTubeRateLimited: true });
+          sendStatus('error', error.message);
         } else {
           // eslint-disable-next-line no-console
           console.error('YouTube APIリクエストエラー:', error);
           sendDebugInfo(
             `YouTube APIエラー（${state.consecutiveErrors + 1}回連続）: ${error.message}`
           );
-        }
-
-        // 一定回数以上連続でエラーの場合のみ、UIにエラー表示
-        if (getState().consecutiveErrors >= ERROR_THRESHOLD_FOR_STATUS) {
-          sendStatus('error', error.message);
+          // 通常エラーは一定回数以上連続の場合のみUIに表示
+          if (getState().consecutiveErrors >= ERROR_THRESHOLD_FOR_STATUS) {
+            sendStatus('error', error.message);
+          }
         }
       })
       .finally(() => {

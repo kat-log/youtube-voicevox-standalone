@@ -47,6 +47,7 @@ export interface ExtensionState {
   sessionId: number;
   pollingCycleCount: number;
   isRushActive: boolean;
+  isYouTubeRateLimited: boolean;
 }
 
 export type ExtensionStatus =
