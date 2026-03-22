@@ -46,7 +46,10 @@
       "Bash(gh issue edit:*)",
       "Bash(gh pr list:*)",
       "Bash(git log:*)",
-      "Bash(gh pr view:*)"
+      "Bash(gh pr view:*)",
+      "Bash(find:*)",
+      "Bash(gh issue list:*)",
+      "Bash(npm run test:*)"
     ],
     "deny": []
   }
