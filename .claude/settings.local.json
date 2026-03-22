@@ -45,7 +45,8 @@
       "WebFetch(domain:voicevox.github.io)",
       "Bash(gh issue edit:*)",
       "Bash(gh pr list:*)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(gh pr view:*)"
     ],
     "deny": []
   }
