@@ -194,6 +194,7 @@ window.onload = function () {
       const ac = data.autoCatchUpConfig || {
         enabled: false,
         threshold: 50,
+        keepCount: 3,
       };
       (document.getElementById('autoCatchUpEnabled') as HTMLInputElement).checked = ac.enabled;
       document.getElementById('autoCatchUpEnabled')!.setAttribute('aria-checked', String(ac.enabled));
@@ -204,6 +205,13 @@ window.onload = function () {
       document.getElementById('current-catchup-threshold')!.textContent = `${ac.threshold}件`;
       catchUpThresholdSlider.setAttribute('aria-valuetext', `${ac.threshold}件`);
       setRangeFill(catchUpThresholdSlider);
+
+      const keepCount = ac.keepCount || 3;
+      const catchUpKeepCountSlider = document.getElementById('autoCatchUpKeepCount') as HTMLInputElement;
+      catchUpKeepCountSlider.value = String(keepCount);
+      document.getElementById('current-catchup-keep-count')!.textContent = `${keepCount}件`;
+      catchUpKeepCountSlider.setAttribute('aria-valuetext', `${keepCount}件`);
+      setRangeFill(catchUpKeepCountSlider);
 
       // TTSエンジン設定を復元
       const engine = data.ttsEngine || 'voicevox';
@@ -455,6 +463,21 @@ document.getElementById('latestOnlyCount')!.addEventListener('input', (event) =>
   });
 });
 
+document.getElementById('reset-latest-only')!.addEventListener('click', () => {
+  const slider = document.getElementById('latestOnlyCount') as HTMLInputElement;
+  slider.value = '3';
+  document.getElementById('current-latest-count')!.textContent = '3件';
+  slider.setAttribute('aria-valuetext', '3件');
+  setRangeFill(slider);
+
+  chrome.storage.sync.set({ latestOnlyCount: 3 });
+  chrome.runtime.sendMessage({
+    action: 'updateLatestOnlyMode',
+    latestOnlyMode: (document.getElementById('latestOnlyMode') as HTMLInputElement).checked,
+    latestOnlyCount: 3,
+  });
+});
+
 // 話者選択の変更イベントリスナー
 document.getElementById('speaker')!.addEventListener('change', (event) => {
   const target = event.target as HTMLSelectElement;
@@ -652,7 +675,10 @@ function sendAutoCatchUpConfig(): void {
   const threshold = parseInt(
     (document.getElementById('autoCatchUpThreshold') as HTMLInputElement).value, 10
   );
-  const autoCatchUpConfig = { enabled, threshold };
+  const keepCount = parseInt(
+    (document.getElementById('autoCatchUpKeepCount') as HTMLInputElement).value, 10
+  );
+  const autoCatchUpConfig = { enabled, threshold, keepCount };
   chrome.runtime.sendMessage({ action: 'updateAutoCatchUpConfig', autoCatchUpConfig });
 }
 
@@ -672,12 +698,27 @@ document.getElementById('autoCatchUpThreshold')!.addEventListener('input', (even
   sendAutoCatchUpConfig();
 });
 
+document.getElementById('autoCatchUpKeepCount')!.addEventListener('input', (event) => {
+  const target = event.target as HTMLInputElement;
+  const val = parseInt(target.value, 10);
+  document.getElementById('current-catchup-keep-count')!.textContent = `${val}件`;
+  target.setAttribute('aria-valuetext', `${val}件`);
+  setRangeFill(target);
+  sendAutoCatchUpConfig();
+});
+
 document.getElementById('reset-auto-catchup')!.addEventListener('click', () => {
   const thresholdSlider = document.getElementById('autoCatchUpThreshold') as HTMLInputElement;
   thresholdSlider.value = '50';
   document.getElementById('current-catchup-threshold')!.textContent = '50件';
   thresholdSlider.setAttribute('aria-valuetext', '50件');
   setRangeFill(thresholdSlider);
+
+  const keepCountSlider = document.getElementById('autoCatchUpKeepCount') as HTMLInputElement;
+  keepCountSlider.value = '3';
+  document.getElementById('current-catchup-keep-count')!.textContent = '3件';
+  keepCountSlider.setAttribute('aria-valuetext', '3件');
+  setRangeFill(keepCountSlider);
 
   sendAutoCatchUpConfig();
 });
