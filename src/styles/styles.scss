@@ -784,6 +784,30 @@ input[type='range']:disabled {
   margin-top: 6px;
 }
 
+/* 自動キャッチアップ詳細設定 */
+#auto-catchup-options {
+  padding-left: 8px;
+  border-left: 2px solid var(--accent-light);
+  margin-top: 6px;
+  margin-bottom: 8px;
+}
+
+/* 常時並列再生詳細設定 */
+#parallel-always-options {
+  padding-left: 8px;
+  border-left: 2px solid var(--accent-light);
+  margin-top: 6px;
+  margin-bottom: 8px;
+}
+
+/* 自動並列再生詳細設定 */
+#parallel-auto-options {
+  padding-left: 8px;
+  border-left: 2px solid var(--accent-light);
+  margin-top: 6px;
+  margin-bottom: 8px;
+}
+
 /* ダークモード（システム連動・手動トグル共通） */
 body.dark-mode {
   --bg-primary: #0f172a;
