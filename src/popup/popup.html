@@ -227,6 +227,76 @@
         <button id="reset-rush-mode" class="small-btn" aria-label="自動倍速モードの設定をリセット">デフォルトに戻す</button>
       </div>
 
+      <div class="toggle-container">
+        <label class="toggle-switch" aria-label="常時並列再生モード">
+          <input type="checkbox" id="parallelAlwaysEnabled" role="switch" aria-checked="false" />
+          <span class="slider round"></span>
+        </label>
+        <span>常時並列再生</span>
+      </div>
+
+      <div id="parallel-always-options" style="display: none">
+        <label for="parallelAlwaysMaxConcurrent">同時再生数:</label>
+        <div class="slider-group">
+          <input
+            type="range"
+            id="parallelAlwaysMaxConcurrent"
+            min="2"
+            max="10"
+            step="1"
+            value="3"
+            aria-label="常時並列再生の同時再生数"
+            aria-valuetext="3"
+          />
+          <span id="current-parallel-always-max">3</span>
+        </div>
+        <button id="reset-parallel-always" class="small-btn" aria-label="常時並列再生の設定をリセット">デフォルトに戻す</button>
+      </div>
+
+      <div class="toggle-container">
+        <label class="toggle-switch" aria-label="自動並列再生モード">
+          <input type="checkbox" id="parallelAutoEnabled" role="switch" aria-checked="false" />
+          <span class="slider round"></span>
+        </label>
+        <span>自動並列再生（キュー増加時）</span>
+      </div>
+
+      <div id="parallel-auto-options" style="display: none">
+        <label for="parallelAutoTriggerThreshold">発動しきい値（待機コメント数）:</label>
+        <div class="slider-group">
+          <input
+            type="range"
+            id="parallelAutoTriggerThreshold"
+            min="3"
+            max="50"
+            step="1"
+            value="10"
+            aria-label="自動並列再生の発動しきい値"
+            aria-valuetext="10件"
+          />
+          <span id="current-parallel-auto-threshold">10件</span>
+        </div>
+
+        <label for="parallelAutoMaxConcurrent">同時再生数:</label>
+        <div class="slider-group">
+          <input
+            type="range"
+            id="parallelAutoMaxConcurrent"
+            min="2"
+            max="10"
+            step="1"
+            value="3"
+            aria-label="自動並列再生の同時再生数"
+            aria-valuetext="3"
+          />
+          <span id="current-parallel-auto-max">3</span>
+        </div>
+        <button id="reset-parallel-auto" class="small-btn" aria-label="自動並列再生の設定をリセット">デフォルトに戻す</button>
+      </div>
+      <p id="parallel-unsupported-info" class="info-text" style="display: none">
+        ブラウザ内蔵音声では並列再生は利用できません
+      </p>
+
       <label for="volume">音量:</label>
       <div class="slider-group">
         <input

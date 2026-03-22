@@ -1,4 +1,4 @@
-let currentAudio: HTMLAudioElement | null = null;
+const activeAudios = new Map<string, HTMLAudioElement>();
 
 chrome.runtime.onMessage.addListener(
   (
@@ -11,6 +11,7 @@ chrome.runtime.onMessage.addListener(
     switch (message.action) {
       case 'playAudio':
         playAudio(
+          message.audioId as string,
           message.url as string,
           message.volume as number,
           message.speed as number
@@ -24,15 +25,15 @@ chrome.runtime.onMessage.addListener(
         break;
 
       case 'setVolume':
-        if (currentAudio) {
-          currentAudio.volume = message.volume as number;
+        for (const audio of activeAudios.values()) {
+          audio.volume = message.volume as number;
         }
         sendResponse({ status: 'success' });
         break;
 
       case 'setSpeed':
-        if (currentAudio) {
-          currentAudio.playbackRate = message.speed as number;
+        for (const audio of activeAudios.values()) {
+          audio.playbackRate = message.speed as number;
         }
         sendResponse({ status: 'success' });
         break;
@@ -42,36 +43,31 @@ chrome.runtime.onMessage.addListener(
   }
 );
 
-function playAudio(url: string, volume: number, speed: number): void {
-  if (currentAudio) {
-    currentAudio.pause();
-    currentAudio = null;
-  }
-
+function playAudio(audioId: string, url: string, volume: number, speed: number): void {
   const audio = new Audio(url);
   audio.volume = volume;
   audio.playbackRate = speed;
-  currentAudio = audio;
+  activeAudios.set(audioId, audio);
 
   audio.onended = () => {
-    currentAudio = null;
-    chrome.runtime.sendMessage({ action: 'audioEnded' }).catch(() => {});
+    activeAudios.delete(audioId);
+    chrome.runtime.sendMessage({ action: 'audioEnded', audioId }).catch(() => {});
   };
 
   audio.onerror = () => {
-    currentAudio = null;
-    chrome.runtime.sendMessage({ action: 'audioError' }).catch(() => {});
+    activeAudios.delete(audioId);
+    chrome.runtime.sendMessage({ action: 'audioError', audioId }).catch(() => {});
   };
 
   audio.play().catch(() => {
-    currentAudio = null;
-    chrome.runtime.sendMessage({ action: 'audioError' }).catch(() => {});
+    activeAudios.delete(audioId);
+    chrome.runtime.sendMessage({ action: 'audioError', audioId }).catch(() => {});
   });
 }
 
 function stopAudio(): void {
-  if (currentAudio) {
-    currentAudio.pause();
-    currentAudio = null;
+  for (const audio of activeAudios.values()) {
+    audio.pause();
   }
+  activeAudios.clear();
 }

@@ -22,6 +22,7 @@ export function loadSettings(): void {
       'localSpeakerId',
       'rushModeConfig',
       'autoCatchUpConfig',
+      'parallelPlaybackConfig',
     ],
     function (data) {
       (document.getElementById('apiKeyVOICEVOX') as HTMLInputElement).value =
@@ -171,6 +172,40 @@ export function loadSettings(): void {
       document.getElementById('current-catchup-keep-count')!.textContent = `${keepCount}件`;
       catchUpKeepCountSlider.setAttribute('aria-valuetext', `${keepCount}件`);
       setRangeFill(catchUpKeepCountSlider);
+
+      // 並列再生設定を復元
+      const pp = data.parallelPlaybackConfig || {
+        alwaysEnabled: false,
+        alwaysMaxConcurrent: 3,
+        autoEnabled: false,
+        autoTriggerThreshold: 10,
+        autoMaxConcurrent: 3,
+      };
+      (document.getElementById('parallelAlwaysEnabled') as HTMLInputElement).checked = pp.alwaysEnabled;
+      document.getElementById('parallelAlwaysEnabled')!.setAttribute('aria-checked', String(pp.alwaysEnabled));
+      document.getElementById('parallel-always-options')!.style.display = pp.alwaysEnabled ? 'block' : 'none';
+
+      const parallelAlwaysMaxSlider = document.getElementById('parallelAlwaysMaxConcurrent') as HTMLInputElement;
+      parallelAlwaysMaxSlider.value = String(pp.alwaysMaxConcurrent);
+      document.getElementById('current-parallel-always-max')!.textContent = String(pp.alwaysMaxConcurrent);
+      parallelAlwaysMaxSlider.setAttribute('aria-valuetext', String(pp.alwaysMaxConcurrent));
+      setRangeFill(parallelAlwaysMaxSlider);
+
+      (document.getElementById('parallelAutoEnabled') as HTMLInputElement).checked = pp.autoEnabled;
+      document.getElementById('parallelAutoEnabled')!.setAttribute('aria-checked', String(pp.autoEnabled));
+      document.getElementById('parallel-auto-options')!.style.display = pp.autoEnabled ? 'block' : 'none';
+
+      const parallelAutoThresholdSlider = document.getElementById('parallelAutoTriggerThreshold') as HTMLInputElement;
+      parallelAutoThresholdSlider.value = String(pp.autoTriggerThreshold);
+      document.getElementById('current-parallel-auto-threshold')!.textContent = `${pp.autoTriggerThreshold}件`;
+      parallelAutoThresholdSlider.setAttribute('aria-valuetext', `${pp.autoTriggerThreshold}件`);
+      setRangeFill(parallelAutoThresholdSlider);
+
+      const parallelAutoMaxSlider = document.getElementById('parallelAutoMaxConcurrent') as HTMLInputElement;
+      parallelAutoMaxSlider.value = String(pp.autoMaxConcurrent);
+      document.getElementById('current-parallel-auto-max')!.textContent = String(pp.autoMaxConcurrent);
+      parallelAutoMaxSlider.setAttribute('aria-valuetext', String(pp.autoMaxConcurrent));
+      setRangeFill(parallelAutoMaxSlider);
 
       // TTSエンジン設定を復元
       const engine = data.ttsEngine || 'voicevox';

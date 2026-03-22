@@ -1,4 +1,4 @@
-import { getState, updateState, resetState, incrementSessionId, pushComment } from './state';
+import { getState, updateState, resetState, incrementSessionId, pushComment, clearAllPlayingTimeouts } from './state';
 import { LiveChatEndedError } from './youtube-api';
 import { scheduleNextProcessing, cancelScheduledProcessing } from './tts-api';
 import { stopCurrentAudio, updateBadge, clearBadge } from './audio-player';
@@ -46,7 +46,7 @@ export function startPolling(config: {
     sendDebugInfo(`══════ Poll #${cycleNum} (interval: ${state.pollingIntervalMs}ms) ══════`);
 
     // YouTube APIにリクエストを送る直前にステータスを更新（再生中はちらつき防止）
-    if (!getState().isPlaying) {
+    if (getState().playingCount === 0) {
       sendStatus('fetching');
     }
 
@@ -100,7 +100,7 @@ export function startPolling(config: {
 
         // エラー状態からの復帰: 実際の状態に応じたステータス設定
         const currentState2 = getState();
-        if (currentState2.isPlaying) {
+        if (currentState2.playingCount > 0) {
           // 再生中はそのまま維持
         } else if (currentState2.audioQueue.length === 0 && currentState2.commentQueue.length === 0) {
           sendStatus('waiting');
@@ -294,11 +294,8 @@ export function stopAll(): void {
   // セッションを無効化（進行中の非同期処理を破棄）
   incrementSessionId();
 
-  // フェイルセーフタイマーをクリア
-  if (state.playingTimeout) {
-    clearTimeout(state.playingTimeout);
-    updateState({ playingTimeout: null });
-  }
+  // フェイルセーフタイマーを全クリア
+  clearAllPlayingTimeouts();
 
   // ポーリングタイマーをクリア
   if (state.intervalId) {

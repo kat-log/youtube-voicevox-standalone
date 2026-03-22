@@ -4,7 +4,8 @@ export const ERROR_THRESHOLD_FOR_STATUS = 3;
 
 const state: ExtensionState = {
   audioQueue: [],
-  isPlaying: false,
+  playingCount: 0,
+  playingTimeouts: new Map(),
   currentStatus: 'idle',
   liveChatId: null,
   intervalId: null,
@@ -14,7 +15,6 @@ const state: ExtensionState = {
   latestOnlyMode: false,
   latestOnlyCount: 3,
   activeTabId: null,
-  playingTimeout: null,
   consecutiveErrors: 0,
   pollingIntervalMs: 5000,
   commentCount: 0,
@@ -35,7 +35,8 @@ export function updateState(updates: Partial<ExtensionState>): void {
 export function resetState(): void {
   state.audioQueue = [];
   state.commentQueue = [];
-  state.isPlaying = false;
+  state.playingCount = 0;
+  clearAllPlayingTimeouts();
   state.liveChatId = null;
   state.nextPageToken = null;
   state.latestTimestamp = null;
@@ -82,4 +83,37 @@ export function pushAudio(item: AudioQueueItem): void {
 
 export function shiftAudio(): AudioQueueItem | undefined {
   return state.audioQueue.shift();
+}
+
+export function unshiftAudio(item: AudioQueueItem): void {
+  state.audioQueue.unshift(item);
+}
+
+// 再生カウント操作
+export function incrementPlayingCount(): void {
+  state.playingCount++;
+}
+
+export function decrementPlayingCount(): void {
+  if (state.playingCount > 0) state.playingCount--;
+}
+
+// フェイルセーフタイムアウト操作（audioId単位）
+export function setPlayingTimeout(audioId: string, timeout: ReturnType<typeof setTimeout>): void {
+  state.playingTimeouts.set(audioId, timeout);
+}
+
+export function clearPlayingTimeout(audioId: string): void {
+  const timeout = state.playingTimeouts.get(audioId);
+  if (timeout) {
+    clearTimeout(timeout);
+    state.playingTimeouts.delete(audioId);
+  }
+}
+
+export function clearAllPlayingTimeouts(): void {
+  for (const timeout of state.playingTimeouts.values()) {
+    clearTimeout(timeout);
+  }
+  state.playingTimeouts.clear();
 }

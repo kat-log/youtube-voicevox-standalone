@@ -13,6 +13,14 @@ export interface AutoCatchUpConfig {
   keepCount: number;
 }
 
+export interface ParallelPlaybackConfig {
+  alwaysEnabled: boolean;
+  alwaysMaxConcurrent: number;
+  autoEnabled: boolean;
+  autoTriggerThreshold: number;
+  autoMaxConcurrent: number;
+}
+
 export interface AudioQueueItem {
   type: 'url' | 'speech';
   url?: string;
@@ -30,7 +38,8 @@ export interface CommentQueueItem {
 
 export interface ExtensionState {
   audioQueue: AudioQueueItem[];
-  isPlaying: boolean;
+  playingCount: number;
+  playingTimeouts: Map<string, ReturnType<typeof setTimeout>>;
   currentStatus: ExtensionStatus;
   liveChatId: string | null;
   intervalId: ReturnType<typeof setTimeout> | null;
@@ -40,7 +49,6 @@ export interface ExtensionState {
   latestOnlyMode: boolean;
   latestOnlyCount: number;
   activeTabId: number | null;
-  playingTimeout: ReturnType<typeof setTimeout> | null;
   consecutiveErrors: number;
   pollingIntervalMs: number;
   commentCount: number;
