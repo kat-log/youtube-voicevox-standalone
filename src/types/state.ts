@@ -37,6 +37,7 @@ export interface ExtensionState {
   commentQueue: CommentQueueItem[];
   latestTimestamp: number | null;
   latestOnlyMode: boolean;
+  latestOnlyCount: number;
   activeTabId: number | null;
   playingTimeout: ReturnType<typeof setTimeout> | null;
   consecutiveErrors: number;

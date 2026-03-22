@@ -752,6 +752,14 @@ input[type='range']:disabled {
   margin-bottom: 8px;
 }
 
+/* 最新N件取得モード詳細設定 */
+#latest-only-options {
+  padding-left: 8px;
+  border-left: 2px solid var(--accent-light);
+  margin-top: 6px;
+  margin-bottom: 8px;
+}
+
 /* フィルターオプション */
 .filter-options {
   padding-left: 8px;

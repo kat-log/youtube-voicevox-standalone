@@ -12,6 +12,7 @@ const state: ExtensionState = {
   commentQueue: [],
   latestTimestamp: null,
   latestOnlyMode: false,
+  latestOnlyCount: 3,
   activeTabId: null,
   playingTimeout: null,
   consecutiveErrors: 0,

@@ -214,19 +214,36 @@
       <div class="section-title">コメントフィルター</div>
 
       <div class="toggle-container">
-        <label class="toggle-switch" aria-label="最新コメントのみ取得モード">
+        <label class="toggle-switch" aria-label="最新N件取得モード">
           <input type="checkbox" id="latestOnlyMode" role="switch" aria-checked="false" />
           <span class="slider round"></span>
         </label>
-        <span>最新コメントのみ取得モード</span>
+        <span>最新N件取得モード</span>
+      </div>
+
+      <div id="latest-only-options" style="display: none">
+        <label for="latestOnlyCount">取得件数:</label>
+        <div class="slider-group">
+          <input
+            type="range"
+            id="latestOnlyCount"
+            min="1"
+            max="10"
+            step="1"
+            value="3"
+            aria-label="最新コメント取得件数"
+            aria-valuetext="3件"
+          />
+          <span id="current-latest-count">3件</span>
+        </div>
       </div>
 
       <div class="toggle-container">
-        <label class="toggle-switch" aria-label="最新コメントのみ取得モードを自動発動">
+        <label class="toggle-switch" aria-label="最新N件取得モードを自動発動">
           <input type="checkbox" id="autoCatchUpEnabled" role="switch" aria-checked="false" />
           <span class="slider round"></span>
         </label>
-        <span>最新コメントのみ取得モードを自動発動</span>
+        <span>最新N件取得モードを自動発動</span>
       </div>
 
       <div id="auto-catchup-options" style="display: none">

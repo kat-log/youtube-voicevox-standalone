@@ -56,6 +56,7 @@ window.onload = function () {
       'speed',
       'volume',
       'latestOnlyMode',
+      'latestOnlyCount',
       'speakerId',
       'darkMode',
       'filterConfig',
@@ -92,6 +93,16 @@ window.onload = function () {
       document
         .getElementById('latestOnlyMode')!
         .setAttribute('aria-checked', String(latestOnlyMode));
+
+      const latestOnlyCount = data.latestOnlyCount || 3;
+      document.getElementById('latest-only-options')!.style.display = latestOnlyMode
+        ? 'block'
+        : 'none';
+      const latestCountSlider = document.getElementById('latestOnlyCount') as HTMLInputElement;
+      latestCountSlider.value = String(latestOnlyCount);
+      document.getElementById('current-latest-count')!.textContent = `${latestOnlyCount}件`;
+      latestCountSlider.setAttribute('aria-valuetext', `${latestOnlyCount}件`);
+      setRangeFill(latestCountSlider);
 
       // ダークモード設定を復元（未設定時はシステム設定に従う）
       const darkModeCheckbox = document.getElementById('darkMode') as HTMLInputElement;
@@ -320,6 +331,10 @@ document.getElementById('play')!.addEventListener('click', (event) => {
       speed: speed,
       volume: volume,
       latestOnlyMode: (document.getElementById('latestOnlyMode') as HTMLInputElement).checked,
+      latestOnlyCount: parseInt(
+        (document.getElementById('latestOnlyCount') as HTMLInputElement).value,
+        10
+      ),
       speakerId: speakerId,
     },
     function () {
@@ -336,6 +351,10 @@ document.getElementById('play')!.addEventListener('click', (event) => {
       speed: speed,
       volume: volume,
       latestOnlyMode: (document.getElementById('latestOnlyMode') as HTMLInputElement).checked,
+      latestOnlyCount: parseInt(
+        (document.getElementById('latestOnlyCount') as HTMLInputElement).value,
+        10
+      ),
       speakerId: speakerId,
     },
     function (response: { status: string; message?: string; details?: string }) {
@@ -404,13 +423,35 @@ document.getElementById('volume')!.addEventListener('input', (event) => {
 document.getElementById('latestOnlyMode')!.addEventListener('change', (event) => {
   const target = event.target as HTMLInputElement;
   const newMode = target.checked;
+  const count = parseInt(
+    (document.getElementById('latestOnlyCount') as HTMLInputElement).value,
+    10
+  );
   chrome.storage.sync.set({ latestOnlyMode: newMode });
   target.setAttribute('aria-checked', String(newMode));
+
+  document.getElementById('latest-only-options')!.style.display = newMode ? 'block' : 'none';
 
   // 実行中の場合は、新しいモードをbackground.jsに即時反映
   chrome.runtime.sendMessage({
     action: 'updateLatestOnlyMode',
     latestOnlyMode: newMode,
+    latestOnlyCount: count,
+  });
+});
+
+document.getElementById('latestOnlyCount')!.addEventListener('input', (event) => {
+  const target = event.target as HTMLInputElement;
+  const val = parseInt(target.value, 10);
+  document.getElementById('current-latest-count')!.textContent = `${val}件`;
+  target.setAttribute('aria-valuetext', `${val}件`);
+  setRangeFill(target);
+
+  chrome.storage.sync.set({ latestOnlyCount: val });
+  chrome.runtime.sendMessage({
+    action: 'updateLatestOnlyMode',
+    latestOnlyMode: (document.getElementById('latestOnlyMode') as HTMLInputElement).checked,
+    latestOnlyCount: val,
   });
 });
 

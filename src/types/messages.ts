@@ -9,6 +9,7 @@ export interface StartMessage {
   speed: number;
   volume: number;
   latestOnlyMode: boolean;
+  latestOnlyCount: number;
   speakerId: string;
 }
 
@@ -19,6 +20,7 @@ export interface StopMessage {
 export interface UpdateLatestOnlyModeMessage {
   action: 'updateLatestOnlyMode';
   latestOnlyMode: boolean;
+  latestOnlyCount: number;
 }
 
 export interface UpdateSpeakerMessage {

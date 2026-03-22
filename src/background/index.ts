@@ -39,6 +39,7 @@ async function handleStart(config: {
   apiKeyYoutube: string;
   speed: number;
   latestOnlyMode: boolean;
+  latestOnlyCount: number;
   speakerId?: string;
 }): Promise<{ status: string; message?: string; details?: string }> {
   if (!config.apiKeyYoutube) {
@@ -58,7 +59,11 @@ async function handleStart(config: {
   }
 
   // タブIDを保存
-  updateState({ activeTabId: tabs[0].id, latestOnlyMode: config.latestOnlyMode });
+  updateState({
+    activeTabId: tabs[0].id,
+    latestOnlyMode: config.latestOnlyMode,
+    latestOnlyCount: config.latestOnlyCount,
+  });
 
   const videoId = extractVideoId(tabs[0].url || '');
   if (!videoId) {
@@ -112,6 +117,7 @@ chrome.runtime.onMessage.addListener(
           apiKeyYoutube: request.apiKeyYoutube as string,
           speed: request.speed as number,
           latestOnlyMode: request.latestOnlyMode as boolean,
+          latestOnlyCount: (request.latestOnlyCount as number) || 3,
           speakerId: request.speakerId as string | undefined,
         })
           .then((response) => sendResponse(response))
@@ -126,7 +132,10 @@ chrome.runtime.onMessage.addListener(
       }
 
       case 'updateLatestOnlyMode': {
-        updateState({ latestOnlyMode: request.latestOnlyMode as boolean });
+        updateState({
+          latestOnlyMode: request.latestOnlyMode as boolean,
+          latestOnlyCount: (request.latestOnlyCount as number) || 3,
+        });
 
         // コメントキューをクリア（モード切替時に古いキューを消去）
         if (request.latestOnlyMode) {
@@ -335,6 +344,7 @@ chrome.commands.onCommand.addListener(async (command) => {
       'speed',
       'volume',
       'latestOnlyMode',
+      'latestOnlyCount',
       'speakerId',
     ]);
 
@@ -351,6 +361,7 @@ chrome.commands.onCommand.addListener(async (command) => {
         apiKeyYoutube: data.apiKeyYoutube,
         speed: data.speed || 1.0,
         latestOnlyMode: data.latestOnlyMode || false,
+        latestOnlyCount: data.latestOnlyCount || 3,
         speakerId: data.speakerId,
       });
 

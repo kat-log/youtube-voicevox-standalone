@@ -53,7 +53,7 @@ export function evaluateAutoCatchUp(): boolean {
 
   const discarded = pending - keptComments.length;
   sendDebugInfo(
-    `🔄 最新コメントのみ取得モード自動発動: ${discarded}件破棄, ${keptComments.length}件保持（しきい値${config.threshold}件） | キュー: ${formatQueueState()}`
+    `🔄 最新N件取得モード自動発動: ${discarded}件破棄, ${keptComments.length}件保持（しきい値${config.threshold}件） | キュー: ${formatQueueState()}`
   );
 
   return true;

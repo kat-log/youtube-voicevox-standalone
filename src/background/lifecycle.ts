@@ -109,48 +109,67 @@ export function startPolling(config: {
 
         const currentState = getState();
         if (isFirstFetch || currentState.latestOnlyMode) {
-          // 最初の取得または最新のみモードでは最新の1件のみを取得
-          sendDebugInfo(`📥 YouTube新着コメント: 1件取得（最新のみ） | キュー: ${formatQueueState()} | 次回YouTubeコメント取得まで: ${getState().pollingIntervalMs}ms`);
-          const latestItem = data.items[data.items.length - 1];
-          const rawMessage: string = latestItem.snippet.displayMessage;
-          if (rawMessage !== latestMessage) {
+          // 最初の取得または最新N件モードでは最新のN件のみを取得
+          const N = currentState.latestOnlyCount || 3;
+          const latestItems = data.items.slice(-N);
+          const filterConfig = getFilterConfig();
+          let addedCount = 0;
+
+          for (const item of latestItems) {
+            const rawMessage: string = item.snippet.displayMessage;
+            const timestamp = new Date(item.snippet.publishedAt).getTime();
+
+            if (currentState.latestTimestamp && timestamp <= currentState.latestTimestamp) {
+              continue;
+            }
+
+            updateState({ latestTimestamp: timestamp });
             latestMessage = rawMessage;
-            updateState({
-              latestTimestamp: new Date(latestItem.snippet.publishedAt).getTime(),
-            });
-            const filterConfig = getFilterConfig();
+
             let newMessage =
               filterConfig.enabled && filterConfig.stripEmoji
                 ? stripEmojis(rawMessage)
                 : rawMessage;
             if (newMessage.length === 0) {
               sendDebugInfo(`絵文字除去で空: "${rawMessage}"`);
-            } else {
-              if (filterConfig.enabled && filterConfig.ngWordAction === 'remove') {
-                const before = newMessage;
-                newMessage = removeNgWords(newMessage, filterConfig.ngWords);
-                if (newMessage.length === 0) {
-                  sendDebugInfo(`NGワード除去で空: "${rawMessage}"`);
-                  isFirstFetch = false;
-                  return;
-                }
-                if (newMessage !== before) {
-                  sendDebugInfo(`NGワード除去: "${before}" → "${newMessage}"`);
-                }
+              continue;
+            }
+            if (filterConfig.enabled && filterConfig.ngWordAction === 'remove') {
+              const before = newMessage;
+              newMessage = removeNgWords(newMessage, filterConfig.ngWords);
+              if (newMessage.length === 0) {
+                sendDebugInfo(`NGワード除去で空: "${rawMessage}"`);
+                continue;
               }
-              if (shouldFilter(newMessage, filterConfig)) {
-                sendDebugInfo(`フィルタ除外: "${newMessage}"`);
-              } else {
-                pushComment({
-                  apiKeyVOICEVOX: config.apiKeyVOICEVOX,
-                  newMessage,
-                  speed: config.speed,
-                  tabId: config.tabId,
-                  speakerId: config.speakerId,
-                });
+              if (newMessage !== before) {
+                sendDebugInfo(`NGワード除去: "${before}" → "${newMessage}"`);
               }
             }
+            if (shouldFilter(newMessage, filterConfig)) {
+              sendDebugInfo(`フィルタ除外: "${newMessage}"`);
+            } else {
+              pushComment({
+                apiKeyVOICEVOX: config.apiKeyVOICEVOX,
+                newMessage,
+                speed: config.speed,
+                tabId: config.tabId,
+                speakerId: config.speakerId,
+              });
+              addedCount++;
+            }
           }
+
+          // 最新N件モードではキューをN件にキャップ（古いコメントを破棄）
+          if (currentState.latestOnlyMode) {
+            const queue = getState().commentQueue;
+            if (queue.length > N) {
+              const discarded = queue.length - N;
+              updateState({ commentQueue: queue.slice(-N) });
+              sendDebugInfo(`🗑️ キューキャップ: ${discarded}件破棄, ${N}件保持`);
+            }
+          }
+
+          sendDebugInfo(`📥 YouTube新着コメント: ${addedCount}件追加（最新${N}件モード, ${data.items.length}件取得） | キュー: ${formatQueueState()} | 次回YouTubeコメント取得まで: ${getState().pollingIntervalMs}ms`);
           isFirstFetch = false;
         } else {
           // 通常モードでは差分をすべて取得
