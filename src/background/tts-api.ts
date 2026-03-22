@@ -1,9 +1,16 @@
 import type { TTSQuestSynthesisResponse, TTSQuestAudioStatusResponse } from '@/types/api-responses';
 import type { TtsEngine } from '@/types/state';
-import { getState, shiftComment, pushAudio } from './state';
+import { getState, shiftComment, pushAudio, unshiftComment } from './state';
 import { sendDebugInfo, formatQueueState, sendStatus } from './messaging';
 import { playNextAudio, updateBadge } from './audio-player';
 import { evaluateRushMode } from './rush-mode';
+
+export class RateLimitError extends Error {
+  constructor(public retryAfter: number) {
+    super(`Rate limited: retry after ${retryAfter}s`);
+    this.name = 'RateLimitError';
+  }
+}
 
 // TTSエンジン設定（モジュールレベルキャッシュ）
 let currentEngine: TtsEngine = 'voicevox';
@@ -16,6 +23,7 @@ let processingTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
 const PREFETCH_THRESHOLD = 5;   // audioQueue にこの数まで先読み
 const MIN_PROCESS_DELAY = 500;  // TTS API呼出の最低間隔(ms)
+const MAX_RATE_LIMIT_RETRIES = 5; // レート制限リトライ上限
 
 // 次のコメント処理をスケジュール（audioQueue が閾値未満なら先読み）
 export function scheduleNextProcessing(): void {
@@ -113,7 +121,8 @@ function synthesizeWithRetry(
     tabId: number;
     speakerId?: string;
   },
-  retryCount: number
+  retryCount: number,
+  rateLimitRetryCount = 0
 ): void {
   const maxRetries = 3;
   const currentSession = getState().sessionId;
@@ -143,10 +152,47 @@ function synthesizeWithRetry(
         return;
       }
 
+      // レート制限: パイプラインを解放し、遅延リトライをスケジュール
+      if (error instanceof RateLimitError) {
+        isTtsProcessing = false;
+        sendStatus('rate-limited');
+        sendDebugInfo(
+          `⚠ レート制限: ${error.retryAfter}秒待機 | text="${newMessage.substring(0, 20)}..." | キュー: ${formatQueueState()}`
+        );
+
+        if (rateLimitRetryCount >= MAX_RATE_LIMIT_RETRIES) {
+          sendDebugInfo(
+            `レート制限リトライ上限到達（${MAX_RATE_LIMIT_RETRIES}回）— コメントをスキップ: "${newMessage.substring(0, 20)}..."`
+          );
+          scheduleNextProcessing();
+          return;
+        }
+
+        // 遅延リトライ（この間 audioQueue の再生は継続される）
+        setTimeout(() => {
+          if (getState().sessionId !== currentSession) return;
+
+          // 別のコメントが処理中なら、このコメントをキューの先頭に戻す
+          if (isTtsProcessing) {
+            unshiftComment(comment);
+            sendDebugInfo(
+              `レート制限リトライ: 別コメント処理中のためキュー先頭に再挿入: "${newMessage.substring(0, 20)}..."`
+            );
+            return;
+          }
+
+          isTtsProcessing = true;
+          synthesizeWithRetry(comment, retryCount, rateLimitRetryCount + 1);
+        }, error.retryAfter * 1000);
+
+        return;
+      }
+
+      // 通常のエラー処理
       if (retryCount < maxRetries) {
         sendDebugInfo(`VOICEVOXリトライ（${retryCount + 1}/${maxRetries}）: ${newMessage}`);
         // リトライ中は isTtsProcessing = true のまま
-        setTimeout(() => synthesizeWithRetry(comment, retryCount + 1), 1000);
+        setTimeout(() => synthesizeWithRetry(comment, retryCount + 1, rateLimitRetryCount), 1000);
       } else {
         // リトライ上限到達: コメントをスキップ
         isTtsProcessing = false;
@@ -171,15 +217,10 @@ async function fetchVoiceVox(apiKey: string, text: string, speakerId?: string): 
 
   const response = await fetch(url);
 
-  // レート制限（HTTP 429）
+  // レート制限（HTTP 429）— 即座にthrowしてパイプラインをブロックしない
   if (response.status === 429) {
     const data = await response.json();
-    const waitMs = (data.retryAfter || 5) * 1000;
-    sendStatus('rate-limited');
-    sendDebugInfo(`⚠ レート制限: ${data.retryAfter || 5}秒待機 | text="${text.substring(0, 20)}..." | キュー: ${formatQueueState()}`);
-    await new Promise((r) => setTimeout(r, waitMs));
-    sendStatus('generating');
-    return fetchVoiceVox(apiKey, text, speakerId);
+    throw new RateLimitError(data.retryAfter || 5);
   }
 
   if (!response.ok) {
