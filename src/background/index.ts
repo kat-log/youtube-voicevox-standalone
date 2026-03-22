@@ -170,63 +170,34 @@ chrome.runtime.onMessage.addListener(
 
       case 'audioEnded': {
         handleAudioEnded();
-        if (sender?.tab?.id) {
-          // playNextAudio は handleAudioEnded 内で呼ばれる
-        }
+        sendResponse({ status: 'success' });
+        return true;
+      }
+
+      case 'audioError': {
+        // eslint-disable-next-line no-console
+        console.error('Offscreen audio再生エラー');
+        handleAudioEnded();
         sendResponse({ status: 'success' });
         return true;
       }
 
       case 'setVolume': {
-        const state = getState();
-        if (!state.activeTabId) {
-          sendResponse({ status: 'error', message: '再生中のタブがありません' });
-          return true;
-        }
-        chrome.scripting.executeScript(
-          {
-            target: { tabId: state.activeTabId },
-            func: (volume: number) => {
-              if (window.currentAudio) {
-                window.currentAudio.volume = volume;
-              }
-            },
-            args: [request.volume as number],
-          },
-          () => {
-            if (chrome.runtime.lastError) {
-              // eslint-disable-next-line no-console
-              console.error('音量設定エラー:', chrome.runtime.lastError.message);
-            }
-          }
-        );
+        chrome.runtime.sendMessage({
+          target: 'offscreen',
+          action: 'setVolume',
+          volume: request.volume as number,
+        }).catch(() => {});
         sendResponse({ status: 'success' });
         return true;
       }
 
       case 'setSpeed': {
-        const state = getState();
-        if (!state.activeTabId) {
-          sendResponse({ status: 'error', message: '再生中のタブがありません' });
-          return true;
-        }
-        chrome.scripting.executeScript(
-          {
-            target: { tabId: state.activeTabId },
-            func: (speed: number) => {
-              if (window.currentAudio) {
-                window.currentAudio.playbackRate = speed;
-              }
-            },
-            args: [request.speed as number],
-          },
-          () => {
-            if (chrome.runtime.lastError) {
-              // eslint-disable-next-line no-console
-              console.error('再生速度設定エラー:', chrome.runtime.lastError.message);
-            }
-          }
-        );
+        chrome.runtime.sendMessage({
+          target: 'offscreen',
+          action: 'setSpeed',
+          speed: request.speed as number,
+        }).catch(() => {});
         sendResponse({ status: 'success' });
         return true;
       }

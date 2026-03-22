@@ -36,9 +36,6 @@ export function playNextAudio(): void {
   const item = shiftAudio();
   if (!item) return;
 
-  const tabId = state.activeTabId;
-  if (!tabId) return;
-
   updateState({ isPlaying: true });
   sendStatus('listening');
   sendDebugInfo(`▶ 再生開始 | キュー: ${formatQueueState()}`);
@@ -63,41 +60,44 @@ export function playNextAudio(): void {
     const speed = resolveEffectiveSpeed(baseSpeed);
 
     if (item.type === 'url') {
-      injectAudioUrl(tabId, item.url!, volume, speed);
+      playAudioViaOffscreen(item.url!, volume, speed);
     } else {
       playSpeechSynthesis(item.text!, item.voiceName, volume, speed);
     }
   });
 }
 
-// VOICEVOX: Audio要素をタブに注入して再生
-function injectAudioUrl(tabId: number, audioUrl: string, volume: number, speed: number): void {
-  chrome.scripting.executeScript(
-    {
-      target: { tabId },
-      func: (audioUrl: string, volume: number, speed: number) => {
-        if (window.currentAudio) {
-          window.currentAudio.pause();
-        }
-        const audio = new Audio(audioUrl);
-        audio.volume = volume;
-        audio.playbackRate = speed;
-        window.currentAudio = audio;
-        audio.play();
-        audio.onended = () => {
-          chrome.runtime.sendMessage({ action: 'audioEnded' });
-        };
-      },
-      args: [audioUrl, volume, speed],
-    },
-    () => {
-      if (chrome.runtime.lastError) {
-        // eslint-disable-next-line no-console
-        console.error('VoiceVoxエラー:', chrome.runtime.lastError.message);
-        handlePlaybackError();
-      }
-    }
-  );
+const OFFSCREEN_DOCUMENT_PATH = 'offscreen/offscreen.html';
+
+async function ensureOffscreenDocument(): Promise<void> {
+  const existingContexts = await chrome.runtime.getContexts({
+    contextTypes: [chrome.runtime.ContextType.OFFSCREEN_DOCUMENT],
+    documentUrls: [chrome.runtime.getURL(OFFSCREEN_DOCUMENT_PATH)],
+  });
+  if (existingContexts.length > 0) return;
+  await chrome.offscreen.createDocument({
+    url: OFFSCREEN_DOCUMENT_PATH,
+    reasons: [chrome.offscreen.Reason.AUDIO_PLAYBACK],
+    justification: 'VOICEVOX TTS audio playback',
+  });
+}
+
+// VOICEVOX: Offscreen Documentで再生
+async function playAudioViaOffscreen(audioUrl: string, volume: number, speed: number): Promise<void> {
+  try {
+    await ensureOffscreenDocument();
+    await chrome.runtime.sendMessage({
+      target: 'offscreen',
+      action: 'playAudio',
+      url: audioUrl,
+      volume,
+      speed,
+    });
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Offscreen再生エラー:', (error as Error).message);
+    handlePlaybackError();
+  }
 }
 
 // ブラウザTTS: chrome.tts APIで再生
@@ -155,23 +155,13 @@ export function stopCurrentAudio(): void {
   // ブラウザTTS（chrome.tts）を停止 - 再生中でなくても安全に呼び出し可
   chrome.tts.stop();
 
-  // VOICEVOX: タブ内のAudio要素を停止
-  const state = getState();
-  if (!state.activeTabId) return;
-
-  chrome.scripting
-    .executeScript({
-      target: { tabId: state.activeTabId },
-      func: () => {
-        if (window.currentAudio) {
-          window.currentAudio.pause();
-          window.currentAudio = null;
-        }
-      },
-    })
-    .catch(() => {
-      // タブが既に閉じている場合は無視
-    });
+  // VOICEVOX: Offscreen Documentの音声を停止
+  chrome.runtime.sendMessage({
+    target: 'offscreen',
+    action: 'stopAudio',
+  }).catch(() => {
+    // Offscreen documentが存在しない場合は無視
+  });
 }
 
 // audioEnded メッセージのハンドラー
