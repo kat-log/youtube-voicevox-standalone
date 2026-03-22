@@ -1,7 +1,18 @@
-import { getState, updateState, shiftAudio } from './state';
+import {
+  getState,
+  updateState,
+  shiftAudio,
+  unshiftAudio,
+  incrementPlayingCount,
+  decrementPlayingCount,
+  setPlayingTimeout,
+  clearPlayingTimeout,
+  clearAllPlayingTimeouts,
+} from './state';
 import { sendStatus, sendDebugInfo, formatQueueState } from './messaging';
 import { scheduleNextProcessing } from './tts-api';
 import { evaluateRushMode, resolveEffectiveSpeed } from './rush-mode';
+import { getEffectiveMaxConcurrent } from './parallel-playback';
 
 /** chrome.tts の rate を補正（エンジンの指数的スケーリングを相殺） */
 function correctTtsRate(sliderSpeed: number): number {
@@ -18,53 +29,75 @@ function isRateSupportedVoice(voiceName: string | undefined): boolean {
 // キュー空通知の重複防止フラグ
 let lastQueueEmptyLogged = false;
 
-// 次の音声を再生
+// audioId 生成
+let audioIdCounter = 0;
+function generateAudioId(): string {
+  return `audio-${Date.now()}-${audioIdCounter++}`;
+}
+
+// chrome.tts 用の現在の audioId（1つしか再生できないため）
+let currentChromeTtsAudioId = '';
+
+// 次の音声を再生（並列対応: maxConcurrent まで同時再生）
 export function playNextAudio(): void {
+  const maxConcurrent = getEffectiveMaxConcurrent();
+
+  // maxConcurrent まで同時にキューから取り出して再生
+  while (getState().playingCount < maxConcurrent && getState().audioQueue.length > 0) {
+    const item = shiftAudio();
+    if (!item) break;
+
+    // chrome.tts は並列再生不可: 他の音声が再生中ならキューに戻して中断
+    if (item.type === 'speech' && getState().playingCount > 0) {
+      unshiftAudio(item);
+      break;
+    }
+
+    const audioId = generateAudioId();
+    incrementPlayingCount();
+    lastQueueEmptyLogged = false;
+
+    sendStatus('listening');
+    sendDebugInfo(`▶ 再生開始 [${audioId}] | 同時再生: ${getState().playingCount}/${maxConcurrent} | キュー: ${formatQueueState()}`);
+
+    // フェイルセーフタイマー（30秒で強制リセット）
+    const timeout = setTimeout(() => {
+      if (getState().playingCount > 0) {
+        // eslint-disable-next-line no-console
+        console.warn(`音声再生タイムアウト [${audioId}]: playingCountをデクリメント`);
+        handleAudioEndedById(audioId);
+      }
+    }, 30000);
+    setPlayingTimeout(audioId, timeout);
+
+    // 音量・速度を取得して再生
+    const capturedAudioId = audioId;
+    const capturedItem = item;
+    chrome.storage.sync.get(['volume', 'speed'], (data) => {
+      const volume = data.volume !== undefined ? data.volume : 1.0;
+      const baseSpeed = data.speed !== undefined ? data.speed : 1.0;
+      const speed = resolveEffectiveSpeed(baseSpeed);
+
+      if (capturedItem.type === 'url') {
+        playAudioViaOffscreen(capturedAudioId, capturedItem.url!, volume, speed);
+      } else {
+        currentChromeTtsAudioId = capturedAudioId;
+        playSpeechSynthesis(capturedAudioId, capturedItem.text!, capturedItem.voiceName, volume, speed);
+      }
+    });
+  }
+
+  // キュー空チェック（何も再生中でない場合のみ）
   const state = getState();
-  if (state.isPlaying || state.audioQueue.length === 0) {
-    if (!state.isPlaying && state.audioQueue.length === 0 && state.commentQueue.length === 0 && !lastQueueEmptyLogged) {
+  if (state.playingCount === 0 && state.audioQueue.length === 0) {
+    if (state.commentQueue.length === 0 && !lastQueueEmptyLogged) {
       sendDebugInfo(`⏸ キュー空 - 次のポーリング待ち`);
       sendStatus('waiting');
       lastQueueEmptyLogged = true;
-    } else if (!state.isPlaying && state.audioQueue.length === 0 && state.commentQueue.length > 0) {
+    } else if (state.commentQueue.length > 0) {
       sendDebugInfo(`⏳ audioQueue空 / commentキュー: ${state.commentQueue.length}件 - TTS生成待ち`);
     }
-    return;
   }
-  lastQueueEmptyLogged = false;
-
-  const item = shiftAudio();
-  if (!item) return;
-
-  updateState({ isPlaying: true });
-  sendStatus('listening');
-  sendDebugInfo(`▶ 再生開始 | キュー: ${formatQueueState()}`);
-
-  // フェイルセーフタイマー（30秒で強制リセット）
-  if (state.playingTimeout) {
-    clearTimeout(state.playingTimeout);
-  }
-  const timeout = setTimeout(() => {
-    if (getState().isPlaying) {
-      // eslint-disable-next-line no-console
-      console.warn('音声再生タイムアウト: isPlayingを強制リセット');
-      updateState({ isPlaying: false });
-      playNextAudio();
-    }
-  }, 30000);
-  updateState({ playingTimeout: timeout });
-
-  chrome.storage.sync.get(['volume', 'speed'], (data) => {
-    const volume = data.volume !== undefined ? data.volume : 1.0;
-    const baseSpeed = data.speed !== undefined ? data.speed : 1.0;
-    const speed = resolveEffectiveSpeed(baseSpeed);
-
-    if (item.type === 'url') {
-      playAudioViaOffscreen(item.url!, volume, speed);
-    } else {
-      playSpeechSynthesis(item.text!, item.voiceName, volume, speed);
-    }
-  });
 }
 
 const OFFSCREEN_DOCUMENT_PATH = 'offscreen/offscreen.html';
@@ -83,12 +116,13 @@ async function ensureOffscreenDocument(): Promise<void> {
 }
 
 // VOICEVOX: Offscreen Documentで再生
-async function playAudioViaOffscreen(audioUrl: string, volume: number, speed: number): Promise<void> {
+async function playAudioViaOffscreen(audioId: string, audioUrl: string, volume: number, speed: number): Promise<void> {
   try {
     await ensureOffscreenDocument();
     await chrome.runtime.sendMessage({
       target: 'offscreen',
       action: 'playAudio',
+      audioId,
       url: audioUrl,
       volume,
       speed,
@@ -96,12 +130,13 @@ async function playAudioViaOffscreen(audioUrl: string, volume: number, speed: nu
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Offscreen再生エラー:', (error as Error).message);
-    handlePlaybackError();
+    handlePlaybackErrorById(audioId);
   }
 }
 
 // ブラウザTTS: chrome.tts APIで再生
 function playSpeechSynthesis(
+  audioId: string,
   text: string,
   voiceName: string | undefined,
   volume: number,
@@ -125,7 +160,7 @@ function playSpeechSynthesis(
             // eslint-disable-next-line no-console
             console.error('chrome.tts error:', event.errorMessage);
           }
-          handleAudioEnded();
+          handleAudioEndedById(audioId);
         }
       },
     },
@@ -133,61 +168,62 @@ function playSpeechSynthesis(
       if (chrome.runtime.lastError) {
         // eslint-disable-next-line no-console
         console.error('chrome.tts.speakエラー:', chrome.runtime.lastError.message);
-        handlePlaybackError();
+        handlePlaybackErrorById(audioId);
       }
     }
   );
 }
 
 // 再生エラー時の共通処理
-function handlePlaybackError(): void {
-  updateState({ isPlaying: false });
-  const state = getState();
-  if (state.playingTimeout) {
-    clearTimeout(state.playingTimeout);
-    updateState({ playingTimeout: null });
-  }
+function handlePlaybackErrorById(audioId: string): void {
+  clearPlayingTimeout(audioId);
+  decrementPlayingCount();
+  playNextAudio();
   scheduleNextProcessing();
 }
 
-// 現在の音声を停止
+// 現在の音声を停止（全音声）
 export function stopCurrentAudio(): void {
-  // ブラウザTTS（chrome.tts）を停止 - 再生中でなくても安全に呼び出し可
+  // ブラウザTTS（chrome.tts）を停止
   chrome.tts.stop();
 
-  // VOICEVOX: Offscreen Documentの音声を停止
+  // VOICEVOX: Offscreen Documentの全音声を停止
   chrome.runtime.sendMessage({
     target: 'offscreen',
     action: 'stopAudio',
   }).catch(() => {
     // Offscreen documentが存在しない場合は無視
   });
+
+  // 再生カウントと全タイムアウトをリセット
+  updateState({ playingCount: 0 });
+  clearAllPlayingTimeouts();
 }
 
-// audioEnded メッセージのハンドラー
-export function handleAudioEnded(): void {
+// audioEnded メッセージのハンドラー（audioId指定）
+export function handleAudioEndedById(audioId: string): void {
+  clearPlayingTimeout(audioId);
+  decrementPlayingCount();
+
   const state = getState();
-  if (state.playingTimeout) {
-    clearTimeout(state.playingTimeout);
-  }
   state.commentCount++;
-  updateState({
-    isPlaying: false,
-    playingTimeout: null,
-  });
   incrementCumulativeCount();
   updateBadge();
   evaluateRushMode();
-  sendDebugInfo(`■ 再生終了 | キュー: ${formatQueueState()}`);
+  sendDebugInfo(`■ 再生終了 [${audioId}] | 同時再生: ${state.playingCount} | キュー: ${formatQueueState()}`);
 
-  // キュー状態に応じたステータス設定（playNextAudio/scheduleNextProcessingが適切に更新）
-  const updatedState = getState();
-  if (updatedState.audioQueue.length === 0 && updatedState.commentQueue.length === 0) {
+  // キュー状態に応じたステータス設定
+  if (state.playingCount === 0 && state.audioQueue.length === 0 && state.commentQueue.length === 0) {
     sendStatus('waiting');
   }
 
   playNextAudio();
   scheduleNextProcessing();
+}
+
+// 後方互換: audioId なしの handleAudioEnded（chrome.tts完了時用）
+export function handleAudioEnded(): void {
+  handleAudioEndedById(currentChromeTtsAudioId || 'unknown');
 }
 
 // 累計読み上げ数を永続化してブロードキャスト

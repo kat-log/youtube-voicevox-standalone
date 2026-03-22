@@ -1,6 +1,6 @@
 import { getState, updateState } from './state';
 import { extractVideoId, fetchLiveChatId } from './youtube-api';
-import { handleAudioEnded } from './audio-player';
+import { handleAudioEnded, handleAudioEndedById } from './audio-player';
 import { initTabListeners } from './tab-manager';
 import { startPolling, stopAll } from './lifecycle';
 import { sendStatus, sendDebugInfo, updateErrorMessage } from './messaging';
@@ -9,7 +9,8 @@ import type { FilterConfig } from './comment-filter';
 import { setTtsEngine, setBrowserVoice, setLocalVoicevoxHost } from './tts-api';
 import { loadRushConfigFromStorage, setRushConfig, evaluateRushMode } from './rush-mode';
 import { loadAutoCatchUpConfigFromStorage, setAutoCatchUpConfig } from './auto-catchup';
-import type { TtsEngine, RushModeConfig, AutoCatchUpConfig } from '@/types/state';
+import { loadParallelPlaybackConfigFromStorage, setParallelPlaybackConfig } from './parallel-playback';
+import type { TtsEngine, RushModeConfig, AutoCatchUpConfig, ParallelPlaybackConfig } from '@/types/state';
 
 // ポップアップ・ログページから session storage にアクセスできるようにする
 chrome.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' });
@@ -25,6 +26,9 @@ loadRushConfigFromStorage();
 
 // 自動キャッチアップ設定をストレージから読み込み
 loadAutoCatchUpConfigFromStorage();
+
+// 並列再生設定をストレージから読み込み
+loadParallelPlaybackConfigFromStorage();
 
 // TTSエンジン設定をストレージから読み込み
 chrome.storage.sync.get(['ttsEngine', 'browserVoice', 'localVoicevoxHost'], (data) => {
@@ -169,15 +173,25 @@ chrome.runtime.onMessage.addListener(
       }
 
       case 'audioEnded': {
-        handleAudioEnded();
+        const audioId = request.audioId as string | undefined;
+        if (audioId) {
+          handleAudioEndedById(audioId);
+        } else {
+          handleAudioEnded();
+        }
         sendResponse({ status: 'success' });
         return true;
       }
 
       case 'audioError': {
         // eslint-disable-next-line no-console
-        console.error('Offscreen audio再生エラー');
-        handleAudioEnded();
+        console.error('Offscreen audio再生エラー', request.audioId);
+        const audioId = request.audioId as string | undefined;
+        if (audioId) {
+          handleAudioEndedById(audioId);
+        } else {
+          handleAudioEnded();
+        }
         sendResponse({ status: 'success' });
         return true;
       }
@@ -234,6 +248,14 @@ chrome.runtime.onMessage.addListener(
         const config = request.autoCatchUpConfig as AutoCatchUpConfig;
         setAutoCatchUpConfig(config);
         chrome.storage.sync.set({ autoCatchUpConfig: config });
+        sendResponse({ status: 'success' });
+        return true;
+      }
+
+      case 'updateParallelPlaybackConfig': {
+        const config = request.parallelPlaybackConfig as ParallelPlaybackConfig;
+        setParallelPlaybackConfig(config);
+        chrome.storage.sync.set({ parallelPlaybackConfig: config });
         sendResponse({ status: 'success' });
         return true;
       }

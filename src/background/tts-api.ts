@@ -4,6 +4,7 @@ import { getState, shiftComment, pushAudio, unshiftComment } from './state';
 import { sendDebugInfo, formatQueueState, sendStatus } from './messaging';
 import { playNextAudio, updateBadge } from './audio-player';
 import { evaluateRushMode } from './rush-mode';
+import { getEffectiveMaxConcurrent } from './parallel-playback';
 
 export class RateLimitError extends Error {
   constructor(public retryAfter: number) {
@@ -32,8 +33,9 @@ export function scheduleNextProcessing(): void {
 
   const state = getState();
   if (state.commentQueue.length === 0) return;
-  if (state.audioQueue.length >= PREFETCH_THRESHOLD) {
-    sendDebugInfo(`⏳ audioQueue満杯 (${state.audioQueue.length}/${PREFETCH_THRESHOLD}) - TTS先読み一時停止`);
+  const effectiveThreshold = PREFETCH_THRESHOLD + getEffectiveMaxConcurrent();
+  if (state.audioQueue.length >= effectiveThreshold) {
+    sendDebugInfo(`⏳ audioQueue満杯 (${state.audioQueue.length}/${effectiveThreshold}) - TTS先読み一時停止`);
     return;
   }
 

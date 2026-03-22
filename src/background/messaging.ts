@@ -17,10 +17,10 @@ export function sendStatus(status: ExtensionStatus, message = ''): void {
     .catch(() => {});
 }
 
-// キュー状態を [音声生成待ち:x, 再生待ち:y] 形式でフォーマット
+// キュー状態を [音声生成待ち:x, 再生待ち:y, 再生中:z] 形式でフォーマット
 export function formatQueueState(): string {
   const state = getState();
-  return `[音声生成待ち:${state.commentQueue.length}, 再生待ち:${state.audioQueue.length}]`;
+  return `[音声生成待ち:${state.commentQueue.length}, 再生待ち:${state.audioQueue.length}, 再生中:${state.playingCount}]`;
 }
 
 const MAX_LOG_ENTRIES = 500;

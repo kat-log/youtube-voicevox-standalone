@@ -90,6 +90,14 @@ export function toggleEngineUI(engine: string): void {
     engine === 'voicevox' ? 'block' : 'none';
   updateSpeedSliderState();
   updateVolumeSliderState();
+
+  // ブラウザTTSでは並列再生不可のためトグルを無効化
+  const isBrowser = engine === 'browser';
+  const parallelAlwaysToggle = document.getElementById('parallelAlwaysEnabled') as HTMLInputElement;
+  const parallelAutoToggle = document.getElementById('parallelAutoEnabled') as HTMLInputElement;
+  parallelAlwaysToggle.disabled = isBrowser;
+  parallelAutoToggle.disabled = isBrowser;
+  document.getElementById('parallel-unsupported-info')!.style.display = isBrowser ? 'block' : 'none';
 }
 
 export function populateBrowserVoices(savedVoice?: string): void {
