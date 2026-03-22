@@ -91,12 +91,28 @@ export function toggleEngineUI(engine: string): void {
   updateSpeedSliderState();
   updateVolumeSliderState();
 
-  // ブラウザTTSでは並列再生不可のためトグルを無効化
+  // ブラウザTTSでは並列再生不可のためUI全体を無効化
   const isBrowser = engine === 'browser';
   const parallelAlwaysToggle = document.getElementById('parallelAlwaysEnabled') as HTMLInputElement;
   const parallelAutoToggle = document.getElementById('parallelAutoEnabled') as HTMLInputElement;
   parallelAlwaysToggle.disabled = isBrowser;
   parallelAutoToggle.disabled = isBrowser;
+
+  // スライダーも無効化
+  for (const id of [
+    'parallelAlwaysMaxConcurrent',
+    'parallelAutoTriggerThreshold',
+    'parallelAutoMaxConcurrent',
+  ] as const) {
+    const slider = document.getElementById(id) as HTMLInputElement;
+    slider.disabled = isBrowser;
+    setRangeFill(slider);
+  }
+
+  // リセットボタンも無効化
+  (document.getElementById('reset-parallel-always') as HTMLButtonElement).disabled = isBrowser;
+  (document.getElementById('reset-parallel-auto') as HTMLButtonElement).disabled = isBrowser;
+
   document.getElementById('parallel-unsupported-info')!.style.display = isBrowser ? 'block' : 'none';
 }
 

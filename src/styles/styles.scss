@@ -458,6 +458,19 @@ input:checked + .slider:before {
   border-radius: 50%;
 }
 
+/* トグル無効化スタイル */
+.toggle-switch input:disabled + .slider {
+  background-color: #e2e8f0;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.toggle-switch input:disabled:checked + .slider {
+  background-color: #94a3b8;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 /* 話者選択ドロップダウン */
 select {
   width: 95%;
