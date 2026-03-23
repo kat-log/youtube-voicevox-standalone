@@ -52,13 +52,7 @@ function getMaxDropdownCount(): number {
   const autoMax = parseInt(
     (document.getElementById('parallelAutoMaxConcurrent') as HTMLInputElement).value, 10
   );
-  const alwaysEnabled = (document.getElementById('parallelAlwaysEnabled') as HTMLInputElement).checked;
-  const autoEnabled = (document.getElementById('parallelAutoEnabled') as HTMLInputElement).checked;
-
-  let maxConcurrent = 1;
-  if (alwaysEnabled) maxConcurrent = Math.max(maxConcurrent, alwaysMax);
-  if (autoEnabled) maxConcurrent = Math.max(maxConcurrent, autoMax);
-
+  const maxConcurrent = Math.max(alwaysMax, autoMax);
   return Math.max(0, maxConcurrent - 1);
 }
 
