@@ -3,6 +3,7 @@ import { updateStatusUI, validateInputs, updateShortcutTooltips } from './status
 import { setSpeed, setVolume } from './playback-controls';
 import { updateStatsLink } from './message-handler';
 import { toggleEngineUI, populateBrowserVoices, fetchLocalSpeakers, updateVoicevoxBalanceVisibility } from './tts-engine-config';
+import { setSpeakerOptions, updateParallelSpeakerDropdowns, updateParallelSpeakersToggleState } from './parallel-playback-config';
 
 export function loadSettings(): void {
   chrome.storage.sync.get(
@@ -23,6 +24,7 @@ export function loadSettings(): void {
       'rushModeConfig',
       'autoCatchUpConfig',
       'parallelPlaybackConfig',
+      'parallelSpeakersConfig',
       'randomSpeakerEnabled',
     ],
     function (data) {
@@ -230,21 +232,35 @@ export function loadSettings(): void {
         fetchLocalSpeakers(host, data.localSpeakerId);
       }
 
+      // 並列再生マルチ話者設定を復元（トグル状態のみ、プルダウンは話者リスト取得後）
+      const psc = data.parallelSpeakersConfig || { enabled: false, speakerIds: [] };
+      const parallelSpeakersToggle = document.getElementById('parallelSpeakersEnabled') as HTMLInputElement;
+      parallelSpeakersToggle.checked = psc.enabled;
+      parallelSpeakersToggle.setAttribute('aria-checked', String(psc.enabled));
+      document.getElementById('parallel-speakers-options')!.style.display = psc.enabled ? 'block' : 'none';
+
       // 話者一覧を取得して選択メニューを作成
       fetch('https://static.tts.quest/voicevox_speakers.json')
         .then((response) => response.json())
         .then((speakers: (string | null)[]) => {
           const select = document.getElementById('speaker') as HTMLSelectElement;
+          const speakerOptions: Array<{ value: string; label: string }> = [];
           speakers.forEach((speaker, index) => {
             if (speaker) {
               const option = document.createElement('option');
               option.value = String(index);
               option.textContent = speaker;
               select.appendChild(option);
+              speakerOptions.push({ value: String(index), label: speaker });
             }
           });
           // 保存された話者IDを選択
           select.value = data.speakerId || '1';
+
+          // 話者リストをキャッシュしてマルチ話者プルダウンを生成
+          // トグルOFF時も事前生成しておく（非表示だが値は保持される）
+          setSpeakerOptions(speakerOptions);
+          updateParallelSpeakerDropdowns(psc.speakerIds);
 
           // ランダム話者モードの復元
           const randomEnabled = data.randomSpeakerEnabled || false;
@@ -254,6 +270,13 @@ export function loadSettings(): void {
           if (randomEnabled) {
             select.disabled = true;
           }
+
+          // 排他制御の初期状態を設定
+          if (psc.enabled) {
+            randomCheckbox.disabled = true;
+          }
+          // マルチ話者トグルの有効/無効を設定
+          updateParallelSpeakersToggleState();
         });
 
       // OSに応じてツールチップのテキストを更新

@@ -1,5 +1,6 @@
 import { setRangeFill } from './slider-utils';
 import { getSpeed, getVolume } from './playback-controls';
+import { updateParallelSpeakersToggleState } from './parallel-playback-config';
 
 // VOICEVOX残高確認行の表示/非表示
 export function updateVoicevoxBalanceVisibility(): void {
@@ -114,6 +115,9 @@ export function toggleEngineUI(engine: string): void {
   (document.getElementById('reset-parallel-auto') as HTMLButtonElement).disabled = isBrowser;
 
   document.getElementById('parallel-unsupported-info')!.style.display = isBrowser ? 'block' : 'none';
+
+  // マルチ話者トグルの有効/無効を更新
+  updateParallelSpeakersToggleState();
 }
 
 export function populateBrowserVoices(savedVoice?: string): void {

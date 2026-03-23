@@ -9,9 +9,9 @@ import type { FilterConfig } from './comment-filter';
 import { setTtsEngine, setBrowserVoice, setLocalVoicevoxHost } from './tts-api';
 import { loadRushConfigFromStorage, setRushConfig, evaluateRushMode } from './rush-mode';
 import { loadAutoCatchUpConfigFromStorage, setAutoCatchUpConfig } from './auto-catchup';
-import { loadParallelPlaybackConfigFromStorage, setParallelPlaybackConfig } from './parallel-playback';
+import { loadParallelPlaybackConfigFromStorage, setParallelPlaybackConfig, loadParallelSpeakersConfigFromStorage, setParallelSpeakersConfig } from './parallel-playback';
 import { loadRandomSpeakerConfigFromStorage, setRandomSpeakerEnabled, isRandomSpeakerEnabled } from './random-speaker';
-import type { TtsEngine, RushModeConfig, AutoCatchUpConfig, ParallelPlaybackConfig } from '@/types/state';
+import type { TtsEngine, RushModeConfig, AutoCatchUpConfig, ParallelPlaybackConfig, ParallelSpeakersConfig } from '@/types/state';
 
 // ポップアップ・ログページから session storage にアクセスできるようにする
 chrome.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' });
@@ -30,6 +30,9 @@ loadAutoCatchUpConfigFromStorage();
 
 // 並列再生設定をストレージから読み込み
 loadParallelPlaybackConfigFromStorage();
+
+// 並列再生マルチ話者設定をストレージから読み込み
+loadParallelSpeakersConfigFromStorage();
 
 // ランダム話者設定をストレージから読み込み
 loadRandomSpeakerConfigFromStorage();
@@ -263,6 +266,14 @@ chrome.runtime.onMessage.addListener(
         const config = request.parallelPlaybackConfig as ParallelPlaybackConfig;
         setParallelPlaybackConfig(config);
         chrome.storage.sync.set({ parallelPlaybackConfig: config });
+        sendResponse({ status: 'success' });
+        return true;
+      }
+
+      case 'updateParallelSpeakersConfig': {
+        const config = request.parallelSpeakersConfig as ParallelSpeakersConfig;
+        setParallelSpeakersConfig(config);
+        chrome.storage.sync.set({ parallelSpeakersConfig: config });
         sendResponse({ status: 'success' });
         return true;
       }

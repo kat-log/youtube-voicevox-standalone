@@ -21,6 +21,11 @@ export interface ParallelPlaybackConfig {
   autoMaxConcurrent: number;
 }
 
+export interface ParallelSpeakersConfig {
+  enabled: boolean;
+  speakerIds: string[]; // [話者2のID, 話者3のID, ...]
+}
+
 export interface AudioQueueItem {
   type: 'url' | 'speech';
   url?: string;
