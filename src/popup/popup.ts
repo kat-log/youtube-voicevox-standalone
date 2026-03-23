@@ -7,6 +7,7 @@ import { initRushModeConfig } from './rush-mode-config';
 import { initAutoCatchupConfig } from './auto-catchup-config';
 import { initTtsEngineConfig } from './tts-engine-config';
 import { initParallelPlaybackConfig } from './parallel-playback-config';
+import { initRandomSpeakerConfig } from './random-speaker-config';
 import { initDarkMode } from './dark-mode';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -18,5 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initAutoCatchupConfig();
   initTtsEngineConfig();
   initParallelPlaybackConfig();
+  initRandomSpeakerConfig();
   initDarkMode();
 });

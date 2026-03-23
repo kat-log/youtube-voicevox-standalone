@@ -7,6 +7,7 @@ import { ERROR_THRESHOLD_FOR_STATUS } from './state';
 import { shouldFilter, getFilterConfig, stripEmojis, removeNgWords } from './comment-filter';
 import { evaluateRushMode } from './rush-mode';
 import { evaluateAutoCatchUp } from './auto-catchup';
+import { isRandomSpeakerEnabled, getRandomSpeakerId } from './random-speaker';
 
 // ポーリング開始
 export function startPolling(config: {
@@ -29,6 +30,9 @@ export function startPolling(config: {
   }
   let latestMessage = '';
   let isFirstFetch = true;
+
+  const getEffectiveSpeakerId = (): string | undefined =>
+    isRandomSpeakerEnabled() ? (getRandomSpeakerId() || config.speakerId) : config.speakerId;
 
   const checkNewComments = (): void => {
     const state = getState();
@@ -159,7 +163,7 @@ export function startPolling(config: {
                 newMessage,
                 speed: config.speed,
                 tabId: config.tabId,
-                speakerId: config.speakerId,
+                speakerId: getEffectiveSpeakerId(),
               });
               addedCount++;
             }
@@ -214,7 +218,7 @@ export function startPolling(config: {
                     newMessage,
                     speed: config.speed,
                     tabId: config.tabId,
-                    speakerId: config.speakerId,
+                    speakerId: getEffectiveSpeakerId(),
                   });
                 }
               }

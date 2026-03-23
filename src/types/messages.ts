@@ -87,6 +87,11 @@ export interface UpdateAutoCatchUpConfigMessage {
   autoCatchUpConfig: AutoCatchUpConfig;
 }
 
+export interface UpdateRandomSpeakerConfigMessage {
+  action: 'updateRandomSpeakerConfig';
+  enabled: boolean;
+}
+
 // Content → Background メッセージ
 export interface AudioEndedMessage {
   action: 'audioEnded';

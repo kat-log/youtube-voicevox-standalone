@@ -10,6 +10,7 @@ import { setTtsEngine, setBrowserVoice, setLocalVoicevoxHost } from './tts-api';
 import { loadRushConfigFromStorage, setRushConfig, evaluateRushMode } from './rush-mode';
 import { loadAutoCatchUpConfigFromStorage, setAutoCatchUpConfig } from './auto-catchup';
 import { loadParallelPlaybackConfigFromStorage, setParallelPlaybackConfig } from './parallel-playback';
+import { loadRandomSpeakerConfigFromStorage, setRandomSpeakerEnabled, isRandomSpeakerEnabled } from './random-speaker';
 import type { TtsEngine, RushModeConfig, AutoCatchUpConfig, ParallelPlaybackConfig } from '@/types/state';
 
 // ポップアップ・ログページから session storage にアクセスできるようにする
@@ -29,6 +30,9 @@ loadAutoCatchUpConfigFromStorage();
 
 // 並列再生設定をストレージから読み込み
 loadParallelPlaybackConfigFromStorage();
+
+// ランダム話者設定をストレージから読み込み
+loadRandomSpeakerConfigFromStorage();
 
 // TTSエンジン設定をストレージから読み込み
 chrome.storage.sync.get(['ttsEngine', 'browserVoice', 'localVoicevoxHost'], (data) => {
@@ -154,12 +158,15 @@ chrome.runtime.onMessage.addListener(
       }
 
       case 'updateSpeaker': {
-        const state = getState();
-        const updatedQueue = state.commentQueue.map((comment) => ({
-          ...comment,
-          speakerId: request.speakerId as string,
-        }));
-        updateState({ commentQueue: updatedQueue });
+        // ランダム話者モード時はキュー内のspeakerIdを上書きしない
+        if (!isRandomSpeakerEnabled()) {
+          const state = getState();
+          const updatedQueue = state.commentQueue.map((comment) => ({
+            ...comment,
+            speakerId: request.speakerId as string,
+          }));
+          updateState({ commentQueue: updatedQueue });
+        }
         sendResponse({ status: 'success' });
         return true;
       }
@@ -256,6 +263,14 @@ chrome.runtime.onMessage.addListener(
         const config = request.parallelPlaybackConfig as ParallelPlaybackConfig;
         setParallelPlaybackConfig(config);
         chrome.storage.sync.set({ parallelPlaybackConfig: config });
+        sendResponse({ status: 'success' });
+        return true;
+      }
+
+      case 'updateRandomSpeakerConfig': {
+        const enabled = request.enabled as boolean;
+        setRandomSpeakerEnabled(enabled);
+        chrome.storage.sync.set({ randomSpeakerEnabled: enabled });
         sendResponse({ status: 'success' });
         return true;
       }
