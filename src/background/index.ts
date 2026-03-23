@@ -11,6 +11,7 @@ import { loadRushConfigFromStorage, setRushConfig, evaluateRushMode } from './ru
 import { loadAutoCatchUpConfigFromStorage, setAutoCatchUpConfig } from './auto-catchup';
 import { loadParallelPlaybackConfigFromStorage, setParallelPlaybackConfig, loadParallelSpeakersConfigFromStorage, setParallelSpeakersConfig } from './parallel-playback';
 import { loadRandomSpeakerConfigFromStorage, setRandomSpeakerEnabled, isRandomSpeakerEnabled } from './random-speaker';
+import { initSpeakerNames } from './speaker-names';
 import type { TtsEngine, RushModeConfig, AutoCatchUpConfig, ParallelPlaybackConfig, ParallelSpeakersConfig } from '@/types/state';
 
 // ポップアップ・ログページから session storage にアクセスできるようにする
@@ -36,6 +37,9 @@ loadParallelSpeakersConfigFromStorage();
 
 // ランダム話者設定をストレージから読み込み
 loadRandomSpeakerConfigFromStorage();
+
+// 話者名キャッシュを初期化
+initSpeakerNames();
 
 // TTSエンジン設定をストレージから読み込み
 chrome.storage.sync.get(['ttsEngine', 'browserVoice', 'localVoicevoxHost'], (data) => {

@@ -5,6 +5,7 @@ import { sendDebugInfo, formatQueueState, sendStatus } from './messaging';
 import { playNextAudio, updateBadge } from './audio-player';
 import { evaluateRushMode } from './rush-mode';
 import { getEffectiveMaxConcurrent, getParallelSpeakerId, resetParallelSlotCounter } from './parallel-playback';
+import { getSpeakerName } from './speaker-names';
 
 export class RateLimitError extends Error {
   constructor(public retryAfter: number) {
@@ -92,7 +93,8 @@ export function processCommentQueue(): void {
 
   if (currentEngine === 'browser') {
     // ブラウザTTS: API不要、直接audioQueueに追加
-    sendDebugInfo(`ブラウザTTS：${comment.newMessage} | キュー: ${formatQueueState()}`);
+    const voiceLabel = browserVoiceName || 'default';
+    sendDebugInfo(`ブラウザTTS [${voiceLabel}]：${comment.newMessage} | キュー: ${formatQueueState()}`);
     pushAudio({
       type: 'speech',
       text: comment.newMessage,
@@ -108,14 +110,15 @@ export function processCommentQueue(): void {
   if (currentEngine === 'local-voicevox') {
     // ローカルVOICEVOX: ローカルエンジンで音声合成
     isTtsProcessing = true;
-    sendDebugInfo(`ローカルVOICEVOX REQUEST：${comment.newMessage} | キュー: ${formatQueueState()}`);
+    sendDebugInfo(`ローカルVOICEVOX REQUEST [ID:${comment.speakerId || '?'}]：${comment.newMessage} | キュー: ${formatQueueState()}`);
     synthesizeLocalWithRetry(comment, 0);
     return;
   }
 
   // VOICEVOX: TTS Quest APIで音声合成
   isTtsProcessing = true;
-  sendDebugInfo(`VOICEVOX REQUEST：${comment.newMessage} | キュー: ${formatQueueState()}`);
+  const speakerLabel = getSpeakerName(comment.speakerId);
+  sendDebugInfo(`VOICEVOX REQUEST [${speakerLabel}]：${comment.newMessage} | キュー: ${formatQueueState()}`);
   synthesizeWithRetry(comment, 0);
 }
 
