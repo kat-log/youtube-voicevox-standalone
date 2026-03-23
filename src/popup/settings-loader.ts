@@ -23,6 +23,7 @@ export function loadSettings(): void {
       'rushModeConfig',
       'autoCatchUpConfig',
       'parallelPlaybackConfig',
+      'randomSpeakerEnabled',
     ],
     function (data) {
       (document.getElementById('apiKeyVOICEVOX') as HTMLInputElement).value =
@@ -244,6 +245,15 @@ export function loadSettings(): void {
           });
           // 保存された話者IDを選択
           select.value = data.speakerId || '1';
+
+          // ランダム話者モードの復元
+          const randomEnabled = data.randomSpeakerEnabled || false;
+          const randomCheckbox = document.getElementById('randomSpeakerEnabled') as HTMLInputElement;
+          randomCheckbox.checked = randomEnabled;
+          randomCheckbox.setAttribute('aria-checked', String(randomEnabled));
+          if (randomEnabled) {
+            select.disabled = true;
+          }
         });
 
       // OSに応じてツールチップのテキストを更新

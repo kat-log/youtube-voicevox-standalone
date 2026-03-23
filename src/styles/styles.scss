@@ -473,6 +473,11 @@ select {
   font-size: 13px;
 }
 
+select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 select:focus {
   outline: none;
   border-color: var(--accent-color);
