@@ -300,6 +300,18 @@
         </div>
         <button id="reset-parallel-auto" class="small-btn" aria-label="自動並列再生の設定をリセット">デフォルトに戻す</button>
       </div>
+      <div class="toggle-container">
+        <label class="toggle-switch" aria-label="並列再生時の話者割り当て">
+          <input type="checkbox" id="parallelSpeakersEnabled" role="switch" aria-checked="false" disabled />
+          <span class="slider round"></span>
+        </label>
+        <span>並列再生時の話者割り当て</span>
+      </div>
+      <div id="parallel-speakers-options" class="toggle-detail" style="display: none">
+        <p class="info-text">話者1: メインの話者選択で設定したキャラクター</p>
+        <div id="parallel-speakers-list"></div>
+      </div>
+
       <p id="parallel-unsupported-info" class="info-text" style="display: none">
         ブラウザ内蔵音声では並列再生は利用できません
       </p>

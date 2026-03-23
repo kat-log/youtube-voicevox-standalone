@@ -1,4 +1,4 @@
-import type { ParallelPlaybackConfig } from '@/types/state';
+import type { ParallelPlaybackConfig, ParallelSpeakersConfig } from '@/types/state';
 import { getState } from './state';
 import { getTtsEngine } from './tts-api';
 
@@ -51,4 +51,52 @@ export function getEffectiveMaxConcurrent(): number {
   }
 
   return 1;
+}
+
+// --- 並列再生マルチ話者割り当て ---
+
+const DEFAULT_SPEAKERS_CONFIG: ParallelSpeakersConfig = {
+  enabled: false,
+  speakerIds: [],
+};
+
+let speakersConfig: ParallelSpeakersConfig = { ...DEFAULT_SPEAKERS_CONFIG };
+let parallelSlotCounter = 0;
+
+export function getParallelSpeakersConfig(): ParallelSpeakersConfig {
+  return speakersConfig;
+}
+
+export function setParallelSpeakersConfig(newConfig: ParallelSpeakersConfig): void {
+  speakersConfig = newConfig;
+}
+
+export function loadParallelSpeakersConfigFromStorage(): void {
+  chrome.storage.sync.get(['parallelSpeakersConfig'], (data) => {
+    if (data.parallelSpeakersConfig) {
+      speakersConfig = { ...DEFAULT_SPEAKERS_CONFIG, ...data.parallelSpeakersConfig };
+    }
+  });
+}
+
+export function resetParallelSlotCounter(): void {
+  parallelSlotCounter = 0;
+}
+
+/**
+ * 並列再生スロットに基づく話者IDを返す。
+ * ラウンドロビンで slot 0 → メイン話者、slot 1 → 話者2、slot 2 → 話者3 ...
+ */
+export function getParallelSpeakerId(originalSpeakerId: string | undefined): string | undefined {
+  if (!speakersConfig.enabled) return originalSpeakerId;
+
+  const maxConcurrent = getEffectiveMaxConcurrent();
+  if (maxConcurrent <= 1) return originalSpeakerId;
+
+  const slot = parallelSlotCounter % maxConcurrent;
+  parallelSlotCounter++;
+
+  if (slot === 0) return originalSpeakerId;
+  const speakerId = speakersConfig.speakerIds[slot - 1];
+  return speakerId || originalSpeakerId;
 }

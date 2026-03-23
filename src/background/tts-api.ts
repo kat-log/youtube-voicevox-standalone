@@ -4,7 +4,7 @@ import { getState, shiftComment, pushAudio, unshiftComment } from './state';
 import { sendDebugInfo, formatQueueState, sendStatus } from './messaging';
 import { playNextAudio, updateBadge } from './audio-player';
 import { evaluateRushMode } from './rush-mode';
-import { getEffectiveMaxConcurrent } from './parallel-playback';
+import { getEffectiveMaxConcurrent, getParallelSpeakerId, resetParallelSlotCounter } from './parallel-playback';
 
 export class RateLimitError extends Error {
   constructor(public retryAfter: number) {
@@ -52,6 +52,7 @@ export function cancelScheduledProcessing(): void {
     processingTimeoutId = null;
   }
   isTtsProcessing = false;
+  resetParallelSlotCounter();
 }
 
 export function setTtsEngine(engine: TtsEngine): void {
@@ -85,6 +86,9 @@ export function processCommentQueue(): void {
 
   const comment = shiftComment();
   if (!comment) return;
+
+  // 並列再生マルチ話者: スロットに基づいて話者IDを上書き
+  comment.speakerId = getParallelSpeakerId(comment.speakerId);
 
   if (currentEngine === 'browser') {
     // ブラウザTTS: API不要、直接audioQueueに追加

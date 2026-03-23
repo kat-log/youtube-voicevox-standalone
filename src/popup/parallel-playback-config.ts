@@ -22,6 +22,126 @@ function sendParallelPlaybackConfig(): void {
   chrome.runtime.sendMessage({ action: 'updateParallelPlaybackConfig', parallelPlaybackConfig });
 }
 
+// --- 並列再生マルチ話者 ---
+
+// 話者リストのキャッシュ（settings-loader.ts から設定される）
+let cachedSpeakerOptions: Array<{ value: string; label: string }> = [];
+
+export function setSpeakerOptions(options: Array<{ value: string; label: string }>): void {
+  cachedSpeakerOptions = options;
+}
+
+function sendParallelSpeakersConfig(): void {
+  const enabled = (document.getElementById('parallelSpeakersEnabled') as HTMLInputElement).checked;
+  const speakerIds: string[] = [];
+  const container = document.getElementById('parallel-speakers-list')!;
+  const selects = container.querySelectorAll('select');
+  selects.forEach((select) => {
+    speakerIds.push(select.value);
+  });
+  chrome.runtime.sendMessage({
+    action: 'updateParallelSpeakersConfig',
+    parallelSpeakersConfig: { enabled, speakerIds },
+  });
+}
+
+function getMaxDropdownCount(): number {
+  const alwaysMax = parseInt(
+    (document.getElementById('parallelAlwaysMaxConcurrent') as HTMLInputElement).value, 10
+  );
+  const autoMax = parseInt(
+    (document.getElementById('parallelAutoMaxConcurrent') as HTMLInputElement).value, 10
+  );
+  const alwaysEnabled = (document.getElementById('parallelAlwaysEnabled') as HTMLInputElement).checked;
+  const autoEnabled = (document.getElementById('parallelAutoEnabled') as HTMLInputElement).checked;
+
+  let maxConcurrent = 1;
+  if (alwaysEnabled) maxConcurrent = Math.max(maxConcurrent, alwaysMax);
+  if (autoEnabled) maxConcurrent = Math.max(maxConcurrent, autoMax);
+
+  return Math.max(0, maxConcurrent - 1);
+}
+
+export function updateParallelSpeakerDropdowns(savedIds?: string[]): void {
+  const container = document.getElementById('parallel-speakers-list')!;
+  const count = getMaxDropdownCount();
+
+  // 既存の選択値を保存
+  const currentIds: string[] = [];
+  container.querySelectorAll('select').forEach((select) => {
+    currentIds.push(select.value);
+  });
+
+  // 復元用のID（savedIdsがあればそれを優先）
+  const idsToRestore = savedIds || currentIds;
+
+  container.innerHTML = '';
+
+  for (let i = 0; i < count; i++) {
+    const wrapper = document.createElement('div');
+    wrapper.style.marginBottom = '4px';
+
+    const label = document.createElement('label');
+    label.textContent = `話者${i + 2}:`;
+    label.style.marginRight = '4px';
+
+    const select = document.createElement('select');
+    select.id = `parallelSpeaker${i}`;
+    select.setAttribute('aria-label', `話者${i + 2}の選択`);
+
+    for (const opt of cachedSpeakerOptions) {
+      const option = document.createElement('option');
+      option.value = opt.value;
+      option.textContent = opt.label;
+      select.appendChild(option);
+    }
+
+    // 保存値を復元
+    if (idsToRestore[i]) {
+      select.value = idsToRestore[i];
+    }
+
+    select.addEventListener('change', () => {
+      sendParallelSpeakersConfig();
+    });
+
+    wrapper.appendChild(label);
+    wrapper.appendChild(select);
+    container.appendChild(wrapper);
+  }
+}
+
+/**
+ * 並列再生マルチ話者トグルの有効/無効を更新する。
+ * 条件: engine=voicevox かつ (常時 OR 自動)並列ON かつ ランダム話者OFF
+ */
+export function updateParallelSpeakersToggleState(): void {
+  const toggle = document.getElementById('parallelSpeakersEnabled') as HTMLInputElement;
+  const engine = (document.getElementById('ttsEngine') as HTMLSelectElement).value;
+  const alwaysEnabled = (document.getElementById('parallelAlwaysEnabled') as HTMLInputElement).checked;
+  const autoEnabled = (document.getElementById('parallelAutoEnabled') as HTMLInputElement).checked;
+  const randomEnabled = (document.getElementById('randomSpeakerEnabled') as HTMLInputElement).checked;
+
+  const canEnable = engine === 'voicevox' && (alwaysEnabled || autoEnabled) && !randomEnabled;
+  toggle.disabled = !canEnable;
+
+  // 無効化された場合、トグルをOFFにして詳細を隠す（speakerIdsは保持）
+  if (!canEnable && toggle.checked) {
+    toggle.checked = false;
+    toggle.setAttribute('aria-checked', 'false');
+    document.getElementById('parallel-speakers-options')!.style.display = 'none';
+    // enabledフラグのみ更新、speakerIdsはプルダウンの現在値を保持して送信
+    const speakerIds: string[] = [];
+    document.getElementById('parallel-speakers-list')!.querySelectorAll('select').forEach((select) => {
+      speakerIds.push((select as HTMLSelectElement).value);
+    });
+    chrome.runtime.sendMessage({
+      action: 'updateParallelSpeakersConfig',
+      parallelSpeakersConfig: { enabled: false, speakerIds },
+    });
+  }
+}
+
 export function initParallelPlaybackConfig(): void {
   // 常時並列再生トグル
   document.getElementById('parallelAlwaysEnabled')!.addEventListener('change', (event) => {
@@ -29,6 +149,8 @@ export function initParallelPlaybackConfig(): void {
     target.setAttribute('aria-checked', String(target.checked));
     document.getElementById('parallel-always-options')!.style.display = target.checked ? 'block' : 'none';
     sendParallelPlaybackConfig();
+    updateParallelSpeakersToggleState();
+    updateParallelSpeakerDropdowns();
   });
 
   // 常時並列再生: 同時再生数スライダー
@@ -39,6 +161,7 @@ export function initParallelPlaybackConfig(): void {
     target.setAttribute('aria-valuetext', String(val));
     setRangeFill(target);
     sendParallelPlaybackConfig();
+    updateParallelSpeakerDropdowns();
   });
 
   // 常時並列再生: リセットボタン
@@ -49,6 +172,7 @@ export function initParallelPlaybackConfig(): void {
     slider.setAttribute('aria-valuetext', '3');
     setRangeFill(slider);
     sendParallelPlaybackConfig();
+    updateParallelSpeakerDropdowns();
   });
 
   // 自動並列再生トグル
@@ -57,6 +181,8 @@ export function initParallelPlaybackConfig(): void {
     target.setAttribute('aria-checked', String(target.checked));
     document.getElementById('parallel-auto-options')!.style.display = target.checked ? 'block' : 'none';
     sendParallelPlaybackConfig();
+    updateParallelSpeakersToggleState();
+    updateParallelSpeakerDropdowns();
   });
 
   // 自動並列再生: 発動しきい値スライダー
@@ -77,6 +203,7 @@ export function initParallelPlaybackConfig(): void {
     target.setAttribute('aria-valuetext', String(val));
     setRangeFill(target);
     sendParallelPlaybackConfig();
+    updateParallelSpeakerDropdowns();
   });
 
   // 自動並列再生: リセットボタン
@@ -94,5 +221,23 @@ export function initParallelPlaybackConfig(): void {
     setRangeFill(maxSlider);
 
     sendParallelPlaybackConfig();
+    updateParallelSpeakerDropdowns();
+  });
+
+  // 並列再生マルチ話者トグル
+  document.getElementById('parallelSpeakersEnabled')!.addEventListener('change', (event) => {
+    const target = event.target as HTMLInputElement;
+    target.setAttribute('aria-checked', String(target.checked));
+    document.getElementById('parallel-speakers-options')!.style.display = target.checked ? 'block' : 'none';
+
+    // 排他制御: ON時にランダム話者を無効化
+    const randomToggle = document.getElementById('randomSpeakerEnabled') as HTMLInputElement;
+    randomToggle.disabled = target.checked;
+
+    if (target.checked) {
+      updateParallelSpeakerDropdowns();
+    }
+
+    sendParallelSpeakersConfig();
   });
 }
