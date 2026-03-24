@@ -35,8 +35,10 @@
       <p id="error" role="alert" aria-live="assertive"></p>
     </div>
 
-    <!-- YouTube APIキー設定 -->
+    <!-- 初期設定セクション -->
     <div class="section">
+      <div class="section-title">初期設定</div>
+
       <div class="label-with-help">
         <label for="apiKeyYoutube">YouTube API Key:</label>
         <a
@@ -69,11 +71,6 @@
           Google Cloud Console でクォータを確認 &#8599;
         </a>
       </div>
-    </div>
-
-    <!-- 音声設定セクション -->
-    <div class="section">
-      <div class="section-title">音声設定</div>
 
       <label for="ttsEngine">読み上げエンジン:</label>
       <select id="ttsEngine" name="ttsEngine">
@@ -118,6 +115,11 @@
           ※ 残高確認で1pt消費します
         </p>
       </div>
+    </div>
+
+    <!-- 話者設定セクション -->
+    <div class="section">
+      <div class="section-title">話者設定</div>
 
       <div id="voicevox-settings">
         <label for="speaker">話者選択:</label>
@@ -188,6 +190,11 @@
         <p class="info-text">話者1: メインの話者選択で設定したキャラクター</p>
         <div id="parallel-speakers-list"></div>
       </div>
+    </div>
+
+    <!-- 基本設定セクション -->
+    <div class="section">
+      <div class="section-title">基本設定</div>
 
       <label for="volume">音量:</label>
       <div class="slider-group">
@@ -225,6 +232,11 @@
       <p id="speed-unsupported-info" class="info-text" style="display: none">
         この音声では再生速度の変更はサポートされていません（等速固定）
       </p>
+    </div>
+
+    <!-- おもしろ設定セクション -->
+    <div class="section">
+      <div class="section-title">おもしろ設定</div>
 
       <div class="toggle-container">
         <label class="toggle-switch" aria-label="ラッシュモード（自動倍速モード）">
