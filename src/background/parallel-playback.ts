@@ -31,23 +31,24 @@ export function loadParallelPlaybackConfigFromStorage(): void {
 /**
  * 実効的な同時再生数を返す。
  * - ブラウザTTS(chrome.tts)は並列再生不可のため常に1
- * - 常時並列再生が有効なら alwaysMaxConcurrent
- * - 自動並列再生が有効かつキューがしきい値以上なら autoMaxConcurrent
- * - それ以外は1（シリアル再生）
+ * - 並列再生ON + 自動ON → 条件付き（しきい値以上で autoMaxConcurrent、未満は1）
+ * - 並列再生ON + 自動OFF → 常時 alwaysMaxConcurrent
+ * - 並列再生OFF → 1（シリアル再生）
  */
 export function getEffectiveMaxConcurrent(): number {
   if (getTtsEngine() === 'browser') return 1;
 
   if (config.alwaysEnabled) {
-    return config.alwaysMaxConcurrent;
-  }
-
-  if (config.autoEnabled) {
-    const state = getState();
-    const pending = state.commentQueue.length + state.audioQueue.length;
-    if (pending >= config.autoTriggerThreshold) {
-      return config.autoMaxConcurrent;
+    if (config.autoEnabled) {
+      // 自動が常時を上書き: 条件付きのみ
+      const state = getState();
+      const pending = state.commentQueue.length + state.audioQueue.length;
+      if (pending >= config.autoTriggerThreshold) {
+        return config.autoMaxConcurrent;
+      }
+      return 1;
     }
+    return config.alwaysMaxConcurrent;
   }
 
   return 1;
