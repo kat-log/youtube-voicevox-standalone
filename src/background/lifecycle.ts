@@ -6,7 +6,7 @@ import { sendStatus, sendDebugInfo, formatQueueState, clearDebugLogs } from './m
 import { ERROR_THRESHOLD_FOR_STATUS } from './state';
 import { shouldFilter, getFilterConfig, stripEmojis, removeNgWords } from './comment-filter';
 import { evaluateRushMode } from './rush-mode';
-import { evaluateAutoCatchUp } from './auto-catchup';
+import { evaluateAutoCatchUp, getAutoCatchUpConfig } from './auto-catchup';
 import { isRandomSpeakerEnabled, getRandomSpeakerId } from './random-speaker';
 
 // ポーリング開始
@@ -118,7 +118,8 @@ export function startPolling(config: {
         }
 
         const currentState = getState();
-        if (isFirstFetch || currentState.latestOnlyMode) {
+        const autoCatchUpEnabled = getAutoCatchUpConfig().enabled;
+        if (isFirstFetch || (currentState.latestOnlyMode && !autoCatchUpEnabled)) {
           // 最初の取得または最新N件モードでは最新のN件のみを取得
           const N = currentState.latestOnlyCount || 3;
           const latestItems = data.items.slice(-N);
@@ -170,7 +171,8 @@ export function startPolling(config: {
           }
 
           // 最新N件モードではキューをN件にキャップ（古いコメントを破棄）
-          if (currentState.latestOnlyMode) {
+          // 自動発動が有効な場合はキャップせず、evaluateAutoCatchUp() に任せる
+          if (currentState.latestOnlyMode && !autoCatchUpEnabled) {
             const queue = getState().commentQueue;
             if (queue.length > N) {
               const discarded = queue.length - N;

@@ -37,6 +37,8 @@ export function evaluateAutoCatchUp(): boolean {
   if (!config.enabled) return false;
 
   const state = getState();
+  // 親トグル（最新N件取得モード）がOFFなら無効
+  if (!state.latestOnlyMode) return false;
   const pending = state.commentQueue.length + state.audioQueue.length;
 
   if (pending < config.threshold) return false;

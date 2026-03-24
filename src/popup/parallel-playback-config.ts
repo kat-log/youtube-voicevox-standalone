@@ -64,9 +64,8 @@ function sendParallelSpeakersConfig(): void {
 
 function getDropdownCount(): number {
   const alwaysEnabled = (document.getElementById('parallelAlwaysEnabled') as HTMLInputElement).checked;
-  const autoEnabled = (document.getElementById('parallelAutoEnabled') as HTMLInputElement).checked;
 
-  if (alwaysEnabled || autoEnabled) {
+  if (alwaysEnabled) {
     // 並列再生ON: 同時再生数スライダーの値でドロップダウン数を決定
     const alwaysMax = parseInt(
       (document.getElementById('parallelAlwaysMaxConcurrent') as HTMLInputElement).value, 10
@@ -166,8 +165,7 @@ export function updateParallelSpeakersToggleState(): void {
  */
 export function updateRoundRobinSliderVisibility(): void {
   const alwaysEnabled = (document.getElementById('parallelAlwaysEnabled') as HTMLInputElement).checked;
-  const autoEnabled = (document.getElementById('parallelAutoEnabled') as HTMLInputElement).checked;
-  const isParallelOn = alwaysEnabled || autoEnabled;
+  const isParallelOn = alwaysEnabled;
 
   const sliderSection = document.getElementById('round-robin-speaker-count-section');
   if (sliderSection) {
@@ -176,17 +174,21 @@ export function updateRoundRobinSliderVisibility(): void {
 }
 
 export function initParallelPlaybackConfig(): void {
-  // 常時並列再生トグル
+  // 並列再生トグル
   document.getElementById('parallelAlwaysEnabled')!.addEventListener('change', (event) => {
     const target = event.target as HTMLInputElement;
     target.setAttribute('aria-checked', String(target.checked));
     document.getElementById('parallel-always-options')!.style.display = target.checked ? 'block' : 'none';
+    // 親トグルOFF時、自動並列再生の詳細も非表示にする
+    if (!target.checked) {
+      document.getElementById('parallel-auto-options')!.style.display = 'none';
+    }
     sendParallelPlaybackConfig();
     updateRoundRobinSliderVisibility();
     updateParallelSpeakerDropdowns();
   });
 
-  // 常時並列再生: 同時再生数スライダー
+  // 並列再生: 同時再生数スライダー
   document.getElementById('parallelAlwaysMaxConcurrent')!.addEventListener('input', (event) => {
     const target = event.target as HTMLInputElement;
     const val = parseInt(target.value, 10);
@@ -197,7 +199,7 @@ export function initParallelPlaybackConfig(): void {
     updateParallelSpeakerDropdowns();
   });
 
-  // 常時並列再生: リセットボタン
+  // 並列再生: リセットボタン
   document.getElementById('reset-parallel-always')!.addEventListener('click', () => {
     const slider = document.getElementById('parallelAlwaysMaxConcurrent') as HTMLInputElement;
     slider.value = '3';

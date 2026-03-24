@@ -296,11 +296,11 @@
       </div>
 
       <div class="toggle-container">
-        <label class="toggle-switch" aria-label="常時並列再生モード">
+        <label class="toggle-switch" aria-label="並列再生モード">
           <input type="checkbox" id="parallelAlwaysEnabled" role="switch" aria-checked="false" />
           <span class="slider round"></span>
         </label>
-        <span>常時並列再生</span>
+        <span>並列再生</span>
       </div>
 
       <div id="parallel-always-options" class="toggle-detail" style="display: none">
@@ -313,53 +313,53 @@
             max="10"
             step="1"
             value="3"
-            aria-label="常時並列再生の同時再生数"
+            aria-label="並列再生の同時再生数"
             aria-valuetext="3"
           />
           <span id="current-parallel-always-max">3</span>
         </div>
-        <button id="reset-parallel-always" class="small-btn" aria-label="常時並列再生の設定をリセット">デフォルトに戻す</button>
-      </div>
+        <button id="reset-parallel-always" class="small-btn" aria-label="並列再生の設定をリセット">デフォルトに戻す</button>
 
-      <div class="toggle-container">
-        <label class="toggle-switch" aria-label="自動並列再生モード">
-          <input type="checkbox" id="parallelAutoEnabled" role="switch" aria-checked="false" />
-          <span class="slider round"></span>
-        </label>
-        <span>自動並列再生（キュー増加時）</span>
-      </div>
-
-      <div id="parallel-auto-options" class="toggle-detail" style="display: none">
-        <label for="parallelAutoTriggerThreshold">発動しきい値（待機コメント数）:</label>
-        <div class="slider-group">
-          <input
-            type="range"
-            id="parallelAutoTriggerThreshold"
-            min="3"
-            max="50"
-            step="1"
-            value="10"
-            aria-label="自動並列再生の発動しきい値"
-            aria-valuetext="10件"
-          />
-          <span id="current-parallel-auto-threshold">10件</span>
+        <div class="toggle-container">
+          <label class="toggle-switch" aria-label="自動並列再生モード">
+            <input type="checkbox" id="parallelAutoEnabled" role="switch" aria-checked="false" />
+            <span class="slider round"></span>
+          </label>
+          <span>自動並列再生（キュー増加時）</span>
         </div>
 
-        <label for="parallelAutoMaxConcurrent">同時再生数:</label>
-        <div class="slider-group">
-          <input
-            type="range"
-            id="parallelAutoMaxConcurrent"
-            min="2"
-            max="10"
-            step="1"
-            value="3"
-            aria-label="自動並列再生の同時再生数"
-            aria-valuetext="3"
-          />
-          <span id="current-parallel-auto-max">3</span>
+        <div id="parallel-auto-options" class="toggle-detail" style="display: none">
+          <label for="parallelAutoTriggerThreshold">発動しきい値（待機コメント数）:</label>
+          <div class="slider-group">
+            <input
+              type="range"
+              id="parallelAutoTriggerThreshold"
+              min="3"
+              max="50"
+              step="1"
+              value="10"
+              aria-label="自動並列再生の発動しきい値"
+              aria-valuetext="10件"
+            />
+            <span id="current-parallel-auto-threshold">10件</span>
+          </div>
+
+          <label for="parallelAutoMaxConcurrent">同時再生数:</label>
+          <div class="slider-group">
+            <input
+              type="range"
+              id="parallelAutoMaxConcurrent"
+              min="2"
+              max="10"
+              step="1"
+              value="3"
+              aria-label="自動並列再生の同時再生数"
+              aria-valuetext="3"
+            />
+            <span id="current-parallel-auto-max">3</span>
+          </div>
+          <button id="reset-parallel-auto" class="small-btn" aria-label="自動並列再生の設定をリセット">デフォルトに戻す</button>
         </div>
-        <button id="reset-parallel-auto" class="small-btn" aria-label="自動並列再生の設定をリセット">デフォルトに戻す</button>
       </div>
 
       <p id="parallel-unsupported-info" class="info-text" style="display: none">
@@ -396,48 +396,48 @@
         </div>
 
         <button id="reset-latest-only" class="small-btn" aria-label="最新N件取得の設定をリセット">デフォルトに戻す</button>
-      </div>
 
-      <div class="toggle-container">
-        <label class="toggle-switch" aria-label="最新N件取得モードを自動発動">
-          <input type="checkbox" id="autoCatchUpEnabled" role="switch" aria-checked="false" />
-          <span class="slider round"></span>
-        </label>
-        <span>最新N件取得モードを自動発動</span>
-      </div>
-
-      <div id="auto-catchup-options" class="toggle-detail" style="display: none">
-        <label for="autoCatchUpThreshold">発動しきい値（待機コメント数）:</label>
-        <div class="slider-group">
-          <input
-            type="range"
-            id="autoCatchUpThreshold"
-            min="5"
-            max="200"
-            step="5"
-            value="50"
-            aria-label="自動発動しきい値"
-            aria-valuetext="50件"
-          />
-          <span id="current-catchup-threshold">50件</span>
+        <div class="toggle-container">
+          <label class="toggle-switch" aria-label="最新N件取得モードを自動発動">
+            <input type="checkbox" id="autoCatchUpEnabled" role="switch" aria-checked="false" />
+            <span class="slider round"></span>
+          </label>
+          <span>自動発動</span>
         </div>
 
-        <label for="autoCatchUpKeepCount">保持件数:</label>
-        <div class="slider-group">
-          <input
-            type="range"
-            id="autoCatchUpKeepCount"
-            min="1"
-            max="10"
-            step="1"
-            value="3"
-            aria-label="自動発動時の保持件数"
-            aria-valuetext="3件"
-          />
-          <span id="current-catchup-keep-count">3件</span>
-        </div>
+        <div id="auto-catchup-options" class="toggle-detail" style="display: none">
+          <label for="autoCatchUpThreshold">発動しきい値（待機コメント数）:</label>
+          <div class="slider-group">
+            <input
+              type="range"
+              id="autoCatchUpThreshold"
+              min="5"
+              max="200"
+              step="5"
+              value="50"
+              aria-label="自動発動しきい値"
+              aria-valuetext="50件"
+            />
+            <span id="current-catchup-threshold">50件</span>
+          </div>
 
-        <button id="reset-auto-catchup" class="small-btn" aria-label="自動発動の設定をリセット">デフォルトに戻す</button>
+          <label for="autoCatchUpKeepCount">保持件数:</label>
+          <div class="slider-group">
+            <input
+              type="range"
+              id="autoCatchUpKeepCount"
+              min="1"
+              max="10"
+              step="1"
+              value="3"
+              aria-label="自動発動時の保持件数"
+              aria-valuetext="3件"
+            />
+            <span id="current-catchup-keep-count">3件</span>
+          </div>
+
+          <button id="reset-auto-catchup" class="small-btn" aria-label="自動発動の設定をリセット">デフォルトに戻す</button>
+        </div>
       </div>
 
       <div class="toggle-container">
