@@ -16,6 +16,7 @@ export default defineConfig({
         log: resolve(__dirname, 'src/log/log.html'),
         onboarding: resolve(__dirname, 'src/onboarding/onboarding.html'),
         stats: resolve(__dirname, 'src/stats/stats.html'),
+        speakerSelection: resolve(__dirname, 'src/speaker-selection/speaker-selection.html'),
         offscreen: resolve(__dirname, 'src/offscreen/offscreen.html'),
       },
       output: {

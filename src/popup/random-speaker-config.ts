@@ -5,6 +5,31 @@ function sendRandomSpeakerConfig(): void {
   chrome.runtime.sendMessage({ action: 'updateRandomSpeakerConfig', enabled, engine, host });
 }
 
+export function updateRandomSpeakerSummary(): void {
+  const engine = (document.getElementById('ttsEngine') as HTMLSelectElement).value;
+  const storageKey = engine === 'local-voicevox'
+    ? 'randomSpeakerAllowedIdsLocal'
+    : 'randomSpeakerAllowedIds';
+  const summary = document.getElementById('random-speaker-summary');
+  if (!summary) return;
+
+  chrome.storage.sync.get([storageKey], (data) => {
+    const ids = data[storageKey] as string[] | undefined;
+    if (ids) {
+      summary.textContent = `${ids.length}話者を選択中`;
+    } else {
+      summary.textContent = '全話者から選択';
+    }
+  });
+}
+
+function updateConfigLinkVisibility(enabled: boolean): void {
+  const linkSection = document.getElementById('random-speaker-config-link');
+  if (linkSection) {
+    linkSection.style.display = enabled ? 'block' : 'none';
+  }
+}
+
 export function initRandomSpeakerConfig(): void {
   document.getElementById('randomSpeakerEnabled')!.addEventListener('change', (event) => {
     const target = event.target as HTMLInputElement;
@@ -16,6 +41,12 @@ export function initRandomSpeakerConfig(): void {
       (document.getElementById('localSpeaker') as HTMLSelectElement).disabled = target.checked;
     } else {
       (document.getElementById('speaker') as HTMLSelectElement).disabled = target.checked;
+    }
+
+    // 話者選択リンクの表示切替
+    updateConfigLinkVisibility(target.checked);
+    if (target.checked) {
+      updateRandomSpeakerSummary();
     }
 
     // 排他制御: ON時に持ち回り制話者を自動OFF
@@ -41,5 +72,10 @@ export function initRandomSpeakerConfig(): void {
     }
 
     sendRandomSpeakerConfig();
+  });
+
+  // 話者選択ページを開くボタン
+  document.getElementById('openSpeakerSelection')?.addEventListener('click', () => {
+    chrome.tabs.create({ url: chrome.runtime.getURL('speaker-selection/speaker-selection.html') });
   });
 }
