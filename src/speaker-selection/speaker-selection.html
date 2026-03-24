@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Hello Voice - ランダム話者の選択</title>
+    <style>
+      body {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: none !important;
+        min-height: 100vh;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      .page-container {
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 24px 20px 80px;
+      }
+      .page-header {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      .page-header h1 {
+        margin: 0 0 4px;
+        font-size: 20px;
+      }
+      .page-header p {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 13px;
+      }
+
+      /* Toolbar */
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+        align-items: center;
+      }
+      .toolbar-btn {
+        padding: 6px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background: var(--bg-section);
+        color: var(--text-primary);
+        cursor: pointer;
+        font-size: 13px;
+        white-space: nowrap;
+      }
+      .toolbar-btn:hover {
+        background: var(--border-color);
+      }
+      .toolbar-search {
+        flex: 1;
+        min-width: 140px;
+        padding: 6px 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background: var(--bg-section);
+        color: var(--text-primary);
+        font-size: 13px;
+        outline: none;
+      }
+      .toolbar-search:focus {
+        border-color: var(--accent-color);
+      }
+      .toolbar-select {
+        padding: 6px 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background: var(--bg-section);
+        color: var(--text-primary);
+        font-size: 13px;
+        outline: none;
+      }
+
+      /* Style batch action */
+      .style-batch {
+        display: none;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        margin-bottom: 12px;
+        background: var(--bg-section);
+        border: 1px solid var(--accent-color);
+        border-radius: 8px;
+        font-size: 13px;
+      }
+      .style-batch.visible {
+        display: flex;
+      }
+      .style-batch-label {
+        flex: 1;
+      }
+
+      /* Character group */
+      .char-group {
+        margin-bottom: 8px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .char-group.hidden {
+        display: none;
+      }
+      .char-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        background: var(--bg-section);
+        cursor: pointer;
+        user-select: none;
+      }
+      .char-header:hover {
+        background: var(--border-color);
+      }
+      .char-checkbox {
+        width: 16px;
+        height: 16px;
+        accent-color: var(--accent-color);
+        cursor: pointer;
+      }
+      .char-name {
+        flex: 1;
+        font-weight: 600;
+        font-size: 14px;
+      }
+      .char-count {
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+      .char-arrow {
+        font-size: 12px;
+        color: var(--text-secondary);
+        transition: transform 0.2s;
+      }
+      .char-group.open .char-arrow {
+        transform: rotate(90deg);
+      }
+      .char-styles {
+        display: none;
+        padding: 4px 14px 8px 42px;
+      }
+      .char-group.open .char-styles {
+        display: block;
+      }
+      .style-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 0;
+      }
+      .style-item.hidden {
+        display: none;
+      }
+      .style-checkbox {
+        width: 15px;
+        height: 15px;
+        accent-color: var(--accent-color);
+        cursor: pointer;
+      }
+      .style-label {
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .style-id {
+        font-size: 11px;
+        color: var(--text-secondary);
+        margin-left: auto;
+      }
+
+      /* Footer */
+      .page-footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        padding: 12px 20px;
+        background: var(--bg-primary);
+        border-top: 1px solid var(--border-color);
+        z-index: 10;
+      }
+      .summary-text {
+        font-size: 13px;
+        color: var(--text-secondary);
+      }
+      .save-btn {
+        padding: 8px 24px;
+        border: none;
+        border-radius: 8px;
+        background: var(--accent-color);
+        color: #fff;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .save-btn:hover {
+        opacity: 0.9;
+      }
+      .save-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .saved-msg {
+        font-size: 13px;
+        color: var(--accent-color);
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+      .saved-msg.show {
+        opacity: 1;
+      }
+
+      /* Loading */
+      .loading {
+        text-align: center;
+        padding: 40px;
+        color: var(--text-secondary);
+      }
+      .error-msg {
+        text-align: center;
+        padding: 20px;
+        color: #e74c3c;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page-container">
+      <div class="page-header">
+        <h1>ランダム話者の選択</h1>
+        <p id="engine-label">読み込み中...</p>
+      </div>
+
+      <div class="toolbar">
+        <button type="button" class="toolbar-btn" id="selectAllBtn">すべて選択</button>
+        <button type="button" class="toolbar-btn" id="deselectAllBtn">すべて解除</button>
+        <input type="text" class="toolbar-search" id="searchInput" placeholder="話者を検索..." />
+        <select class="toolbar-select" id="styleFilter">
+          <option value="">全スタイル</option>
+        </select>
+      </div>
+
+      <div class="style-batch" id="styleBatch">
+        <span class="style-batch-label" id="styleBatchLabel"></span>
+        <button type="button" class="toolbar-btn" id="styleBatchSelect">選択</button>
+        <button type="button" class="toolbar-btn" id="styleBatchDeselect">解除</button>
+      </div>
+
+      <div id="speakerList">
+        <div class="loading" id="loadingMsg">話者リストを取得中...</div>
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <span class="summary-text" id="summaryText">0 / 0 話者選択中</span>
+      <button type="button" class="save-btn" id="saveBtn">保存</button>
+      <span class="saved-msg" id="savedMsg">保存しました</span>
+    </div>
+
+    <script type="module" src="./speaker-selection.ts"></script>
+  </body>
+</html>

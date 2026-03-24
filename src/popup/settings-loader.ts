@@ -4,6 +4,7 @@ import { setSpeed, setVolume } from './playback-controls';
 import { updateStatsLink } from './message-handler';
 import { toggleEngineUI, populateBrowserVoices, fetchLocalSpeakers, updateVoicevoxBalanceVisibility } from './tts-engine-config';
 import { setSpeakerOptions, updateParallelSpeakerDropdowns, updateParallelSpeakersToggleState, updateRoundRobinSliderVisibility } from './parallel-playback-config';
+import { updateRandomSpeakerSummary } from './random-speaker-config';
 
 export function loadSettings(): void {
   chrome.storage.sync.get(
@@ -282,6 +283,10 @@ export function loadSettings(): void {
             } else {
               select.disabled = true;
             }
+            // 話者選択リンクと要約を表示
+            const configLink = document.getElementById('random-speaker-config-link');
+            if (configLink) configLink.style.display = 'block';
+            updateRandomSpeakerSummary();
           }
 
           // 持ち回り制トグルの有効/無効を設定

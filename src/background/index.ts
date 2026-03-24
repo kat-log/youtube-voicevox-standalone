@@ -10,7 +10,7 @@ import { setTtsEngine, setBrowserVoice, setLocalVoicevoxHost } from './tts-api';
 import { loadRushConfigFromStorage, setRushConfig, evaluateRushMode } from './rush-mode';
 import { loadAutoCatchUpConfigFromStorage, setAutoCatchUpConfig } from './auto-catchup';
 import { loadParallelPlaybackConfigFromStorage, setParallelPlaybackConfig, loadParallelSpeakersConfigFromStorage, setParallelSpeakersConfig } from './parallel-playback';
-import { loadRandomSpeakerConfigFromStorage, setRandomSpeakerEnabled, setRandomSpeakerEngine, isRandomSpeakerEnabled } from './random-speaker';
+import { loadRandomSpeakerConfigFromStorage, setRandomSpeakerEnabled, setRandomSpeakerEngine, setAllowedSpeakerIds, isRandomSpeakerEnabled } from './random-speaker';
 import { initSpeakerNames, initLocalSpeakerNames, setSpeakerNameEngine } from './speaker-names';
 import type { TtsEngine, RushModeConfig, AutoCatchUpConfig, ParallelPlaybackConfig, ParallelSpeakersConfig } from '@/types/state';
 
@@ -301,6 +301,30 @@ chrome.runtime.onMessage.addListener(
         setRandomSpeakerEnabled(enabled);
         chrome.storage.sync.set({ randomSpeakerEnabled: enabled });
         sendResponse({ status: 'success' });
+        return true;
+      }
+
+      case 'updateRandomSpeakerAllowedIds': {
+        const ids = request.ids as string[] | null;
+        const engine = request.engine as TtsEngine;
+        const storageKey = engine === 'local-voicevox'
+          ? 'randomSpeakerAllowedIdsLocal'
+          : 'randomSpeakerAllowedIds';
+        setAllowedSpeakerIds(ids);
+        chrome.storage.sync.set({ [storageKey]: ids });
+        sendResponse({ status: 'success' });
+        return true;
+      }
+
+      case 'getSpeakerList': {
+        fetch('https://static.tts.quest/voicevox_speakers.json')
+          .then((res) => res.json())
+          .then((speakers) => {
+            sendResponse({ status: 'success', speakers });
+          })
+          .catch((error: Error) => {
+            sendResponse({ status: 'error', message: error.message });
+          });
         return true;
       }
 

@@ -1,7 +1,9 @@
 import type { TtsEngine } from '@/types/state';
 
 let randomSpeakerEnabled = false;
+let allSpeakerIds: string[] = [];
 let cachedSpeakerIds: string[] = [];
+let allowedSpeakerIds: Set<string> | null = null;
 let isFetching = false;
 let currentEngine: TtsEngine = 'voicevox';
 let localHost: string = 'http://localhost:50021';
@@ -30,26 +32,74 @@ export function setRandomSpeakerEngine(engine: TtsEngine, host?: string): void {
   }
   if (engineChanged || hostChanged) {
     // エンジンまたはホスト変更時はキャッシュをクリア
+    allSpeakerIds = [];
     cachedSpeakerIds = [];
-    if (randomSpeakerEnabled) {
-      fetchAndCacheSpeakerIds();
-    }
+    // エンジンに応じた allowlist を読み込む
+    const storageKey = engine === 'local-voicevox'
+      ? 'randomSpeakerAllowedIdsLocal'
+      : 'randomSpeakerAllowedIds';
+    chrome.storage.sync.get([storageKey], (data) => {
+      const ids = data[storageKey] as string[] | undefined;
+      allowedSpeakerIds = ids ? new Set(ids) : null;
+      if (randomSpeakerEnabled) {
+        fetchAndCacheSpeakerIds();
+      }
+    });
+  }
+}
+
+/**
+ * ランダム話者の許可リストを設定する。null = 全話者。
+ */
+export function setAllowedSpeakerIds(ids: string[] | null): void {
+  allowedSpeakerIds = ids ? new Set(ids) : null;
+  if (allSpeakerIds.length > 0) {
+    applyAllowedFilter();
+  }
+}
+
+function applyAllowedFilter(): void {
+  if (allowedSpeakerIds === null) {
+    cachedSpeakerIds = [...allSpeakerIds];
+  } else {
+    cachedSpeakerIds = allSpeakerIds.filter((id) => allowedSpeakerIds!.has(id));
+  }
+  // フィルタ結果が空なら全話者にフォールバック
+  if (cachedSpeakerIds.length === 0 && allSpeakerIds.length > 0) {
+    cachedSpeakerIds = [...allSpeakerIds];
   }
 }
 
 export function loadRandomSpeakerConfigFromStorage(): void {
-  chrome.storage.sync.get(['randomSpeakerEnabled', 'ttsEngine', 'localVoicevoxHost'], (data) => {
-    if (data.ttsEngine) currentEngine = data.ttsEngine as TtsEngine;
-    if (data.localVoicevoxHost) localHost = data.localVoicevoxHost as string;
-    if (data.randomSpeakerEnabled) {
-      randomSpeakerEnabled = true;
-      fetchAndCacheSpeakerIds();
+  chrome.storage.sync.get(
+    [
+      'randomSpeakerEnabled',
+      'ttsEngine',
+      'localVoicevoxHost',
+      'randomSpeakerAllowedIds',
+      'randomSpeakerAllowedIdsLocal',
+    ],
+    (data) => {
+      if (data.ttsEngine) currentEngine = data.ttsEngine as TtsEngine;
+      if (data.localVoicevoxHost) localHost = data.localVoicevoxHost as string;
+
+      // エンジンに応じた allowlist を読み込む
+      const storageKey = currentEngine === 'local-voicevox'
+        ? 'randomSpeakerAllowedIdsLocal'
+        : 'randomSpeakerAllowedIds';
+      const ids = data[storageKey] as string[] | undefined;
+      allowedSpeakerIds = ids ? new Set(ids) : null;
+
+      if (data.randomSpeakerEnabled) {
+        randomSpeakerEnabled = true;
+        fetchAndCacheSpeakerIds();
+      }
     }
-  });
+  );
 }
 
 function fetchAndCacheSpeakerIds(): void {
-  if (isFetching || cachedSpeakerIds.length > 0) return;
+  if (isFetching || allSpeakerIds.length > 0) return;
   isFetching = true;
 
   if (currentEngine === 'local-voicevox') {
@@ -63,9 +113,10 @@ function fetchApiSpeakerIds(): void {
   fetch('https://static.tts.quest/voicevox_speakers.json')
     .then((res) => res.json())
     .then((speakers: (string | null)[]) => {
-      cachedSpeakerIds = speakers
+      allSpeakerIds = speakers
         .map((name, index) => (name !== null ? String(index) : null))
         .filter((id): id is string => id !== null);
+      applyAllowedFilter();
     })
     .catch((err) => {
       // eslint-disable-next-line no-console
@@ -83,9 +134,10 @@ function fetchLocalSpeakerIds(): void {
       return res.json();
     })
     .then((speakers: Array<{ name: string; styles: Array<{ id: number; name: string }> }>) => {
-      cachedSpeakerIds = speakers.flatMap((speaker) =>
+      allSpeakerIds = speakers.flatMap((speaker) =>
         speaker.styles.map((style) => String(style.id))
       );
+      applyAllowedFilter();
     })
     .catch((err) => {
       // eslint-disable-next-line no-console
