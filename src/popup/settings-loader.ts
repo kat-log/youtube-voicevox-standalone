@@ -3,7 +3,7 @@ import { updateStatusUI, validateInputs, updateShortcutTooltips } from './status
 import { setSpeed, setVolume } from './playback-controls';
 import { updateStatsLink } from './message-handler';
 import { toggleEngineUI, populateBrowserVoices, fetchLocalSpeakers, updateVoicevoxBalanceVisibility } from './tts-engine-config';
-import { setSpeakerOptions, updateParallelSpeakerDropdowns, updateParallelSpeakersToggleState } from './parallel-playback-config';
+import { setSpeakerOptions, updateParallelSpeakerDropdowns, updateParallelSpeakersToggleState, updateRoundRobinSliderVisibility } from './parallel-playback-config';
 
 export function loadSettings(): void {
   chrome.storage.sync.get(
@@ -232,12 +232,20 @@ export function loadSettings(): void {
         fetchLocalSpeakers(host, data.localSpeakerId);
       }
 
-      // 並列再生マルチ話者設定を復元（トグル状態のみ、プルダウンは話者リスト取得後）
-      const psc = data.parallelSpeakersConfig || { enabled: false, speakerIds: [] };
+      // 持ち回り制話者設定を復元（トグル状態のみ、プルダウンは話者リスト取得後）
+      const psc = data.parallelSpeakersConfig || { enabled: false, speakerIds: [], roundRobinSpeakerCount: 3 };
       const parallelSpeakersToggle = document.getElementById('parallelSpeakersEnabled') as HTMLInputElement;
       parallelSpeakersToggle.checked = psc.enabled;
       parallelSpeakersToggle.setAttribute('aria-checked', String(psc.enabled));
       document.getElementById('parallel-speakers-options')!.style.display = psc.enabled ? 'block' : 'none';
+
+      // 話者数スライダーの復元
+      const roundRobinCount = psc.roundRobinSpeakerCount || 3;
+      const roundRobinSlider = document.getElementById('roundRobinSpeakerCount') as HTMLInputElement;
+      roundRobinSlider.value = String(roundRobinCount);
+      document.getElementById('current-round-robin-count')!.textContent = String(roundRobinCount);
+      roundRobinSlider.setAttribute('aria-valuetext', String(roundRobinCount));
+      setRangeFill(roundRobinSlider);
 
       // 話者一覧を取得して選択メニューを作成
       fetch('https://static.tts.quest/voicevox_speakers.json')
@@ -276,12 +284,9 @@ export function loadSettings(): void {
             }
           }
 
-          // 排他制御の初期状態を設定
-          if (psc.enabled) {
-            randomCheckbox.disabled = true;
-          }
-          // マルチ話者トグルの有効/無効を設定
+          // 持ち回り制トグルの有効/無効を設定
           updateParallelSpeakersToggleState();
+          updateRoundRobinSliderVisibility();
         });
 
       // OSに応じてツールチップのテキストを更新

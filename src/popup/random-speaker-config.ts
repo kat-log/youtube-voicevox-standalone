@@ -1,5 +1,3 @@
-import { updateParallelSpeakersToggleState } from './parallel-playback-config';
-
 function sendRandomSpeakerConfig(): void {
   const enabled = (document.getElementById('randomSpeakerEnabled') as HTMLInputElement).checked;
   const engine = (document.getElementById('ttsEngine') as HTMLSelectElement).value;
@@ -20,8 +18,27 @@ export function initRandomSpeakerConfig(): void {
       (document.getElementById('speaker') as HTMLSelectElement).disabled = target.checked;
     }
 
-    // 排他制御: ランダム話者モードのON/OFFでマルチ話者トグルの有効/無効を更新
-    updateParallelSpeakersToggleState();
+    // 排他制御: ON時に持ち回り制話者を自動OFF
+    if (target.checked) {
+      const roundRobinToggle = document.getElementById('parallelSpeakersEnabled') as HTMLInputElement;
+      if (roundRobinToggle.checked) {
+        roundRobinToggle.checked = false;
+        roundRobinToggle.setAttribute('aria-checked', 'false');
+        document.getElementById('parallel-speakers-options')!.style.display = 'none';
+        // backgroundに持ち回り制OFFを通知（speakerIdsは保持）
+        const speakerIds: string[] = [];
+        document.getElementById('parallel-speakers-list')!.querySelectorAll('select').forEach((select) => {
+          speakerIds.push((select as HTMLSelectElement).value);
+        });
+        const roundRobinSpeakerCount = parseInt(
+          (document.getElementById('roundRobinSpeakerCount') as HTMLInputElement).value, 10
+        );
+        chrome.runtime.sendMessage({
+          action: 'updateParallelSpeakersConfig',
+          parallelSpeakersConfig: { enabled: false, speakerIds, roundRobinSpeakerCount },
+        });
+      }
+    }
 
     sendRandomSpeakerConfig();
   });

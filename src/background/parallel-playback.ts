@@ -58,6 +58,7 @@ export function getEffectiveMaxConcurrent(): number {
 const DEFAULT_SPEAKERS_CONFIG: ParallelSpeakersConfig = {
   enabled: false,
   speakerIds: [],
+  roundRobinSpeakerCount: 3,
 };
 
 let speakersConfig: ParallelSpeakersConfig = { ...DEFAULT_SPEAKERS_CONFIG };
@@ -84,16 +85,22 @@ export function resetParallelSlotCounter(): void {
 }
 
 /**
- * 並列再生スロットに基づく話者IDを返す。
- * ラウンドロビンで slot 0 → メイン話者、slot 1 → 話者2、slot 2 → 話者3 ...
+ * ラウンドロビンスロットに基づく話者IDを返す。
+ * slot 0 → メイン話者、slot 1 → 話者2、slot 2 → 話者3 ...
+ * 並列再生ON時は同時再生数、OFF時は roundRobinSpeakerCount をモジュロの分母とする。
  */
 export function getParallelSpeakerId(originalSpeakerId: string | undefined): string | undefined {
   if (!speakersConfig.enabled) return originalSpeakerId;
 
   const maxConcurrent = getEffectiveMaxConcurrent();
-  if (maxConcurrent <= 1) return originalSpeakerId;
+  // 並列再生ON時は同時再生数、OFF時は持ち回り話者数を使用
+  const effectiveSpeakerCount = maxConcurrent > 1
+    ? maxConcurrent
+    : speakersConfig.roundRobinSpeakerCount;
 
-  const slot = parallelSlotCounter % maxConcurrent;
+  if (effectiveSpeakerCount <= 1) return originalSpeakerId;
+
+  const slot = parallelSlotCounter % effectiveSpeakerCount;
   parallelSlotCounter++;
 
   if (slot === 0) return originalSpeakerId;

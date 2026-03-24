@@ -161,6 +161,34 @@
         </div>
       </div>
 
+      <div class="toggle-container">
+        <label class="toggle-switch" aria-label="持ち回り制話者モード">
+          <input type="checkbox" id="parallelSpeakersEnabled" role="switch" aria-checked="false" />
+          <span class="slider round"></span>
+        </label>
+        <span>持ち回り制話者モード</span>
+      </div>
+      <div id="parallel-speakers-options" class="toggle-detail" style="display: none">
+        <div id="round-robin-speaker-count-section">
+          <label for="roundRobinSpeakerCount">話者数:</label>
+          <div class="slider-group">
+            <input
+              type="range"
+              id="roundRobinSpeakerCount"
+              min="2"
+              max="10"
+              step="1"
+              value="3"
+              aria-label="持ち回り話者数"
+              aria-valuetext="3"
+            />
+            <span id="current-round-robin-count">3</span>
+          </div>
+        </div>
+        <p class="info-text">話者1: メインの話者選択で設定したキャラクター</p>
+        <div id="parallel-speakers-list"></div>
+      </div>
+
       <label for="speed">再生速度:</label>
       <div class="slider-group">
         <input
@@ -302,17 +330,6 @@
           <span id="current-parallel-auto-max">3</span>
         </div>
         <button id="reset-parallel-auto" class="small-btn" aria-label="自動並列再生の設定をリセット">デフォルトに戻す</button>
-      </div>
-      <div class="toggle-container">
-        <label class="toggle-switch" aria-label="並列再生時の話者割り当て">
-          <input type="checkbox" id="parallelSpeakersEnabled" role="switch" aria-checked="false" disabled />
-          <span class="slider round"></span>
-        </label>
-        <span>並列再生時の話者割り当て</span>
-      </div>
-      <div id="parallel-speakers-options" class="toggle-detail" style="display: none">
-        <p class="info-text">話者1: メインの話者選択で設定したキャラクター</p>
-        <div id="parallel-speakers-list"></div>
       </div>
 
       <p id="parallel-unsupported-info" class="info-text" style="display: none">
