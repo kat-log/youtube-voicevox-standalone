@@ -64,6 +64,8 @@ export interface ExtensionState {
   isYouTubeRateLimited: boolean;
 }
 
+export const RANDOM_SPEAKER_SENTINEL = '__random__';
+
 export type ExtensionStatus =
   | 'idle'
   | 'connecting'

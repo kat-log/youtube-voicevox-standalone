@@ -96,6 +96,12 @@ function fetchLocalSpeakerIds(): void {
     });
 }
 
+export function ensureRandomSpeakerCache(): void {
+  if (cachedSpeakerIds.length === 0) {
+    fetchAndCacheSpeakerIds();
+  }
+}
+
 export function getRandomSpeakerId(): string | undefined {
   if (cachedSpeakerIds.length === 0) return undefined;
   const index = Math.floor(Math.random() * cachedSpeakerIds.length);

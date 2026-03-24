@@ -1,6 +1,8 @@
 import type { ParallelPlaybackConfig, ParallelSpeakersConfig } from '@/types/state';
+import { RANDOM_SPEAKER_SENTINEL } from '@/types/state';
 import { getState } from './state';
 import { getTtsEngine } from './tts-api';
+import { getRandomSpeakerId, ensureRandomSpeakerCache } from './random-speaker';
 
 const DEFAULT_CONFIG: ParallelPlaybackConfig = {
   alwaysEnabled: false,
@@ -71,12 +73,18 @@ export function getParallelSpeakersConfig(): ParallelSpeakersConfig {
 
 export function setParallelSpeakersConfig(newConfig: ParallelSpeakersConfig): void {
   speakersConfig = newConfig;
+  if (newConfig.enabled && newConfig.speakerIds.includes(RANDOM_SPEAKER_SENTINEL)) {
+    ensureRandomSpeakerCache();
+  }
 }
 
 export function loadParallelSpeakersConfigFromStorage(): void {
   chrome.storage.sync.get(['parallelSpeakersConfig'], (data) => {
     if (data.parallelSpeakersConfig) {
       speakersConfig = { ...DEFAULT_SPEAKERS_CONFIG, ...data.parallelSpeakersConfig };
+      if (speakersConfig.enabled && speakersConfig.speakerIds.includes(RANDOM_SPEAKER_SENTINEL)) {
+        ensureRandomSpeakerCache();
+      }
     }
   });
 }
@@ -106,5 +114,8 @@ export function getParallelSpeakerId(originalSpeakerId: string | undefined): str
 
   if (slot === 0) return originalSpeakerId;
   const speakerId = speakersConfig.speakerIds[slot - 1];
+  if (speakerId === RANDOM_SPEAKER_SENTINEL) {
+    return getRandomSpeakerId() || originalSpeakerId;
+  }
   return speakerId || originalSpeakerId;
 }
