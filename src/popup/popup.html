@@ -189,6 +189,24 @@
         <div id="parallel-speakers-list"></div>
       </div>
 
+      <label for="volume">音量:</label>
+      <div class="slider-group">
+        <input
+          type="range"
+          id="volume"
+          min="0"
+          max="1"
+          step="0.1"
+          value="1"
+          aria-label="音量"
+          aria-valuetext="音量100%"
+        />
+        <span id="current-volume">1.0</span>
+      </div>
+      <p id="volume-unsupported-info" class="info-text" style="display: none">
+        この音声では音量の変更はサポートされていません（最大固定）
+      </p>
+
       <label for="speed">再生速度:</label>
       <div class="slider-group">
         <input
@@ -334,24 +352,6 @@
 
       <p id="parallel-unsupported-info" class="info-text" style="display: none">
         ブラウザ内蔵音声では並列再生は利用できません
-      </p>
-
-      <label for="volume">音量:</label>
-      <div class="slider-group">
-        <input
-          type="range"
-          id="volume"
-          min="0"
-          max="1"
-          step="0.1"
-          value="1"
-          aria-label="音量"
-          aria-valuetext="音量100%"
-        />
-        <span id="current-volume">1.0</span>
-      </div>
-      <p id="volume-unsupported-info" class="info-text" style="display: none">
-        この音声では音量の変更はサポートされていません（最大固定）
       </p>
     </div>
 
