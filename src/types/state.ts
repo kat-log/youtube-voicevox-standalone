@@ -24,6 +24,7 @@ export interface ParallelPlaybackConfig {
 export interface ParallelSpeakersConfig {
   enabled: boolean;
   speakerIds: string[]; // [話者2のID, 話者3のID, ...]
+  roundRobinSpeakerCount: number; // 持ち回り話者数（並列再生OFF時に使用、デフォルト3）
 }
 
 export interface AudioQueueItem {
