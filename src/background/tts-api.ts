@@ -110,7 +110,8 @@ export function processCommentQueue(): void {
   if (currentEngine === 'local-voicevox') {
     // ローカルVOICEVOX: ローカルエンジンで音声合成
     isTtsProcessing = true;
-    sendDebugInfo(`ローカルVOICEVOX REQUEST [ID:${comment.speakerId || '?'}]：${comment.newMessage} | キュー: ${formatQueueState()}`);
+    const localSpeakerLabel = getSpeakerName(comment.speakerId);
+    sendDebugInfo(`ローカルVOICEVOX REQUEST [${localSpeakerLabel}]：${comment.newMessage} | キュー: ${formatQueueState()}`);
     synthesizeLocalWithRetry(comment, 0);
     return;
   }
@@ -283,17 +284,17 @@ async function waitForAudio(
 function synthesizeLocalWithRetry(
   comment: {
     newMessage: string;
+    speakerId?: string;
   },
   retryCount: number
 ): void {
   const maxRetries = 3;
   const currentSession = getState().sessionId;
-  const { newMessage } = comment;
+  const { newMessage, speakerId } = comment;
 
   sendStatus('generating');
 
-  // ローカルVOICEVOXはTTS Quest用のspeakerIdではなくlocalSpeakerIdを使用
-  fetchLocalVoiceVox(newMessage)
+  fetchLocalVoiceVox(newMessage, speakerId)
     .then((dataUri) => {
       isTtsProcessing = false;
       if (getState().sessionId !== currentSession) return;
@@ -326,9 +327,9 @@ function synthesizeLocalWithRetry(
 }
 
 // ローカル VOICEVOX API で音声合成（audio_query → synthesis → data URI）
-async function fetchLocalVoiceVox(text: string): Promise<string> {
+async function fetchLocalVoiceVox(text: string, speakerId?: string): Promise<string> {
   const effectiveSpeakerId =
-    (await chrome.storage.sync.get(['localSpeakerId'])).localSpeakerId || '1';
+    speakerId || (await chrome.storage.sync.get(['localSpeakerId'])).localSpeakerId || '1';
   const encodedText = encodeURIComponent(text);
 
   // Step 1: audio_query

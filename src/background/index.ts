@@ -10,8 +10,8 @@ import { setTtsEngine, setBrowserVoice, setLocalVoicevoxHost } from './tts-api';
 import { loadRushConfigFromStorage, setRushConfig, evaluateRushMode } from './rush-mode';
 import { loadAutoCatchUpConfigFromStorage, setAutoCatchUpConfig } from './auto-catchup';
 import { loadParallelPlaybackConfigFromStorage, setParallelPlaybackConfig, loadParallelSpeakersConfigFromStorage, setParallelSpeakersConfig } from './parallel-playback';
-import { loadRandomSpeakerConfigFromStorage, setRandomSpeakerEnabled, isRandomSpeakerEnabled } from './random-speaker';
-import { initSpeakerNames } from './speaker-names';
+import { loadRandomSpeakerConfigFromStorage, setRandomSpeakerEnabled, setRandomSpeakerEngine, isRandomSpeakerEnabled } from './random-speaker';
+import { initSpeakerNames, initLocalSpeakerNames, setSpeakerNameEngine } from './speaker-names';
 import type { TtsEngine, RushModeConfig, AutoCatchUpConfig, ParallelPlaybackConfig, ParallelSpeakersConfig } from '@/types/state';
 
 // ポップアップ・ログページから session storage にアクセスできるようにする
@@ -43,9 +43,18 @@ initSpeakerNames();
 
 // TTSエンジン設定をストレージから読み込み
 chrome.storage.sync.get(['ttsEngine', 'browserVoice', 'localVoicevoxHost'], (data) => {
-  if (data.ttsEngine) setTtsEngine(data.ttsEngine as TtsEngine);
+  const engine = data.ttsEngine as TtsEngine | undefined;
+  if (engine) {
+    setTtsEngine(engine);
+    setSpeakerNameEngine(engine);
+  }
   if (data.browserVoice) setBrowserVoice(data.browserVoice as string);
-  if (data.localVoicevoxHost) setLocalVoicevoxHost(data.localVoicevoxHost as string);
+  if (data.localVoicevoxHost) {
+    setLocalVoicevoxHost(data.localVoicevoxHost as string);
+    if (engine === 'local-voicevox') {
+      initLocalSpeakerNames(data.localVoicevoxHost as string);
+    }
+  }
 });
 
 // 共通の読み上げ開始フロー（onMessageとonCommandで共有）
@@ -284,6 +293,11 @@ chrome.runtime.onMessage.addListener(
 
       case 'updateRandomSpeakerConfig': {
         const enabled = request.enabled as boolean;
+        const engine = request.engine as TtsEngine | undefined;
+        const host = request.host as string | undefined;
+        if (engine) {
+          setRandomSpeakerEngine(engine, host);
+        }
         setRandomSpeakerEnabled(enabled);
         chrome.storage.sync.set({ randomSpeakerEnabled: enabled });
         sendResponse({ status: 'success' });
@@ -293,7 +307,15 @@ chrome.runtime.onMessage.addListener(
       case 'updateTtsEngine': {
         const engine = request.engine as TtsEngine;
         setTtsEngine(engine);
+        setSpeakerNameEngine(engine);
         chrome.storage.sync.set({ ttsEngine: engine });
+        // ランダム話者のソースエンジンも切替
+        chrome.storage.sync.get(['localVoicevoxHost'], (data) => {
+          setRandomSpeakerEngine(engine, data.localVoicevoxHost);
+          if (engine === 'local-voicevox' && data.localVoicevoxHost) {
+            initLocalSpeakerNames(data.localVoicevoxHost);
+          }
+        });
         sendResponse({ status: 'success' });
         return true;
       }
@@ -369,6 +391,8 @@ chrome.commands.onCommand.addListener(async (command) => {
       'latestOnlyMode',
       'latestOnlyCount',
       'speakerId',
+      'ttsEngine',
+      'localSpeakerId',
     ]);
 
     if (!data.apiKeyYoutube) {
@@ -378,6 +402,11 @@ chrome.commands.onCommand.addListener(async (command) => {
       return;
     }
 
+    const shortcutEngine = data.ttsEngine || 'voicevox';
+    const shortcutSpeakerId = shortcutEngine === 'local-voicevox'
+      ? data.localSpeakerId
+      : data.speakerId;
+
     try {
       const result = await handleStart({
         apiKeyVOICEVOX: data.apiKeyVOICEVOX || '',
@@ -385,7 +414,7 @@ chrome.commands.onCommand.addListener(async (command) => {
         speed: data.speed || 1.0,
         latestOnlyMode: data.latestOnlyMode || false,
         latestOnlyCount: data.latestOnlyCount || 3,
-        speakerId: data.speakerId,
+        speakerId: shortcutSpeakerId,
       });
 
       if (result.status === 'error') {

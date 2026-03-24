@@ -29,7 +29,10 @@ export function initPlaybackControls(): void {
 
     const apiKeyVOICEVOX = (document.getElementById('apiKeyVOICEVOX') as HTMLInputElement).value;
     const apiKeyYoutube = (document.getElementById('apiKeyYoutube') as HTMLInputElement).value;
-    const speakerId = (document.getElementById('speaker') as HTMLSelectElement).value;
+    const engine = (document.getElementById('ttsEngine') as HTMLSelectElement).value;
+    const speakerId = engine === 'local-voicevox'
+      ? (document.getElementById('localSpeaker') as HTMLSelectElement).value
+      : (document.getElementById('speaker') as HTMLSelectElement).value;
 
     if (!apiKeyYoutube) {
       document.getElementById('error')!.textContent = 'YouTube APIキーが設定されていません。';
