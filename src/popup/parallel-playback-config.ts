@@ -26,9 +26,19 @@ function sendParallelPlaybackConfig(): void {
 
 // 話者リストのキャッシュ（settings-loader.ts から設定される）
 let cachedSpeakerOptions: Array<{ value: string; label: string }> = [];
+let cachedLocalSpeakerOptions: Array<{ value: string; label: string }> = [];
 
 export function setSpeakerOptions(options: Array<{ value: string; label: string }>): void {
   cachedSpeakerOptions = options;
+}
+
+export function setLocalSpeakerOptions(options: Array<{ value: string; label: string }>): void {
+  cachedLocalSpeakerOptions = options;
+}
+
+function getActiveSpeakerOptions(): Array<{ value: string; label: string }> {
+  const engine = (document.getElementById('ttsEngine') as HTMLSelectElement).value;
+  return engine === 'local-voicevox' ? cachedLocalSpeakerOptions : cachedSpeakerOptions;
 }
 
 function sendParallelSpeakersConfig(): void {
@@ -83,7 +93,7 @@ export function updateParallelSpeakerDropdowns(savedIds?: string[]): void {
     select.id = `parallelSpeaker${i}`;
     select.setAttribute('aria-label', `話者${i + 2}の選択`);
 
-    for (const opt of cachedSpeakerOptions) {
+    for (const opt of getActiveSpeakerOptions()) {
       const option = document.createElement('option');
       option.value = opt.value;
       option.textContent = opt.label;
@@ -107,7 +117,7 @@ export function updateParallelSpeakerDropdowns(savedIds?: string[]): void {
 
 /**
  * 並列再生マルチ話者トグルの有効/無効を更新する。
- * 条件: engine=voicevox かつ (常時 OR 自動)並列ON かつ ランダム話者OFF
+ * 条件: engine=voicevox or local-voicevox かつ (常時 OR 自動)並列ON かつ ランダム話者OFF
  */
 export function updateParallelSpeakersToggleState(): void {
   const toggle = document.getElementById('parallelSpeakersEnabled') as HTMLInputElement;
@@ -116,7 +126,8 @@ export function updateParallelSpeakersToggleState(): void {
   const autoEnabled = (document.getElementById('parallelAutoEnabled') as HTMLInputElement).checked;
   const randomEnabled = (document.getElementById('randomSpeakerEnabled') as HTMLInputElement).checked;
 
-  const canEnable = engine === 'voicevox' && (alwaysEnabled || autoEnabled) && !randomEnabled;
+  const isVoicevoxEngine = engine === 'voicevox' || engine === 'local-voicevox';
+  const canEnable = isVoicevoxEngine && (alwaysEnabled || autoEnabled) && !randomEnabled;
   toggle.disabled = !canEnable;
 
   // 無効化された場合、トグルをOFFにして詳細を隠す（speakerIdsは保持）

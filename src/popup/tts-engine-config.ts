@@ -1,6 +1,6 @@
 import { setRangeFill } from './slider-utils';
 import { getSpeed, getVolume } from './playback-controls';
-import { updateParallelSpeakersToggleState } from './parallel-playback-config';
+import { updateParallelSpeakersToggleState, setLocalSpeakerOptions, updateParallelSpeakerDropdowns } from './parallel-playback-config';
 
 // VOICEVOX残高確認行の表示/非表示
 export function updateVoicevoxBalanceVisibility(): void {
@@ -89,6 +89,11 @@ export function toggleEngineUI(engine: string): void {
     engine === 'local-voicevox' ? 'block' : 'none';
   document.getElementById('voicevox-api-key-section')!.style.display =
     engine === 'voicevox' ? 'block' : 'none';
+
+  // ランダム話者セクション: ブラウザTTS以外で表示
+  document.getElementById('random-speaker-section')!.style.display =
+    engine === 'browser' ? 'none' : 'block';
+
   updateSpeedSliderState();
   updateVolumeSliderState();
 
@@ -116,8 +121,18 @@ export function toggleEngineUI(engine: string): void {
 
   document.getElementById('parallel-unsupported-info')!.style.display = isBrowser ? 'block' : 'none';
 
+  // ランダム話者モードの話者ドロップダウン無効化を正しいエンジンに対応
+  const randomEnabled = (document.getElementById('randomSpeakerEnabled') as HTMLInputElement).checked;
+  if (randomEnabled) {
+    (document.getElementById('speaker') as HTMLSelectElement).disabled = engine === 'voicevox';
+    (document.getElementById('localSpeaker') as HTMLSelectElement).disabled = engine === 'local-voicevox';
+  }
+
   // マルチ話者トグルの有効/無効を更新
   updateParallelSpeakersToggleState();
+
+  // エンジン切替時に並列話者ドロップダウンを再生成（話者リストが変わるため）
+  updateParallelSpeakerDropdowns();
 }
 
 export function populateBrowserVoices(savedVoice?: string): void {
@@ -187,6 +202,7 @@ export function fetchLocalSpeakers(host: string, savedSpeakerId?: string): void 
       }
 
       select.innerHTML = '';
+      const localOptions: Array<{ value: string; label: string }> = [];
       response.speakers.forEach((speaker) => {
         const group = document.createElement('optgroup');
         group.label = speaker.name;
@@ -195,9 +211,13 @@ export function fetchLocalSpeakers(host: string, savedSpeakerId?: string): void 
           opt.value = String(style.id);
           opt.textContent = `${speaker.name} (${style.name})`;
           group.appendChild(opt);
+          localOptions.push({ value: String(style.id), label: `${speaker.name} (${style.name})` });
         });
         select.appendChild(group);
       });
+
+      // ローカル話者リストを並列話者ドロップダウン用にキャッシュ
+      setLocalSpeakerOptions(localOptions);
 
       if (savedSpeakerId) {
         select.value = savedSpeakerId;
@@ -207,6 +227,13 @@ export function fetchLocalSpeakers(host: string, savedSpeakerId?: string): void 
         if (firstValue) {
           chrome.storage.sync.set({ localSpeakerId: firstValue });
         }
+      }
+
+      // ローカルVOICEVOXが現在のエンジンなら並列話者ドロップダウンを更新
+      const currentEngine = (document.getElementById('ttsEngine') as HTMLSelectElement).value;
+      if (currentEngine === 'local-voicevox') {
+        updateParallelSpeakerDropdowns();
+        updateParallelSpeakersToggleState();
       }
     }
   );

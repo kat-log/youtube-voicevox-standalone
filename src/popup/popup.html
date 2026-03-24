@@ -122,13 +122,6 @@
       <div id="voicevox-settings">
         <label for="speaker">話者選択:</label>
         <select id="speaker" name="speaker"></select>
-        <div class="toggle-container">
-          <label class="toggle-switch" aria-label="ランダム話者モード">
-            <input type="checkbox" id="randomSpeakerEnabled" role="switch" aria-checked="false" />
-            <span class="slider round"></span>
-          </label>
-          <span>ランダム話者モード</span>
-        </div>
       </div>
 
       <div id="browser-tts-settings" style="display: none">
@@ -156,6 +149,16 @@
         <select id="localSpeaker" name="localSpeaker">
           <option value="">接続テストを実行してください</option>
         </select>
+      </div>
+
+      <div id="random-speaker-section">
+        <div class="toggle-container">
+          <label class="toggle-switch" aria-label="ランダム話者モード">
+            <input type="checkbox" id="randomSpeakerEnabled" role="switch" aria-checked="false" />
+            <span class="slider round"></span>
+          </label>
+          <span>ランダム話者モード</span>
+        </div>
       </div>
 
       <label for="speed">再生速度:</label>

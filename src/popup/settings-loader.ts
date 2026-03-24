@@ -268,7 +268,12 @@ export function loadSettings(): void {
           randomCheckbox.checked = randomEnabled;
           randomCheckbox.setAttribute('aria-checked', String(randomEnabled));
           if (randomEnabled) {
-            select.disabled = true;
+            // 現在のエンジンに応じた話者ドロップダウンを無効化
+            if (engine === 'local-voicevox') {
+              (document.getElementById('localSpeaker') as HTMLSelectElement).disabled = true;
+            } else {
+              select.disabled = true;
+            }
           }
 
           // 排他制御の初期状態を設定
