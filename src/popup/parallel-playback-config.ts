@@ -1,3 +1,4 @@
+import { RANDOM_SPEAKER_SENTINEL } from '@/types/state';
 import { setRangeFill } from './slider-utils';
 
 function sendParallelPlaybackConfig(): void {
@@ -113,6 +114,12 @@ export function updateParallelSpeakerDropdowns(savedIds?: string[]): void {
       option.textContent = opt.label;
       select.appendChild(option);
     }
+
+    // ランダムオプションを末尾に追加
+    const randomOption = document.createElement('option');
+    randomOption.value = RANDOM_SPEAKER_SENTINEL;
+    randomOption.textContent = 'ランダム';
+    select.appendChild(randomOption);
 
     // 保存値を復元
     if (idsToRestore[i]) {
