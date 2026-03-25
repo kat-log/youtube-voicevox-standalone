@@ -308,21 +308,7 @@
       </div>
 
       <div id="parallel-always-options" class="toggle-detail" style="display: none">
-        <label for="parallelAlwaysMaxConcurrent">同時再生数:</label>
-        <div class="slider-group">
-          <input
-            type="range"
-            id="parallelAlwaysMaxConcurrent"
-            min="2"
-            max="10"
-            step="1"
-            value="3"
-            aria-label="並列再生の同時再生数"
-            aria-valuetext="3"
-          />
-          <span id="current-parallel-always-max">3</span>
-        </div>
-        <button id="reset-parallel-always" class="small-btn" aria-label="並列再生の設定をリセット">デフォルトに戻す</button>
+        <p class="info-text">同時再生数は持ち回り制話者モードの話者数で設定します</p>
 
         <div class="toggle-container">
           <label class="toggle-switch" aria-label="自動並列再生モード">
@@ -346,21 +332,6 @@
               aria-valuetext="10件"
             />
             <span id="current-parallel-auto-threshold">10件</span>
-          </div>
-
-          <label for="parallelAutoMaxConcurrent">同時再生数:</label>
-          <div class="slider-group">
-            <input
-              type="range"
-              id="parallelAutoMaxConcurrent"
-              min="2"
-              max="10"
-              step="1"
-              value="3"
-              aria-label="自動並列再生の同時再生数"
-              aria-valuetext="3"
-            />
-            <span id="current-parallel-auto-max">3</span>
           </div>
           <button id="reset-parallel-auto" class="small-btn" aria-label="自動並列再生の設定をリセット">デフォルトに戻す</button>
         </div>

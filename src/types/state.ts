@@ -15,10 +15,8 @@ export interface AutoCatchUpConfig {
 
 export interface ParallelPlaybackConfig {
   alwaysEnabled: boolean;
-  alwaysMaxConcurrent: number;
   autoEnabled: boolean;
   autoTriggerThreshold: number;
-  autoMaxConcurrent: number;
 }
 
 export interface ParallelSpeakersConfig {

@@ -3,7 +3,7 @@ import { updateStatusUI, validateInputs, updateShortcutTooltips } from './status
 import { setSpeed, setVolume } from './playback-controls';
 import { updateStatsLink } from './message-handler';
 import { toggleEngineUI, populateBrowserVoices, fetchLocalSpeakers, updateVoicevoxBalanceVisibility } from './tts-engine-config';
-import { setSpeakerOptions, updateParallelSpeakerDropdowns, updateParallelSpeakersToggleState, updateRoundRobinSliderVisibility } from './parallel-playback-config';
+import { setSpeakerOptions, updateParallelSpeakerDropdowns, updateParallelSpeakersToggleState } from './parallel-playback-config';
 import { updateRandomSpeakerSummary } from './random-speaker-config';
 
 export function loadSettings(): void {
@@ -180,20 +180,12 @@ export function loadSettings(): void {
       // 並列再生設定を復元
       const pp = data.parallelPlaybackConfig || {
         alwaysEnabled: false,
-        alwaysMaxConcurrent: 3,
         autoEnabled: false,
         autoTriggerThreshold: 10,
-        autoMaxConcurrent: 3,
       };
       (document.getElementById('parallelAlwaysEnabled') as HTMLInputElement).checked = pp.alwaysEnabled;
       document.getElementById('parallelAlwaysEnabled')!.setAttribute('aria-checked', String(pp.alwaysEnabled));
       document.getElementById('parallel-always-options')!.style.display = pp.alwaysEnabled ? 'block' : 'none';
-
-      const parallelAlwaysMaxSlider = document.getElementById('parallelAlwaysMaxConcurrent') as HTMLInputElement;
-      parallelAlwaysMaxSlider.value = String(pp.alwaysMaxConcurrent);
-      document.getElementById('current-parallel-always-max')!.textContent = String(pp.alwaysMaxConcurrent);
-      parallelAlwaysMaxSlider.setAttribute('aria-valuetext', String(pp.alwaysMaxConcurrent));
-      setRangeFill(parallelAlwaysMaxSlider);
 
       (document.getElementById('parallelAutoEnabled') as HTMLInputElement).checked = pp.autoEnabled;
       document.getElementById('parallelAutoEnabled')!.setAttribute('aria-checked', String(pp.autoEnabled));
@@ -204,12 +196,6 @@ export function loadSettings(): void {
       document.getElementById('current-parallel-auto-threshold')!.textContent = `${pp.autoTriggerThreshold}件`;
       parallelAutoThresholdSlider.setAttribute('aria-valuetext', `${pp.autoTriggerThreshold}件`);
       setRangeFill(parallelAutoThresholdSlider);
-
-      const parallelAutoMaxSlider = document.getElementById('parallelAutoMaxConcurrent') as HTMLInputElement;
-      parallelAutoMaxSlider.value = String(pp.autoMaxConcurrent);
-      document.getElementById('current-parallel-auto-max')!.textContent = String(pp.autoMaxConcurrent);
-      parallelAutoMaxSlider.setAttribute('aria-valuetext', String(pp.autoMaxConcurrent));
-      setRangeFill(parallelAutoMaxSlider);
 
       // TTSエンジン設定を復元
       const engine = data.ttsEngine || 'voicevox';
@@ -293,7 +279,6 @@ export function loadSettings(): void {
 
           // 持ち回り制トグルの有効/無効を設定
           updateParallelSpeakersToggleState();
-          updateRoundRobinSliderVisibility();
         });
 
       // OSに応じてツールチップのテキストを更新
