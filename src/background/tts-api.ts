@@ -179,6 +179,7 @@ function synthesizeWithRetry(
           sendDebugInfo(
             `レート制限リトライ上限到達（${MAX_RATE_LIMIT_RETRIES}回）— コメントをスキップ: "${newMessage.substring(0, 20)}..."`
           );
+          sendStatus('error', 'レート制限リトライ上限 — 生成スキップ');
           scheduleNextProcessing();
           return;
         }
@@ -212,6 +213,7 @@ function synthesizeWithRetry(
         // リトライ上限到達: コメントをスキップ
         isTtsProcessing = false;
         sendDebugInfo(`VOICEVOXエラー（スキップ）: ${error.message} - "${newMessage}"`);
+        sendStatus('error', `${error.message} — 生成スキップ`);
         // eslint-disable-next-line no-console
         console.error('VoiceVoxエラー:', error);
         scheduleNextProcessing();
@@ -324,6 +326,7 @@ function synthesizeLocalWithRetry(
       } else {
         isTtsProcessing = false;
         sendDebugInfo(`ローカルVOICEVOXエラー（スキップ）: ${error.message} - "${newMessage}"`);
+        sendStatus('error', `${error.message} — 生成スキップ`);
         // eslint-disable-next-line no-console
         console.error('ローカルVOICEVOXエラー:', error);
         scheduleNextProcessing();
