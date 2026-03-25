@@ -3,7 +3,7 @@ import { updateStatusUI, validateInputs, updateShortcutTooltips } from './status
 import { setSpeed, setVolume } from './playback-controls';
 import { updateStatsLink } from './message-handler';
 import { toggleEngineUI, populateBrowserVoices, fetchLocalSpeakers, updateVoicevoxBalanceVisibility } from './tts-engine-config';
-import { setSpeakerOptions, updateParallelSpeakerDropdowns, updateParallelSpeakersToggleState } from './parallel-playback-config';
+import { updateParallelSpeakersToggleState, updateSpeakerCountSummary } from './parallel-playback-config';
 import { updateRandomSpeakerSummary } from './random-speaker-config';
 
 export function loadSettings(): void {
@@ -220,43 +220,31 @@ export function loadSettings(): void {
         fetchLocalSpeakers(host, data.localSpeakerId);
       }
 
-      // 持ち回り制話者設定を復元（トグル状態のみ、プルダウンは話者リスト取得後）
+      // 持ち回り制話者設定を復元（トグル状態と要約テキストのみ、詳細は専用ページ）
       const psc = data.parallelSpeakersConfig || { enabled: false, speakerIds: [], roundRobinSpeakerCount: 3 };
       const parallelSpeakersToggle = document.getElementById('parallelSpeakersEnabled') as HTMLInputElement;
       parallelSpeakersToggle.checked = psc.enabled;
       parallelSpeakersToggle.setAttribute('aria-checked', String(psc.enabled));
       document.getElementById('parallel-speakers-options')!.style.display = psc.enabled ? 'block' : 'none';
 
-      // 話者数スライダーの復元
-      const roundRobinCount = psc.roundRobinSpeakerCount || 3;
-      const roundRobinSlider = document.getElementById('roundRobinSpeakerCount') as HTMLInputElement;
-      roundRobinSlider.value = String(roundRobinCount);
-      document.getElementById('current-round-robin-count')!.textContent = String(roundRobinCount);
-      roundRobinSlider.setAttribute('aria-valuetext', String(roundRobinCount));
-      setRangeFill(roundRobinSlider);
+      // 話者数の要約テキストを初期化
+      updateSpeakerCountSummary();
 
       // 話者一覧を取得して選択メニューを作成
       fetch('https://static.tts.quest/voicevox_speakers.json')
         .then((response) => response.json())
         .then((speakers: (string | null)[]) => {
           const select = document.getElementById('speaker') as HTMLSelectElement;
-          const speakerOptions: Array<{ value: string; label: string }> = [];
           speakers.forEach((speaker, index) => {
             if (speaker) {
               const option = document.createElement('option');
               option.value = String(index);
               option.textContent = speaker;
               select.appendChild(option);
-              speakerOptions.push({ value: String(index), label: speaker });
             }
           });
           // 保存された話者IDを選択
           select.value = data.speakerId || '1';
-
-          // 話者リストをキャッシュしてマルチ話者プルダウンを生成
-          // トグルOFF時も事前生成しておく（非表示だが値は保持される）
-          setSpeakerOptions(speakerOptions);
-          updateParallelSpeakerDropdowns(psc.speakerIds);
 
           // ランダム話者モードの復元
           const randomEnabled = data.randomSpeakerEnabled || false;
