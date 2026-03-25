@@ -87,6 +87,8 @@ export function toggleEngineUI(engine: string): void {
     engine === 'browser' ? 'block' : 'none';
   document.getElementById('local-voicevox-settings')!.style.display =
     engine === 'local-voicevox' ? 'block' : 'none';
+  document.getElementById('local-voicevox-initial-settings')!.style.display =
+    engine === 'local-voicevox' ? 'block' : 'none';
   document.getElementById('voicevox-api-key-section')!.style.display =
     engine === 'voicevox' ? 'block' : 'none';
 

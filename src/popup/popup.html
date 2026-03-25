@@ -115,6 +115,36 @@
           ※ 残高確認で1pt消費します
         </p>
       </div>
+
+      <div id="local-voicevox-initial-settings" style="display: none">
+        <label for="localVoicevoxHost">エンジンURL:</label>
+        <div class="api-key-container">
+          <input
+            type="text"
+            id="localVoicevoxHost"
+            value="http://localhost:50021"
+            placeholder="http://localhost:50021"
+          />
+          <button type="button" id="test-local-voicevox" class="small-btn">接続テスト</button>
+        </div>
+        <p id="local-voicevox-status" class="info-text" style="display: none"></p>
+
+        <label for="parallelSynthesisCount">ローカルVOICEVOXへの同時リクエスト数:</label>
+        <div class="slider-group">
+          <input
+            type="range"
+            id="parallelSynthesisCount"
+            min="1"
+            max="5"
+            step="1"
+            value="3"
+            aria-label="ローカルVOICEVOXへの同時リクエスト数"
+            aria-valuetext="3"
+          />
+          <span id="current-parallel-synthesis">3</span>
+        </div>
+        <p class="info-text">PCスペックに応じて調整してください。</p>
+      </div>
     </div>
 
     <!-- 話者設定セクション -->
@@ -136,37 +166,10 @@
       </div>
 
       <div id="local-voicevox-settings" style="display: none">
-        <label for="localVoicevoxHost">エンジンURL:</label>
-        <div class="api-key-container">
-          <input
-            type="text"
-            id="localVoicevoxHost"
-            value="http://localhost:50021"
-            placeholder="http://localhost:50021"
-          />
-          <button type="button" id="test-local-voicevox" class="small-btn">接続テスト</button>
-        </div>
-        <p id="local-voicevox-status" class="info-text" style="display: none"></p>
         <label for="localSpeaker">話者選択:</label>
         <select id="localSpeaker" name="localSpeaker">
           <option value="">接続テストを実行してください</option>
         </select>
-
-        <label for="parallelSynthesisCount">並列音声生成数:</label>
-        <div class="slider-group">
-          <input
-            type="range"
-            id="parallelSynthesisCount"
-            min="1"
-            max="5"
-            step="1"
-            value="2"
-            aria-label="並列音声生成数"
-            aria-valuetext="2"
-          />
-          <span id="current-parallel-synthesis">2</span>
-        </div>
-        <p class="info-text">ローカルVOICEVOXへの同時リクエスト数。PCスペックに応じて調整してください。</p>
       </div>
 
       <div id="random-speaker-section">

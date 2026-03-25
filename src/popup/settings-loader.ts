@@ -205,7 +205,7 @@ export function loadSettings(): void {
       }
 
       // 並列音声生成数を復元
-      const parallelSynthesisCount = data.parallelSynthesisCount || 2;
+      const parallelSynthesisCount = data.parallelSynthesisCount || 3;
       const parallelSynthesisSlider = document.getElementById('parallelSynthesisCount') as HTMLInputElement;
       parallelSynthesisSlider.value = String(parallelSynthesisCount);
       document.getElementById('current-parallel-synthesis')!.textContent = String(parallelSynthesisCount);
