@@ -209,6 +209,7 @@ chrome.runtime.onMessage.addListener(
       case 'audioError': {
         // eslint-disable-next-line no-console
         console.error('Offscreen audio再生エラー', request.audioId);
+        sendDebugInfo(`⚠ Offscreen audio再生エラー [${request.audioId || '不明'}]`);
         const audioId = request.audioId as string | undefined;
         if (audioId) {
           handleAudioEndedById(audioId);
