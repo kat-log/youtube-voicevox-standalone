@@ -311,6 +311,20 @@ export function initTtsEngineConfig(): void {
     chrome.storage.sync.set({ localSpeakerId: speakerId });
   });
 
+  // 並列音声生成数の変更
+  const parallelSynthesisSlider = document.getElementById('parallelSynthesisCount') as HTMLInputElement;
+  parallelSynthesisSlider.addEventListener('input', () => {
+    const count = parseInt(parallelSynthesisSlider.value, 10);
+    document.getElementById('current-parallel-synthesis')!.textContent = String(count);
+    parallelSynthesisSlider.setAttribute('aria-valuetext', String(count));
+    setRangeFill(parallelSynthesisSlider);
+  });
+  parallelSynthesisSlider.addEventListener('change', () => {
+    const count = parseInt(parallelSynthesisSlider.value, 10);
+    chrome.storage.sync.set({ parallelSynthesisCount: count });
+    chrome.runtime.sendMessage({ action: 'updateParallelSynthesis', count });
+  });
+
   // VOICEVOX残高確認
   document.getElementById('check-voicevox-balance')?.addEventListener('click', async () => {
     const apiKey = (document.getElementById('apiKeyVOICEVOX') as HTMLInputElement).value.trim();

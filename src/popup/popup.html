@@ -151,6 +151,22 @@
         <select id="localSpeaker" name="localSpeaker">
           <option value="">接続テストを実行してください</option>
         </select>
+
+        <label for="parallelSynthesisCount">並列音声生成数:</label>
+        <div class="slider-group">
+          <input
+            type="range"
+            id="parallelSynthesisCount"
+            min="1"
+            max="5"
+            step="1"
+            value="2"
+            aria-label="並列音声生成数"
+            aria-valuetext="2"
+          />
+          <span id="current-parallel-synthesis">2</span>
+        </div>
+        <p class="info-text">ローカルVOICEVOXへの同時リクエスト数。PCスペックに応じて調整してください。</p>
       </div>
 
       <div id="random-speaker-section">

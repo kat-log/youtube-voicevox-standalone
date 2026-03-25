@@ -27,6 +27,7 @@ export function loadSettings(): void {
       'parallelPlaybackConfig',
       'parallelSpeakersConfig',
       'randomSpeakerEnabled',
+      'parallelSynthesisCount',
     ],
     function (data) {
       (document.getElementById('apiKeyVOICEVOX') as HTMLInputElement).value =
@@ -202,6 +203,14 @@ export function loadSettings(): void {
         (document.getElementById('localVoicevoxHost') as HTMLInputElement).value =
           data.localVoicevoxHost;
       }
+
+      // 並列音声生成数を復元
+      const parallelSynthesisCount = data.parallelSynthesisCount || 2;
+      const parallelSynthesisSlider = document.getElementById('parallelSynthesisCount') as HTMLInputElement;
+      parallelSynthesisSlider.value = String(parallelSynthesisCount);
+      document.getElementById('current-parallel-synthesis')!.textContent = String(parallelSynthesisCount);
+      parallelSynthesisSlider.setAttribute('aria-valuetext', String(parallelSynthesisCount));
+      setRangeFill(parallelSynthesisSlider);
 
       // ローカルVOICEVOX選択時にスピーカーリストを自動取得
       if (engine === 'local-voicevox') {

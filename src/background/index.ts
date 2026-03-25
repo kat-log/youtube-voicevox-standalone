@@ -6,7 +6,7 @@ import { startPolling, stopAll } from './lifecycle';
 import { sendStatus, sendDebugInfo, updateErrorMessage } from './messaging';
 import { loadFilterConfigFromStorage, setFilterConfig } from './comment-filter';
 import type { FilterConfig } from './comment-filter';
-import { setTtsEngine, setBrowserVoice, setLocalVoicevoxHost } from './tts-api';
+import { setTtsEngine, setBrowserVoice, setLocalVoicevoxHost, setMaxParallelSynthesis } from './tts-api';
 import { loadRushConfigFromStorage, setRushConfig, evaluateRushMode } from './rush-mode';
 import { loadAutoCatchUpConfigFromStorage, setAutoCatchUpConfig } from './auto-catchup';
 import { loadParallelPlaybackConfigFromStorage, setParallelPlaybackConfig, loadParallelSpeakersConfigFromStorage, setParallelSpeakersConfig } from './parallel-playback';
@@ -42,7 +42,7 @@ loadRandomSpeakerConfigFromStorage();
 initSpeakerNames();
 
 // TTSエンジン設定をストレージから読み込み
-chrome.storage.sync.get(['ttsEngine', 'browserVoice', 'localVoicevoxHost'], (data) => {
+chrome.storage.sync.get(['ttsEngine', 'browserVoice', 'localVoicevoxHost', 'parallelSynthesisCount'], (data) => {
   const engine = data.ttsEngine as TtsEngine | undefined;
   if (engine) {
     setTtsEngine(engine);
@@ -54,6 +54,9 @@ chrome.storage.sync.get(['ttsEngine', 'browserVoice', 'localVoicevoxHost'], (dat
     if (engine === 'local-voicevox') {
       initLocalSpeakerNames(data.localVoicevoxHost as string);
     }
+  }
+  if (data.parallelSynthesisCount) {
+    setMaxParallelSynthesis(data.parallelSynthesisCount as number);
   }
 });
 
@@ -355,6 +358,14 @@ chrome.runtime.onMessage.addListener(
         const host = request.host as string;
         setLocalVoicevoxHost(host);
         chrome.storage.sync.set({ localVoicevoxHost: host });
+        sendResponse({ status: 'success' });
+        return true;
+      }
+
+      case 'updateParallelSynthesis': {
+        const count = request.count as number;
+        setMaxParallelSynthesis(count);
+        chrome.storage.sync.set({ parallelSynthesisCount: count });
         sendResponse({ status: 'success' });
         return true;
       }
