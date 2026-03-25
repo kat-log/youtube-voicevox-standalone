@@ -90,9 +90,8 @@ export function toggleEngineUI(engine: string): void {
   document.getElementById('voicevox-api-key-section')!.style.display =
     engine === 'voicevox' ? 'block' : 'none';
 
-  // ランダム話者セクション: ブラウザTTS以外で表示
-  document.getElementById('random-speaker-section')!.style.display =
-    engine === 'browser' ? 'none' : 'block';
+  // ランダム話者セクション: 全エンジンで表示
+  document.getElementById('random-speaker-section')!.style.display = 'block';
 
   updateSpeedSliderState();
   updateVolumeSliderState();
@@ -126,6 +125,7 @@ export function toggleEngineUI(engine: string): void {
   if (randomEnabled) {
     (document.getElementById('speaker') as HTMLSelectElement).disabled = engine === 'voicevox';
     (document.getElementById('localSpeaker') as HTMLSelectElement).disabled = engine === 'local-voicevox';
+    (document.getElementById('browserVoice') as HTMLSelectElement).disabled = engine === 'browser';
   }
 
   // マルチ話者トグルの有効/無効を更新

@@ -32,7 +32,9 @@ chrome.storage.sync.get(['ttsEngine', 'localVoicevoxHost'], (data) => {
   const host = data.localVoicevoxHost || 'http://localhost:50021';
 
   const engineLabel = document.getElementById('engine-label')!;
-  if (currentEngine === 'local-voicevox') {
+  if (currentEngine === 'browser') {
+    engineLabel.textContent = 'ブラウザ内蔵音声';
+  } else if (currentEngine === 'local-voicevox') {
     engineLabel.textContent = `ローカル VOICEVOX（${host}）`;
   } else {
     engineLabel.textContent = 'VOICEVOX（Web API）';
@@ -42,7 +44,29 @@ chrome.storage.sync.get(['ttsEngine', 'localVoicevoxHost'], (data) => {
 });
 
 function fetchSpeakers(localHost: string): void {
-  if (currentEngine === 'local-voicevox') {
+  if (currentEngine === 'browser') {
+    chrome.tts.getVoices((voices) => {
+      const withName = voices.filter((v) => v.voiceName);
+      // 日本語を先頭にソートして「日本語」「その他」でグループ化
+      const jaVoices = withName.filter((v) => v.lang?.startsWith('ja'));
+      const otherVoices = withName.filter((v) => !v.lang?.startsWith('ja'));
+      allSpeakers = [
+        ...jaVoices.map((v) => ({
+          id: v.voiceName!,
+          character: '日本語',
+          style: '',
+          fullName: `${v.voiceName} (${v.lang || '?'})`,
+        })),
+        ...otherVoices.map((v) => ({
+          id: v.voiceName!,
+          character: 'その他',
+          style: '',
+          fullName: `${v.voiceName} (${v.lang || '?'})`,
+        })),
+      ];
+      loadAllowedAndRender();
+    });
+  } else if (currentEngine === 'local-voicevox') {
     chrome.runtime.sendMessage(
       { action: 'getLocalSpeakers', host: localHost },
       (response: { status: string; speakers?: Array<{ name: string; styles: Array<{ id: number; name: string }> }>; message?: string }) => {
@@ -74,6 +98,8 @@ function fetchSpeakers(localHost: string): void {
 function loadAllowedAndRender(): void {
   const storageKey = currentEngine === 'local-voicevox'
     ? 'randomSpeakerAllowedIdsLocal'
+    : currentEngine === 'browser'
+    ? 'randomSpeakerAllowedIdsBrowser'
     : 'randomSpeakerAllowedIds';
   chrome.storage.sync.get([storageKey], (data) => {
     const saved = data[storageKey] as string[] | undefined;
@@ -248,7 +274,8 @@ function updateCheckedId(id: string, checked: boolean): void {
 
 function updateSummary(): void {
   const el = document.getElementById('summaryText')!;
-  el.textContent = `${checkedIds.size} / ${allSpeakers.length} 話者選択中`;
+  const unit = currentEngine === 'browser' ? '音声' : '話者';
+  el.textContent = `${checkedIds.size} / ${allSpeakers.length} ${unit}選択中`;
   const saveBtn = document.getElementById('saveBtn') as HTMLButtonElement;
   saveBtn.disabled = checkedIds.size === 0;
 }

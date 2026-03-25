@@ -8,6 +8,13 @@ let isFetching = false;
 let currentEngine: TtsEngine = 'voicevox';
 let localHost: string = 'http://localhost:50021';
 
+/** エンジンに応じたランダム話者の許可リスト用ストレージキーを返す */
+export function getRandomSpeakerStorageKey(engine: TtsEngine): string {
+  if (engine === 'local-voicevox') return 'randomSpeakerAllowedIdsLocal';
+  if (engine === 'browser') return 'randomSpeakerAllowedIdsBrowser';
+  return 'randomSpeakerAllowedIds';
+}
+
 export function isRandomSpeakerEnabled(): boolean {
   return randomSpeakerEnabled;
 }
@@ -35,9 +42,7 @@ export function setRandomSpeakerEngine(engine: TtsEngine, host?: string): void {
     allSpeakerIds = [];
     cachedSpeakerIds = [];
     // エンジンに応じた allowlist を読み込む
-    const storageKey = engine === 'local-voicevox'
-      ? 'randomSpeakerAllowedIdsLocal'
-      : 'randomSpeakerAllowedIds';
+    const storageKey = getRandomSpeakerStorageKey(engine);
     chrome.storage.sync.get([storageKey], (data) => {
       const ids = data[storageKey] as string[] | undefined;
       allowedSpeakerIds = ids ? new Set(ids) : null;
@@ -78,15 +83,14 @@ export function loadRandomSpeakerConfigFromStorage(): void {
       'localVoicevoxHost',
       'randomSpeakerAllowedIds',
       'randomSpeakerAllowedIdsLocal',
+      'randomSpeakerAllowedIdsBrowser',
     ],
     (data) => {
       if (data.ttsEngine) currentEngine = data.ttsEngine as TtsEngine;
       if (data.localVoicevoxHost) localHost = data.localVoicevoxHost as string;
 
       // エンジンに応じた allowlist を読み込む
-      const storageKey = currentEngine === 'local-voicevox'
-        ? 'randomSpeakerAllowedIdsLocal'
-        : 'randomSpeakerAllowedIds';
+      const storageKey = getRandomSpeakerStorageKey(currentEngine);
       const ids = data[storageKey] as string[] | undefined;
       allowedSpeakerIds = ids ? new Set(ids) : null;
 
@@ -102,7 +106,9 @@ function fetchAndCacheSpeakerIds(): void {
   if (isFetching || allSpeakerIds.length > 0) return;
   isFetching = true;
 
-  if (currentEngine === 'local-voicevox') {
+  if (currentEngine === 'browser') {
+    fetchBrowserVoiceNames();
+  } else if (currentEngine === 'local-voicevox') {
     fetchLocalSpeakerIds();
   } else {
     fetchApiSpeakerIds();
@@ -146,6 +152,16 @@ function fetchLocalSpeakerIds(): void {
     .finally(() => {
       isFetching = false;
     });
+}
+
+function fetchBrowserVoiceNames(): void {
+  chrome.tts.getVoices((voices) => {
+    allSpeakerIds = voices
+      .filter((v) => v.voiceName)
+      .map((v) => v.voiceName!);
+    applyAllowedFilter();
+    isFetching = false;
+  });
 }
 
 export function ensureRandomSpeakerCache(): void {
