@@ -10,7 +10,6 @@ export interface RushModeConfig {
 export interface AutoCatchUpConfig {
   enabled: boolean;
   threshold: number;
-  keepCount: number;
 }
 
 export interface ParallelPlaybackConfig {
