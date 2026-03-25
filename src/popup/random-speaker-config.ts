@@ -61,17 +61,14 @@ export function initRandomSpeakerConfig(): void {
         roundRobinToggle.checked = false;
         roundRobinToggle.setAttribute('aria-checked', 'false');
         document.getElementById('parallel-speakers-options')!.style.display = 'none';
-        // backgroundに持ち回り制OFFを通知（speakerIdsは保持）
-        const speakerIds: string[] = [];
-        document.getElementById('parallel-speakers-list')!.querySelectorAll('select').forEach((select) => {
-          speakerIds.push((select as HTMLSelectElement).value);
-        });
-        const roundRobinSpeakerCount = parseInt(
-          (document.getElementById('roundRobinSpeakerCount') as HTMLInputElement).value, 10
-        );
-        chrome.runtime.sendMessage({
-          action: 'updateParallelSpeakersConfig',
-          parallelSpeakersConfig: { enabled: false, speakerIds, roundRobinSpeakerCount },
+        // backgroundに持ち回り制OFFを通知（storage の speakerIds/count は保持）
+        chrome.storage.sync.get(['parallelSpeakersConfig'], (data) => {
+          const psc = data.parallelSpeakersConfig || { enabled: false, speakerIds: [], roundRobinSpeakerCount: 3 };
+          psc.enabled = false;
+          chrome.runtime.sendMessage({
+            action: 'updateParallelSpeakersConfig',
+            parallelSpeakersConfig: psc,
+          });
         });
       }
     }

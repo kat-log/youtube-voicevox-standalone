@@ -191,24 +191,8 @@
         <span>持ち回り制話者モード</span>
       </div>
       <div id="parallel-speakers-options" class="toggle-detail" style="display: none">
-        <div id="round-robin-speaker-count-section">
-          <label for="roundRobinSpeakerCount">話者数:</label>
-          <div class="slider-group">
-            <input
-              type="range"
-              id="roundRobinSpeakerCount"
-              min="2"
-              max="10"
-              step="1"
-              value="3"
-              aria-label="持ち回り話者数"
-              aria-valuetext="3"
-            />
-            <span id="current-round-robin-count">3</span>
-          </div>
-        </div>
-        <p class="info-text">話者1: メインの話者選択で設定したキャラクター</p>
-        <div id="parallel-speakers-list"></div>
+        <button type="button" id="openSpeakerConfig" class="small-btn">話者を設定...</button>
+        <span id="round-robin-speaker-summary" class="info-text"></span>
       </div>
     </div>
 
@@ -324,9 +308,10 @@
       </div>
 
       <div id="parallel-always-options" class="toggle-detail" style="display: none">
-        <p class="info-text">同時再生数は持ち回り制話者モードの話者数で設定します</p>
+        <button type="button" id="openSpeakerConfigFromParallel" class="small-btn">同時再生数を設定...</button>
+        <span id="parallel-speaker-count-summary" class="info-text"></span>
 
-        <div class="toggle-container">
+        <div class="toggle-container" style="margin-top: 8px">
           <label class="toggle-switch" aria-label="しきい値超過時のみ発動">
             <input type="checkbox" id="parallelAutoEnabled" role="switch" aria-checked="false" />
             <span class="slider round"></span>

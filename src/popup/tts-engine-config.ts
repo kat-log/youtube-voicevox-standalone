@@ -1,6 +1,6 @@
 import { setRangeFill } from './slider-utils';
 import { getSpeed, getVolume } from './playback-controls';
-import { updateParallelSpeakersToggleState, setLocalSpeakerOptions, updateParallelSpeakerDropdowns } from './parallel-playback-config';
+import { updateParallelSpeakersToggleState } from './parallel-playback-config';
 
 // VOICEVOX残高確認行の表示/非表示
 export function updateVoicevoxBalanceVisibility(): void {
@@ -123,9 +123,6 @@ export function toggleEngineUI(engine: string): void {
 
   // マルチ話者トグルの有効/無効を更新
   updateParallelSpeakersToggleState();
-
-  // エンジン切替時に並列話者ドロップダウンを再生成（話者リストが変わるため）
-  updateParallelSpeakerDropdowns();
 }
 
 export function populateBrowserVoices(savedVoice?: string): void {
@@ -195,7 +192,6 @@ export function fetchLocalSpeakers(host: string, savedSpeakerId?: string): void 
       }
 
       select.innerHTML = '';
-      const localOptions: Array<{ value: string; label: string }> = [];
       response.speakers.forEach((speaker) => {
         const group = document.createElement('optgroup');
         group.label = speaker.name;
@@ -204,13 +200,9 @@ export function fetchLocalSpeakers(host: string, savedSpeakerId?: string): void 
           opt.value = String(style.id);
           opt.textContent = `${speaker.name} (${style.name})`;
           group.appendChild(opt);
-          localOptions.push({ value: String(style.id), label: `${speaker.name} (${style.name})` });
         });
         select.appendChild(group);
       });
-
-      // ローカル話者リストを並列話者ドロップダウン用にキャッシュ
-      setLocalSpeakerOptions(localOptions);
 
       if (savedSpeakerId) {
         select.value = savedSpeakerId;
@@ -222,10 +214,9 @@ export function fetchLocalSpeakers(host: string, savedSpeakerId?: string): void 
         }
       }
 
-      // ローカルVOICEVOXが現在のエンジンなら並列話者ドロップダウンを更新
+      // ローカルVOICEVOXが現在のエンジンなら持ち回り制トグルの有効/無効を更新
       const currentEngine = (document.getElementById('ttsEngine') as HTMLSelectElement).value;
       if (currentEngine === 'local-voicevox') {
-        updateParallelSpeakerDropdowns();
         updateParallelSpeakersToggleState();
       }
     }
