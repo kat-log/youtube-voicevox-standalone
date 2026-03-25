@@ -6,6 +6,7 @@ import { playNextAudio, updateBadge } from './audio-player';
 import { evaluateRushMode } from './rush-mode';
 import { getEffectiveMaxConcurrent, getParallelSpeakerId, resetParallelSlotCounter } from './parallel-playback';
 import { getSpeakerName } from './speaker-names';
+import { isRandomSpeakerEnabled, getRandomSpeakerId } from './random-speaker';
 
 export class RateLimitError extends Error {
   constructor(public retryAfter: number) {
@@ -93,12 +94,16 @@ export function processCommentQueue(): void {
 
   if (currentEngine === 'browser') {
     // ブラウザTTS: API不要、直接audioQueueに追加
-    const voiceLabel = browserVoiceName || 'default';
+    // ランダム話者モード時はランダムな音声名を使用
+    const effectiveVoice = isRandomSpeakerEnabled()
+      ? (getRandomSpeakerId() || browserVoiceName)
+      : browserVoiceName;
+    const voiceLabel = effectiveVoice || 'default';
     sendDebugInfo(`ブラウザTTS [${voiceLabel}]：${comment.newMessage} | キュー: ${formatQueueState()}`);
     pushAudio({
       type: 'speech',
       text: comment.newMessage,
-      voiceName: browserVoiceName || undefined,
+      voiceName: effectiveVoice || undefined,
     });
     updateBadge();
     evaluateRushMode();

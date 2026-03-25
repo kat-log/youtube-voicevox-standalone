@@ -9,16 +9,19 @@ export function updateRandomSpeakerSummary(): void {
   const engine = (document.getElementById('ttsEngine') as HTMLSelectElement).value;
   const storageKey = engine === 'local-voicevox'
     ? 'randomSpeakerAllowedIdsLocal'
+    : engine === 'browser'
+    ? 'randomSpeakerAllowedIdsBrowser'
     : 'randomSpeakerAllowedIds';
   const summary = document.getElementById('random-speaker-summary');
   if (!summary) return;
 
   chrome.storage.sync.get([storageKey], (data) => {
     const ids = data[storageKey] as string[] | undefined;
+    const unit = engine === 'browser' ? '音声' : '話者';
     if (ids) {
-      summary.textContent = `${ids.length}話者を選択中`;
+      summary.textContent = `${ids.length}${unit}を選択中`;
     } else {
-      summary.textContent = '全話者から選択';
+      summary.textContent = `全${unit}から選択`;
     }
   });
 }
@@ -39,6 +42,8 @@ export function initRandomSpeakerConfig(): void {
     const engine = (document.getElementById('ttsEngine') as HTMLSelectElement).value;
     if (engine === 'local-voicevox') {
       (document.getElementById('localSpeaker') as HTMLSelectElement).disabled = target.checked;
+    } else if (engine === 'browser') {
+      (document.getElementById('browserVoice') as HTMLSelectElement).disabled = target.checked;
     } else {
       (document.getElementById('speaker') as HTMLSelectElement).disabled = target.checked;
     }

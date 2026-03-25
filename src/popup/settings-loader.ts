@@ -280,6 +280,8 @@ export function loadSettings(): void {
             // 現在のエンジンに応じた話者ドロップダウンを無効化
             if (engine === 'local-voicevox') {
               (document.getElementById('localSpeaker') as HTMLSelectElement).disabled = true;
+            } else if (engine === 'browser') {
+              (document.getElementById('browserVoice') as HTMLSelectElement).disabled = true;
             } else {
               select.disabled = true;
             }
