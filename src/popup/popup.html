@@ -128,6 +128,22 @@
           <button type="button" id="test-local-voicevox" class="small-btn">接続テスト</button>
         </div>
         <p id="local-voicevox-status" class="info-text" style="display: none"></p>
+
+        <label for="parallelSynthesisCount">ローカルVOICEVOXへの同時リクエスト数:</label>
+        <div class="slider-group">
+          <input
+            type="range"
+            id="parallelSynthesisCount"
+            min="1"
+            max="5"
+            step="1"
+            value="3"
+            aria-label="ローカルVOICEVOXへの同時リクエスト数"
+            aria-valuetext="3"
+          />
+          <span id="current-parallel-synthesis">3</span>
+        </div>
+        <p class="info-text">PCスペックに応じて調整してください。</p>
       </div>
     </div>
 
@@ -154,22 +170,6 @@
         <select id="localSpeaker" name="localSpeaker">
           <option value="">接続テストを実行してください</option>
         </select>
-
-        <label for="parallelSynthesisCount">ローカルVOICEVOXへの同時リクエスト数:</label>
-        <div class="slider-group">
-          <input
-            type="range"
-            id="parallelSynthesisCount"
-            min="1"
-            max="5"
-            step="1"
-            value="3"
-            aria-label="ローカルVOICEVOXへの同時リクエスト数"
-            aria-valuetext="3"
-          />
-          <span id="current-parallel-synthesis">3</span>
-        </div>
-        <p class="info-text">PCスペックに応じて調整してください。</p>
       </div>
 
       <div id="random-speaker-section">
