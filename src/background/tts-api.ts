@@ -1,5 +1,5 @@
 import type { TTSQuestSynthesisResponse, TTSQuestAudioStatusResponse } from '@/types/api-responses';
-import type { TtsEngine } from '@/types/state';
+import type { TtsEngine, AudioQueueItem } from '@/types/state';
 import { getState, shiftComment, pushAudio, unshiftComment } from './state';
 import { sendDebugInfo, formatQueueState, sendStatus } from './messaging';
 import { playNextAudio, updateBadge } from './audio-player';
@@ -21,30 +21,45 @@ let browserVoiceName: string | null = null;
 let localVoicevoxHost: string = 'http://localhost:50021';
 
 // 先読みパイプライン制御
-let isTtsProcessing = false;
+let ttsProcessingCount = 0;
 let processingTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+// ローカルVOICEVOX 並列合成
+let maxParallelSynthesis = 1;   // デフォルト: シリアル（後方互換）
+let nextSynthesisSeq = 0;       // コメント取り出し時に付番
+let nextAudioInsertSeq = 0;     // audioQueue に挿入すべき次の番号
+const pendingResults = new Map<number, AudioQueueItem | null>();
 
 const PREFETCH_THRESHOLD = 5;   // audioQueue にこの数まで先読み
 const MIN_PROCESS_DELAY = 500;  // TTS API呼出の最低間隔(ms)
+const MIN_PARALLEL_DELAY = 50;  // 並列合成時の最低間隔(ms)
 const MAX_RATE_LIMIT_RETRIES = 5; // レート制限リトライ上限
 
 // 次のコメント処理をスケジュール（audioQueue が閾値未満なら先読み）
 export function scheduleNextProcessing(): void {
   if (processingTimeoutId !== null) return;
-  if (isTtsProcessing) return;
+
+  const maxConcurrent = currentEngine === 'local-voicevox' ? maxParallelSynthesis : 1;
+  if (ttsProcessingCount >= maxConcurrent) return;
 
   const state = getState();
   if (state.commentQueue.length === 0) return;
   const effectiveThreshold = PREFETCH_THRESHOLD + getEffectiveMaxConcurrent();
-  if (state.audioQueue.length >= effectiveThreshold) {
-    sendDebugInfo(`⏳ audioQueue満杯 (${state.audioQueue.length}/${effectiveThreshold}) - TTS先読み一時停止`);
+  // in-flight の合成リクエスト + pending バッファも考慮
+  const totalPending = state.audioQueue.length + ttsProcessingCount + pendingResults.size;
+  if (totalPending >= effectiveThreshold) {
+    sendDebugInfo(`⏳ audioQueue満杯 (${totalPending}/${effectiveThreshold}) - TTS先読み一時停止`);
     return;
   }
+
+  const delay = currentEngine === 'local-voicevox' && maxParallelSynthesis > 1
+    ? MIN_PARALLEL_DELAY
+    : MIN_PROCESS_DELAY;
 
   processingTimeoutId = setTimeout(() => {
     processingTimeoutId = null;
     processCommentQueue();
-  }, MIN_PROCESS_DELAY);
+  }, delay);
 }
 
 // スケジュール済み処理のキャンセル（停止用）
@@ -53,7 +68,10 @@ export function cancelScheduledProcessing(): void {
     clearTimeout(processingTimeoutId);
     processingTimeoutId = null;
   }
-  isTtsProcessing = false;
+  ttsProcessingCount = 0;
+  nextSynthesisSeq = 0;
+  nextAudioInsertSeq = 0;
+  pendingResults.clear();
   resetParallelSlotCounter();
 }
 
@@ -81,10 +99,20 @@ export function getLocalVoicevoxHost(): string {
   return localVoicevoxHost;
 }
 
+export function setMaxParallelSynthesis(count: number): void {
+  maxParallelSynthesis = Math.max(1, Math.min(5, count));
+}
+
+export function getMaxParallelSynthesis(): number {
+  return maxParallelSynthesis;
+}
+
 export function processCommentQueue(): void {
   const state = getState();
   if (state.commentQueue.length === 0) return;
-  if (isTtsProcessing) return;
+
+  const maxConcurrent = currentEngine === 'local-voicevox' ? maxParallelSynthesis : 1;
+  if (ttsProcessingCount >= maxConcurrent) return;
 
   const comment = shiftComment();
   if (!comment) return;
@@ -114,15 +142,18 @@ export function processCommentQueue(): void {
 
   if (currentEngine === 'local-voicevox') {
     // ローカルVOICEVOX: ローカルエンジンで音声合成
-    isTtsProcessing = true;
+    ttsProcessingCount++;
+    const seq = nextSynthesisSeq++;
     const localSpeakerLabel = getSpeakerName(comment.speakerId);
-    sendDebugInfo(`ローカルVOICEVOX REQUEST [${localSpeakerLabel}]：${comment.newMessage} | キュー: ${formatQueueState()}`);
-    synthesizeLocalWithRetry(comment, 0);
+    sendDebugInfo(`ローカルVOICEVOX REQUEST [${localSpeakerLabel}] (seq=${seq}, 並列=${ttsProcessingCount}/${maxParallelSynthesis})：${comment.newMessage} | キュー: ${formatQueueState()}`);
+    synthesizeLocalWithRetry(comment, 0, seq);
+    // 並列スロットが空いていれば即座に次のコメントもスケジュール
+    scheduleNextProcessing();
     return;
   }
 
-  // VOICEVOX: TTS Quest APIで音声合成
-  isTtsProcessing = true;
+  // VOICEVOX: TTS Quest APIで音声合成（常にシリアル）
+  ttsProcessingCount++;
   const speakerLabel = getSpeakerName(comment.speakerId);
   sendDebugInfo(`VOICEVOX REQUEST [${speakerLabel}]：${comment.newMessage} | キュー: ${formatQueueState()}`);
   synthesizeWithRetry(comment, 0);
@@ -148,7 +179,7 @@ function synthesizeWithRetry(
 
   fetchVoiceVox(apiKeyVOICEVOX, newMessage, speakerId)
     .then((audioUrl) => {
-      isTtsProcessing = false;
+      ttsProcessingCount--;
       // Stop後に完了した古いリクエストは破棄
       if (getState().sessionId !== currentSession) return;
 
@@ -163,13 +194,13 @@ function synthesizeWithRetry(
     .catch((error: Error) => {
       // Stop後に完了した古いリクエストは破棄
       if (getState().sessionId !== currentSession) {
-        isTtsProcessing = false;
+        ttsProcessingCount--;
         return;
       }
 
       // レート制限: パイプラインを解放し、遅延リトライをスケジュール
       if (error instanceof RateLimitError) {
-        isTtsProcessing = false;
+        ttsProcessingCount--;
         sendStatus('rate-limited');
         sendDebugInfo(
           `⚠ レート制限: ${error.retryAfter}秒待機 | text="${newMessage.substring(0, 20)}..." | キュー: ${formatQueueState()}`
@@ -189,7 +220,7 @@ function synthesizeWithRetry(
           if (getState().sessionId !== currentSession) return;
 
           // 別のコメントが処理中なら、このコメントをキューの先頭に戻す
-          if (isTtsProcessing) {
+          if (ttsProcessingCount > 0) {
             unshiftComment(comment);
             sendDebugInfo(
               `レート制限リトライ: 別コメント処理中のためキュー先頭に再挿入: "${newMessage.substring(0, 20)}..."`
@@ -197,7 +228,7 @@ function synthesizeWithRetry(
             return;
           }
 
-          isTtsProcessing = true;
+          ttsProcessingCount++;
           synthesizeWithRetry(comment, retryCount, rateLimitRetryCount + 1);
         }, error.retryAfter * 1000);
 
@@ -207,11 +238,11 @@ function synthesizeWithRetry(
       // 通常のエラー処理
       if (retryCount < maxRetries) {
         sendDebugInfo(`VOICEVOXリトライ（${retryCount + 1}/${maxRetries}）: ${newMessage}`);
-        // リトライ中は isTtsProcessing = true のまま
+        // リトライ中は ttsProcessingCount を維持
         setTimeout(() => synthesizeWithRetry(comment, retryCount + 1, rateLimitRetryCount), 1000);
       } else {
         // リトライ上限到達: コメントをスキップ
-        isTtsProcessing = false;
+        ttsProcessingCount--;
         sendDebugInfo(`VOICEVOXエラー（スキップ）: ${error.message} - "${newMessage}"`);
         sendStatus('error', `${error.message} — 生成スキップ`);
         // eslint-disable-next-line no-console
@@ -293,7 +324,8 @@ function synthesizeLocalWithRetry(
     newMessage: string;
     speakerId?: string;
   },
-  retryCount: number
+  retryCount: number,
+  seq: number
 ): void {
   const maxRetries = 3;
   const currentSession = getState().sessionId;
@@ -303,12 +335,12 @@ function synthesizeLocalWithRetry(
 
   fetchLocalVoiceVox(newMessage, speakerId)
     .then((dataUri) => {
-      isTtsProcessing = false;
+      ttsProcessingCount--;
       if (getState().sessionId !== currentSession) return;
 
-      sendDebugInfo(`ローカルVOICEVOX RESPONSE：data URI (${dataUri.length} chars) | キュー: ${formatQueueState()}`);
+      sendDebugInfo(`ローカルVOICEVOX RESPONSE (seq=${seq})：data URI (${dataUri.length} chars) | キュー: ${formatQueueState()}`);
 
-      pushAudio({ type: 'url', url: dataUri });
+      insertInOrder(seq, { type: 'url', url: dataUri });
       updateBadge();
       evaluateRushMode();
       playNextAudio();
@@ -316,15 +348,17 @@ function synthesizeLocalWithRetry(
     })
     .catch((error: Error) => {
       if (getState().sessionId !== currentSession) {
-        isTtsProcessing = false;
+        ttsProcessingCount--;
         return;
       }
 
       if (retryCount < maxRetries) {
         sendDebugInfo(`ローカルVOICEVOXリトライ（${retryCount + 1}/${maxRetries}）: ${newMessage}`);
-        setTimeout(() => synthesizeLocalWithRetry(comment, retryCount + 1), 1000);
+        setTimeout(() => synthesizeLocalWithRetry(comment, retryCount + 1, seq), 1000);
       } else {
-        isTtsProcessing = false;
+        ttsProcessingCount--;
+        // エラー時はスキップして順序を進める
+        insertInOrder(seq, null);
         sendDebugInfo(`ローカルVOICEVOXエラー（スキップ）: ${error.message} - "${newMessage}"`);
         sendStatus('error', `${error.message} — 生成スキップ`);
         // eslint-disable-next-line no-console
@@ -332,6 +366,28 @@ function synthesizeLocalWithRetry(
         scheduleNextProcessing();
       }
     });
+}
+
+// 並列合成の結果を元のコメント順に audioQueue へ挿入する
+export function insertInOrder(seq: number, item: AudioQueueItem | null): void {
+  if (item) {
+    pendingResults.set(seq, item);
+  }
+
+  // nextAudioInsertSeq から連続する完了済みアイテムをフラッシュ
+  while (true) {
+    if (pendingResults.has(nextAudioInsertSeq)) {
+      const ready = pendingResults.get(nextAudioInsertSeq)!;
+      pendingResults.delete(nextAudioInsertSeq);
+      pushAudio(ready);
+      nextAudioInsertSeq++;
+    } else if (seq === nextAudioInsertSeq && !item) {
+      // スキップ（エラー）: 番号を進める
+      nextAudioInsertSeq++;
+    } else {
+      break;
+    }
+  }
 }
 
 // ローカル VOICEVOX API で音声合成（audio_query → synthesis → data URI）
