@@ -115,6 +115,20 @@
           ※ 残高確認で1pt消費します
         </p>
       </div>
+
+      <div id="local-voicevox-initial-settings" style="display: none">
+        <label for="localVoicevoxHost">エンジンURL:</label>
+        <div class="api-key-container">
+          <input
+            type="text"
+            id="localVoicevoxHost"
+            value="http://localhost:50021"
+            placeholder="http://localhost:50021"
+          />
+          <button type="button" id="test-local-voicevox" class="small-btn">接続テスト</button>
+        </div>
+        <p id="local-voicevox-status" class="info-text" style="display: none"></p>
+      </div>
     </div>
 
     <!-- 話者設定セクション -->
@@ -136,17 +150,6 @@
       </div>
 
       <div id="local-voicevox-settings" style="display: none">
-        <label for="localVoicevoxHost">エンジンURL:</label>
-        <div class="api-key-container">
-          <input
-            type="text"
-            id="localVoicevoxHost"
-            value="http://localhost:50021"
-            placeholder="http://localhost:50021"
-          />
-          <button type="button" id="test-local-voicevox" class="small-btn">接続テスト</button>
-        </div>
-        <p id="local-voicevox-status" class="info-text" style="display: none"></p>
         <label for="localSpeaker">話者選択:</label>
         <select id="localSpeaker" name="localSpeaker">
           <option value="">接続テストを実行してください</option>
