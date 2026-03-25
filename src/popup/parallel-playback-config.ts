@@ -149,7 +149,7 @@ export function initParallelPlaybackConfig(): void {
     const target = event.target as HTMLInputElement;
     target.setAttribute('aria-checked', String(target.checked));
     document.getElementById('parallel-always-options')!.style.display = target.checked ? 'block' : 'none';
-    // 親トグルOFF時、自動並列再生の詳細も非表示にする
+    // 親トグルOFF時、自動発動の詳細も非表示にする
     if (!target.checked) {
       document.getElementById('parallel-auto-options')!.style.display = 'none';
     }
@@ -168,7 +168,7 @@ export function initParallelPlaybackConfig(): void {
     updateParallelSpeakerDropdowns();
   });
 
-  // 自動並列再生トグル
+  // 自動発動トグル
   document.getElementById('parallelAutoEnabled')!.addEventListener('change', (event) => {
     const target = event.target as HTMLInputElement;
     target.setAttribute('aria-checked', String(target.checked));
@@ -178,7 +178,7 @@ export function initParallelPlaybackConfig(): void {
     updateParallelSpeakerDropdowns();
   });
 
-  // 自動並列再生: 発動しきい値スライダー
+  // 自動発動: 発動しきい値スライダー
   document.getElementById('parallelAutoTriggerThreshold')!.addEventListener('input', (event) => {
     const target = event.target as HTMLInputElement;
     const val = parseInt(target.value, 10);
@@ -188,7 +188,7 @@ export function initParallelPlaybackConfig(): void {
     sendParallelPlaybackConfig();
   });
 
-  // 自動並列再生: リセットボタン
+  // 自動発動: リセットボタン
   document.getElementById('reset-parallel-auto')!.addEventListener('click', () => {
     const thresholdSlider = document.getElementById('parallelAutoTriggerThreshold') as HTMLInputElement;
     thresholdSlider.value = '10';
