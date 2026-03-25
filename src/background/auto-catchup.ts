@@ -5,7 +5,6 @@ import { sendDebugInfo, formatQueueState } from './messaging';
 const DEFAULT_AUTO_CATCHUP_CONFIG: AutoCatchUpConfig = {
   enabled: false,
   threshold: 50,
-  keepCount: 3,
 };
 
 let config: AutoCatchUpConfig = { ...DEFAULT_AUTO_CATCHUP_CONFIG };
@@ -44,7 +43,8 @@ export function evaluateAutoCatchUp(): boolean {
   if (pending < config.threshold) return false;
 
   // フラッシュ実行: 最新コメント数件を保持し残りを破棄
-  const keptComments = clearCommentQueue(config.keepCount);
+  const keepCount = getState().latestOnlyCount || 3;
+  const keptComments = clearCommentQueue(keepCount);
   clearAudioQueue();
 
   // 保持したコメントをキューに戻す

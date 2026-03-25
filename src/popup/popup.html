@@ -355,7 +355,7 @@
       </div>
 
       <div id="latest-only-options" class="toggle-detail" style="display: none">
-        <label for="latestOnlyCount">取得件数:</label>
+        <label for="latestOnlyCount">保持件数:</label>
         <div class="slider-group">
           <input
             type="range"
@@ -364,7 +364,7 @@
             max="10"
             step="1"
             value="3"
-            aria-label="最新コメント取得件数"
+            aria-label="最新コメント保持件数"
             aria-valuetext="3件"
           />
           <span id="current-latest-count">3件</span>
@@ -396,20 +396,7 @@
             <span id="current-catchup-threshold">50件</span>
           </div>
 
-          <label for="autoCatchUpKeepCount">保持件数:</label>
-          <div class="slider-group">
-            <input
-              type="range"
-              id="autoCatchUpKeepCount"
-              min="1"
-              max="10"
-              step="1"
-              value="3"
-              aria-label="自動発動時の保持件数"
-              aria-valuetext="3件"
-            />
-            <span id="current-catchup-keep-count">3件</span>
-          </div>
+          <p class="info-text">保持件数は上の「保持件数」スライダーで設定します</p>
 
           <button id="reset-auto-catchup" class="small-btn" aria-label="自動発動の設定をリセット">デフォルトに戻す</button>
         </div>

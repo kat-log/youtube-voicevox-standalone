@@ -158,7 +158,6 @@ export function loadSettings(): void {
       const ac = data.autoCatchUpConfig || {
         enabled: false,
         threshold: 50,
-        keepCount: 3,
       };
       (document.getElementById('autoCatchUpEnabled') as HTMLInputElement).checked = ac.enabled;
       document.getElementById('autoCatchUpEnabled')!.setAttribute('aria-checked', String(ac.enabled));
@@ -169,13 +168,6 @@ export function loadSettings(): void {
       document.getElementById('current-catchup-threshold')!.textContent = `${ac.threshold}件`;
       catchUpThresholdSlider.setAttribute('aria-valuetext', `${ac.threshold}件`);
       setRangeFill(catchUpThresholdSlider);
-
-      const keepCount = ac.keepCount || 3;
-      const catchUpKeepCountSlider = document.getElementById('autoCatchUpKeepCount') as HTMLInputElement;
-      catchUpKeepCountSlider.value = String(keepCount);
-      document.getElementById('current-catchup-keep-count')!.textContent = `${keepCount}件`;
-      catchUpKeepCountSlider.setAttribute('aria-valuetext', `${keepCount}件`);
-      setRangeFill(catchUpKeepCountSlider);
 
       // 並列再生設定を復元
       const pp = data.parallelPlaybackConfig || {
