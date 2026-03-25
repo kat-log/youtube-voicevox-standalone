@@ -104,18 +104,11 @@ export function toggleEngineUI(engine: string): void {
   parallelAutoToggle.disabled = isBrowser;
 
   // スライダーも無効化
-  for (const id of [
-    'parallelAlwaysMaxConcurrent',
-    'parallelAutoTriggerThreshold',
-    'parallelAutoMaxConcurrent',
-  ] as const) {
-    const slider = document.getElementById(id) as HTMLInputElement;
-    slider.disabled = isBrowser;
-    setRangeFill(slider);
-  }
+  const thresholdSlider = document.getElementById('parallelAutoTriggerThreshold') as HTMLInputElement;
+  thresholdSlider.disabled = isBrowser;
+  setRangeFill(thresholdSlider);
 
   // リセットボタンも無効化
-  (document.getElementById('reset-parallel-always') as HTMLButtonElement).disabled = isBrowser;
   (document.getElementById('reset-parallel-auto') as HTMLButtonElement).disabled = isBrowser;
 
   document.getElementById('parallel-unsupported-info')!.style.display = isBrowser ? 'block' : 'none';

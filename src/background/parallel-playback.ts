@@ -6,10 +6,8 @@ import { getRandomSpeakerId, ensureRandomSpeakerCache } from './random-speaker';
 
 const DEFAULT_CONFIG: ParallelPlaybackConfig = {
   alwaysEnabled: false,
-  alwaysMaxConcurrent: 3,
   autoEnabled: false,
   autoTriggerThreshold: 10,
-  autoMaxConcurrent: 3,
 };
 
 let config: ParallelPlaybackConfig = { ...DEFAULT_CONFIG };
@@ -33,24 +31,25 @@ export function loadParallelPlaybackConfigFromStorage(): void {
 /**
  * 実効的な同時再生数を返す。
  * - ブラウザTTS(chrome.tts)は並列再生不可のため常に1
- * - 並列再生ON + 自動ON → 条件付き（しきい値以上で autoMaxConcurrent、未満は1）
- * - 並列再生ON + 自動OFF → 常時 alwaysMaxConcurrent
+ * - 並列再生ON + 自動ON → 条件付き（しきい値以上で話者数、未満は1）
+ * - 並列再生ON + 自動OFF → 常時 話者数
  * - 並列再生OFF → 1（シリアル再生）
+ * 同時再生数は持ち回り制話者モードの話者数 (roundRobinSpeakerCount) で統一。
  */
 export function getEffectiveMaxConcurrent(): number {
   if (getTtsEngine() === 'browser') return 1;
 
   if (config.alwaysEnabled) {
     if (config.autoEnabled) {
-      // 自動が常時を上書き: 条件付きのみ
+      // 自動: 条件付きのみ
       const state = getState();
       const pending = state.commentQueue.length + state.audioQueue.length;
       if (pending >= config.autoTriggerThreshold) {
-        return config.autoMaxConcurrent;
+        return speakersConfig.roundRobinSpeakerCount;
       }
       return 1;
     }
-    return config.alwaysMaxConcurrent;
+    return speakersConfig.roundRobinSpeakerCount;
   }
 
   return 1;

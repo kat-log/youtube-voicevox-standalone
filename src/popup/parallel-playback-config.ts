@@ -3,22 +3,14 @@ import { setRangeFill } from './slider-utils';
 
 function sendParallelPlaybackConfig(): void {
   const alwaysEnabled = (document.getElementById('parallelAlwaysEnabled') as HTMLInputElement).checked;
-  const alwaysMaxConcurrent = parseInt(
-    (document.getElementById('parallelAlwaysMaxConcurrent') as HTMLInputElement).value, 10
-  );
   const autoEnabled = (document.getElementById('parallelAutoEnabled') as HTMLInputElement).checked;
   const autoTriggerThreshold = parseInt(
     (document.getElementById('parallelAutoTriggerThreshold') as HTMLInputElement).value, 10
   );
-  const autoMaxConcurrent = parseInt(
-    (document.getElementById('parallelAutoMaxConcurrent') as HTMLInputElement).value, 10
-  );
   const parallelPlaybackConfig = {
     alwaysEnabled,
-    alwaysMaxConcurrent,
     autoEnabled,
     autoTriggerThreshold,
-    autoMaxConcurrent,
   };
   chrome.runtime.sendMessage({ action: 'updateParallelPlaybackConfig', parallelPlaybackConfig });
 }
@@ -64,21 +56,7 @@ function sendParallelSpeakersConfig(): void {
 }
 
 function getDropdownCount(): number {
-  const alwaysEnabled = (document.getElementById('parallelAlwaysEnabled') as HTMLInputElement).checked;
-
-  if (alwaysEnabled) {
-    // 並列再生ON: 同時再生数スライダーの値でドロップダウン数を決定
-    const alwaysMax = parseInt(
-      (document.getElementById('parallelAlwaysMaxConcurrent') as HTMLInputElement).value, 10
-    );
-    const autoMax = parseInt(
-      (document.getElementById('parallelAutoMaxConcurrent') as HTMLInputElement).value, 10
-    );
-    return Math.max(0, Math.max(alwaysMax, autoMax) - 1);
-  } else {
-    // 並列再生OFF: 持ち回り話者数スライダーの値でドロップダウン数を決定
-    return Math.max(0, getRoundRobinSpeakerCount() - 1);
-  }
+  return Math.max(0, getRoundRobinSpeakerCount() - 1);
 }
 
 export function updateParallelSpeakerDropdowns(savedIds?: string[]): void {
@@ -163,21 +141,6 @@ export function updateParallelSpeakersToggleState(): void {
     });
   }
 
-  updateRoundRobinSliderVisibility();
-}
-
-/**
- * 話者数スライダーの表示/非表示を切り替える。
- * 並列再生ON時は非表示（同時再生数スライダーがドロップダウン数を制御するため）。
- */
-export function updateRoundRobinSliderVisibility(): void {
-  const alwaysEnabled = (document.getElementById('parallelAlwaysEnabled') as HTMLInputElement).checked;
-  const isParallelOn = alwaysEnabled;
-
-  const sliderSection = document.getElementById('round-robin-speaker-count-section');
-  if (sliderSection) {
-    sliderSection.style.display = isParallelOn ? 'none' : 'block';
-  }
 }
 
 export function initParallelPlaybackConfig(): void {
@@ -190,29 +153,17 @@ export function initParallelPlaybackConfig(): void {
     if (!target.checked) {
       document.getElementById('parallel-auto-options')!.style.display = 'none';
     }
-    sendParallelPlaybackConfig();
-    updateRoundRobinSliderVisibility();
-    updateParallelSpeakerDropdowns();
-  });
-
-  // 並列再生: 同時再生数スライダー
-  document.getElementById('parallelAlwaysMaxConcurrent')!.addEventListener('input', (event) => {
-    const target = event.target as HTMLInputElement;
-    const val = parseInt(target.value, 10);
-    document.getElementById('current-parallel-always-max')!.textContent = String(val);
-    target.setAttribute('aria-valuetext', String(val));
-    setRangeFill(target);
-    sendParallelPlaybackConfig();
-    updateParallelSpeakerDropdowns();
-  });
-
-  // 並列再生: リセットボタン
-  document.getElementById('reset-parallel-always')!.addEventListener('click', () => {
-    const slider = document.getElementById('parallelAlwaysMaxConcurrent') as HTMLInputElement;
-    slider.value = '3';
-    document.getElementById('current-parallel-always-max')!.textContent = '3';
-    slider.setAttribute('aria-valuetext', '3');
-    setRangeFill(slider);
+    // 並列再生ON時、持ち回り制話者モードを自動ON
+    if (target.checked) {
+      const speakersToggle = document.getElementById('parallelSpeakersEnabled') as HTMLInputElement;
+      if (!speakersToggle.checked && !speakersToggle.disabled) {
+        speakersToggle.checked = true;
+        speakersToggle.setAttribute('aria-checked', 'true');
+        document.getElementById('parallel-speakers-options')!.style.display = 'block';
+        updateParallelSpeakerDropdowns();
+        sendParallelSpeakersConfig();
+      }
+    }
     sendParallelPlaybackConfig();
     updateParallelSpeakerDropdowns();
   });
@@ -223,7 +174,7 @@ export function initParallelPlaybackConfig(): void {
     target.setAttribute('aria-checked', String(target.checked));
     document.getElementById('parallel-auto-options')!.style.display = target.checked ? 'block' : 'none';
     sendParallelPlaybackConfig();
-    updateRoundRobinSliderVisibility();
+
     updateParallelSpeakerDropdowns();
   });
 
@@ -237,17 +188,6 @@ export function initParallelPlaybackConfig(): void {
     sendParallelPlaybackConfig();
   });
 
-  // 自動並列再生: 同時再生数スライダー
-  document.getElementById('parallelAutoMaxConcurrent')!.addEventListener('input', (event) => {
-    const target = event.target as HTMLInputElement;
-    const val = parseInt(target.value, 10);
-    document.getElementById('current-parallel-auto-max')!.textContent = String(val);
-    target.setAttribute('aria-valuetext', String(val));
-    setRangeFill(target);
-    sendParallelPlaybackConfig();
-    updateParallelSpeakerDropdowns();
-  });
-
   // 自動並列再生: リセットボタン
   document.getElementById('reset-parallel-auto')!.addEventListener('click', () => {
     const thresholdSlider = document.getElementById('parallelAutoTriggerThreshold') as HTMLInputElement;
@@ -256,14 +196,7 @@ export function initParallelPlaybackConfig(): void {
     thresholdSlider.setAttribute('aria-valuetext', '10件');
     setRangeFill(thresholdSlider);
 
-    const maxSlider = document.getElementById('parallelAutoMaxConcurrent') as HTMLInputElement;
-    maxSlider.value = '3';
-    document.getElementById('current-parallel-auto-max')!.textContent = '3';
-    maxSlider.setAttribute('aria-valuetext', '3');
-    setRangeFill(maxSlider);
-
     sendParallelPlaybackConfig();
-    updateParallelSpeakerDropdowns();
   });
 
   // 持ち回り制話者モードトグル
@@ -292,7 +225,7 @@ export function initParallelPlaybackConfig(): void {
       updateParallelSpeakerDropdowns();
     }
 
-    updateRoundRobinSliderVisibility();
+
     sendParallelSpeakersConfig();
   });
 
