@@ -179,9 +179,9 @@ function synthesizeWithRetry(
 
   fetchVoiceVox(apiKeyVOICEVOX, newMessage, speakerId)
     .then((audioUrl) => {
-      ttsProcessingCount--;
-      // Stop後に完了した古いリクエストは破棄
+      // Stop後に完了した古いリクエストは破棄（カウンタはcancelScheduledProcessingでリセット済み）
       if (getState().sessionId !== currentSession) return;
+      ttsProcessingCount--;
 
       sendDebugInfo(`VOICEVOX RESPONSE：${audioUrl} | キュー: ${formatQueueState()}`);
 
@@ -192,11 +192,8 @@ function synthesizeWithRetry(
       scheduleNextProcessing();
     })
     .catch((error: Error) => {
-      // Stop後に完了した古いリクエストは破棄
-      if (getState().sessionId !== currentSession) {
-        ttsProcessingCount--;
-        return;
-      }
+      // Stop後に完了した古いリクエストは破棄（カウンタはcancelScheduledProcessingでリセット済み）
+      if (getState().sessionId !== currentSession) return;
 
       // レート制限: パイプラインを解放し、遅延リトライをスケジュール
       if (error instanceof RateLimitError) {
@@ -335,8 +332,9 @@ function synthesizeLocalWithRetry(
 
   fetchLocalVoiceVox(newMessage, speakerId)
     .then((dataUri) => {
-      ttsProcessingCount--;
+      // Stop後に完了した古いリクエストは破棄（カウンタはcancelScheduledProcessingでリセット済み）
       if (getState().sessionId !== currentSession) return;
+      ttsProcessingCount--;
 
       sendDebugInfo(`ローカルVOICEVOX RESPONSE (seq=${seq})：data URI (${dataUri.length} chars) | キュー: ${formatQueueState()}`);
 
@@ -347,10 +345,8 @@ function synthesizeLocalWithRetry(
       scheduleNextProcessing();
     })
     .catch((error: Error) => {
-      if (getState().sessionId !== currentSession) {
-        ttsProcessingCount--;
-        return;
-      }
+      // Stop後に完了した古いリクエストは破棄（カウンタはcancelScheduledProcessingでリセット済み）
+      if (getState().sessionId !== currentSession) return;
 
       if (retryCount < maxRetries) {
         sendDebugInfo(`ローカルVOICEVOXリトライ（${retryCount + 1}/${maxRetries}）: ${newMessage}`);
