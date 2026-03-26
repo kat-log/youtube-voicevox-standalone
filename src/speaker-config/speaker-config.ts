@@ -56,6 +56,10 @@ chrome.storage.sync.get(
     if (randomEnabled) {
       document.getElementById('speaker-assignments')!.style.display = 'none';
       document.getElementById('random-mode-note')!.style.display = 'block';
+    } else if (!psc.enabled) {
+      // 持ち回り制がOFFの場合、個別話者設定は不要
+      document.getElementById('speaker-assignments')!.style.display = 'none';
+      document.getElementById('round-robin-off-note')!.style.display = 'block';
     }
 
     fetchSpeakers(host);
