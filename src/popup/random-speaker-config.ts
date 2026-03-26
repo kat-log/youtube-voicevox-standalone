@@ -26,6 +26,32 @@ export function updateRandomSpeakerSummary(): void {
   });
 }
 
+const RANDOM_OPTION_VALUE = '__random__';
+
+/** ランダムモードON/OFFに応じて、話者ドロップダウンにダミーoptionを挿入/削除して表示を切り替える */
+export function updateSpeakerDropdownForRandomMode(engine: string, randomEnabled: boolean): void {
+  const selectId =
+    engine === 'local-voicevox' ? 'localSpeaker'
+    : engine === 'browser' ? 'browserVoice'
+    : 'speaker';
+  const select = document.getElementById(selectId) as HTMLSelectElement | null;
+  if (!select) return;
+
+  if (randomEnabled) {
+    if (!select.querySelector(`option[value="${RANDOM_OPTION_VALUE}"]`)) {
+      const opt = document.createElement('option');
+      opt.value = RANDOM_OPTION_VALUE;
+      opt.textContent = 'ランダム話者モード中';
+      select.insertBefore(opt, select.firstChild);
+    }
+    select.value = RANDOM_OPTION_VALUE;
+    select.disabled = true;
+  } else {
+    select.querySelector(`option[value="${RANDOM_OPTION_VALUE}"]`)?.remove();
+    select.disabled = false;
+  }
+}
+
 function updateConfigLinkVisibility(enabled: boolean): void {
   const linkSection = document.getElementById('random-speaker-config-link');
   if (linkSection) {
@@ -38,15 +64,9 @@ export function initRandomSpeakerConfig(): void {
     const target = event.target as HTMLInputElement;
     target.setAttribute('aria-checked', String(target.checked));
 
-    // ランダムモード時は現在のエンジンに応じた話者選択ドロップダウンを無効化
+    // ランダムモード時は現在のエンジンに応じた話者選択ドロップダウンを無効化・ラベル表示
     const engine = (document.getElementById('ttsEngine') as HTMLSelectElement).value;
-    if (engine === 'local-voicevox') {
-      (document.getElementById('localSpeaker') as HTMLSelectElement).disabled = target.checked;
-    } else if (engine === 'browser') {
-      (document.getElementById('browserVoice') as HTMLSelectElement).disabled = target.checked;
-    } else {
-      (document.getElementById('speaker') as HTMLSelectElement).disabled = target.checked;
-    }
+    updateSpeakerDropdownForRandomMode(engine, target.checked);
 
     // 話者選択リンクの表示切替
     updateConfigLinkVisibility(target.checked);
