@@ -478,6 +478,11 @@ select:disabled {
   cursor: not-allowed;
 }
 
+.random-mode-label {
+  color: #64748b;
+  font-style: italic;
+}
+
 select:focus {
   outline: none;
   border-color: var(--accent-color);

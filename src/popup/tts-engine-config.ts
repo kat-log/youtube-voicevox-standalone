@@ -1,6 +1,7 @@
 import { setRangeFill } from './slider-utils';
 import { getSpeed, getVolume } from './playback-controls';
 import { updateParallelSpeakersToggleState } from './parallel-playback-config';
+import { updateSpeakerDropdownForRandomMode } from './random-speaker-config';
 
 // VOICEVOX残高確認行の表示/非表示
 export function updateVoicevoxBalanceVisibility(): void {
@@ -115,12 +116,11 @@ export function toggleEngineUI(engine: string): void {
 
   document.getElementById('parallel-unsupported-info')!.style.display = isBrowser ? 'block' : 'none';
 
-  // ランダム話者モードの話者ドロップダウン無効化を正しいエンジンに対応
+  // ランダム話者モードの話者ドロップダウン無効化・ラベル表示を正しいエンジンに対応
   const randomEnabled = (document.getElementById('randomSpeakerEnabled') as HTMLInputElement).checked;
-  if (randomEnabled) {
-    (document.getElementById('speaker') as HTMLSelectElement).disabled = engine === 'voicevox';
-    (document.getElementById('localSpeaker') as HTMLSelectElement).disabled = engine === 'local-voicevox';
-    (document.getElementById('browserVoice') as HTMLSelectElement).disabled = engine === 'browser';
+  // 全エンジンをリセットしてから、現在のエンジンにランダムモードを適用
+  for (const eng of ['voicevox', 'browser', 'local-voicevox']) {
+    updateSpeakerDropdownForRandomMode(eng, eng === engine && randomEnabled);
   }
 
   // マルチ話者トグルの有効/無効を更新

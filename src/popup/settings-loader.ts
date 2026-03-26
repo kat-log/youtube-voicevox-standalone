@@ -4,7 +4,7 @@ import { setSpeed, setVolume } from './playback-controls';
 import { updateStatsLink } from './message-handler';
 import { toggleEngineUI, populateBrowserVoices, fetchLocalSpeakers, updateVoicevoxBalanceVisibility } from './tts-engine-config';
 import { updateParallelSpeakersToggleState, updateSpeakerCountSummary } from './parallel-playback-config';
-import { updateRandomSpeakerSummary } from './random-speaker-config';
+import { updateRandomSpeakerSummary, updateSpeakerDropdownForRandomMode } from './random-speaker-config';
 
 export function loadSettings(): void {
   chrome.storage.sync.get(
@@ -252,14 +252,8 @@ export function loadSettings(): void {
           randomCheckbox.checked = randomEnabled;
           randomCheckbox.setAttribute('aria-checked', String(randomEnabled));
           if (randomEnabled) {
-            // 現在のエンジンに応じた話者ドロップダウンを無効化
-            if (engine === 'local-voicevox') {
-              (document.getElementById('localSpeaker') as HTMLSelectElement).disabled = true;
-            } else if (engine === 'browser') {
-              (document.getElementById('browserVoice') as HTMLSelectElement).disabled = true;
-            } else {
-              select.disabled = true;
-            }
+            // 現在のエンジンに応じた話者ドロップダウンを無効化・ラベル表示
+            updateSpeakerDropdownForRandomMode(engine, true);
             // 話者選択リンクと要約を表示
             const configLink = document.getElementById('random-speaker-config-link');
             if (configLink) configLink.style.display = 'block';

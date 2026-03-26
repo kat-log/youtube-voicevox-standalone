@@ -154,11 +154,13 @@
       <div id="voicevox-settings">
         <label for="speaker">話者選択:</label>
         <select id="speaker" name="speaker"></select>
+        <span class="random-mode-label" style="display: none">ランダム話者モード中</span>
       </div>
 
       <div id="browser-tts-settings" style="display: none">
         <label for="browserVoice">ブラウザ音声:</label>
         <select id="browserVoice" name="browserVoice"></select>
+        <span class="random-mode-label" style="display: none">ランダム話者モード中</span>
         <p id="no-ja-voices-warning" class="warning-text" style="display: none">
           日本語音声が見つかりません。システム設定またはChrome
           TTS拡張機能で日本語音声を追加してください。
@@ -170,6 +172,7 @@
         <select id="localSpeaker" name="localSpeaker">
           <option value="">接続テストを実行してください</option>
         </select>
+        <span class="random-mode-label" style="display: none">ランダム話者モード中</span>
       </div>
 
       <div id="random-speaker-section">
