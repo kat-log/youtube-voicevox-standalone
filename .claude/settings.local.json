@@ -51,7 +51,8 @@
       "Bash(gh issue list:*)",
       "Bash(npm run test:*)",
       "Bash(npm test:*)",
-      "Bash(npx vitest run:*)"
+      "Bash(npx vitest run:*)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }
