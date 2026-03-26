@@ -6,7 +6,7 @@ let speakerOptions: Array<{ value: string; label: string }> = [];
 let currentEngine: TtsEngine = 'voicevox';
 let savedEnabled = false; // 持ち回り制の有効/無効（このページでは変更しない）
 let savedSpeakerIds: string[] = [];
-let isDirty = false;
+let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
 // --- Dark mode ---
 chrome.storage.sync.get(['darkMode'], (data) => {
@@ -160,7 +160,7 @@ function renderDropdowns(): void {
       select.value = savedSpeakerIds[i];
     }
 
-    select.addEventListener('change', () => markDirty());
+    select.addEventListener('change', () => autoSave());
 
     row.appendChild(label);
     row.appendChild(select);
@@ -168,9 +168,36 @@ function renderDropdowns(): void {
   }
 }
 
-function markDirty(): void {
-  isDirty = true;
-  document.getElementById('savedMsg')!.classList.remove('show');
+function autoSave(): void {
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => {
+    const roundRobinSpeakerCount = parseInt(
+      (document.getElementById('speakerCount') as HTMLInputElement).value,
+      10
+    );
+
+    const speakerIds: string[] = [];
+    const selects = document.getElementById('speaker-list')!.querySelectorAll('select');
+    selects.forEach((select) => {
+      speakerIds.push(select.value);
+    });
+
+    const config: ParallelSpeakersConfig = {
+      enabled: savedEnabled,
+      speakerIds,
+      roundRobinSpeakerCount,
+    };
+
+    chrome.runtime.sendMessage(
+      {
+        action: 'updateParallelSpeakersConfig',
+        parallelSpeakersConfig: config,
+      },
+      () => {
+        savedSpeakerIds = speakerIds;
+      }
+    );
+  }, 300);
 }
 
 // --- Slider change ---
@@ -180,46 +207,6 @@ countSlider.addEventListener('input', () => {
   document.getElementById('current-count')!.textContent = String(val);
   countSlider.setAttribute('aria-valuetext', String(val));
   renderDropdowns();
-  markDirty();
+  autoSave();
 });
 
-// --- Save ---
-document.getElementById('saveBtn')!.addEventListener('click', () => {
-  const roundRobinSpeakerCount = parseInt(
-    (document.getElementById('speakerCount') as HTMLInputElement).value,
-    10
-  );
-
-  const speakerIds: string[] = [];
-  const selects = document.getElementById('speaker-list')!.querySelectorAll('select');
-  selects.forEach((select) => {
-    speakerIds.push(select.value);
-  });
-
-  const config: ParallelSpeakersConfig = {
-    enabled: savedEnabled,
-    speakerIds,
-    roundRobinSpeakerCount,
-  };
-
-  chrome.runtime.sendMessage(
-    {
-      action: 'updateParallelSpeakersConfig',
-      parallelSpeakersConfig: config,
-    },
-    () => {
-      isDirty = false;
-      savedSpeakerIds = speakerIds;
-      const savedMsg = document.getElementById('savedMsg')!;
-      savedMsg.classList.add('show');
-      setTimeout(() => savedMsg.classList.remove('show'), 2000);
-    }
-  );
-});
-
-// 未保存の変更がある場合の警告
-window.addEventListener('beforeunload', (e) => {
-  if (isDirty) {
-    e.preventDefault();
-  }
-});

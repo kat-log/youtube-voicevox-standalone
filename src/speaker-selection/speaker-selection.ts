@@ -11,7 +11,7 @@ import {
 let allSpeakers: ParsedSpeaker[] = [];
 let currentEngine: TtsEngine = 'voicevox';
 let checkedIds = new Set<string>();
-let isDirty = false;
+let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
 // --- Dark mode ---
 chrome.storage.sync.get(['darkMode'], (data) => {
@@ -160,7 +160,7 @@ function render(): void {
         updateCheckedId(cb.dataset.id!, cb.checked);
       }
       checkbox.indeterminate = false;
-      markDirty();
+      autoSave();
     });
 
     const name = document.createElement('span');
@@ -208,7 +208,7 @@ function render(): void {
         const parentCheckbox = group.querySelector<HTMLInputElement>('.char-checkbox')!;
         updateCharCheckbox(parentCheckbox, speakers);
         updateCharCount(group, speakers);
-        markDirty();
+        autoSave();
       });
 
       const label = document.createElement('label');
@@ -276,14 +276,20 @@ function updateSummary(): void {
   const el = document.getElementById('summaryText')!;
   const unit = currentEngine === 'browser' ? '音声' : '話者';
   el.textContent = `${checkedIds.size} / ${allSpeakers.length} ${unit}選択中`;
-  const saveBtn = document.getElementById('saveBtn') as HTMLButtonElement;
-  saveBtn.disabled = checkedIds.size === 0;
 }
 
-function markDirty(): void {
-  isDirty = true;
-  const savedMsg = document.getElementById('savedMsg')!;
-  savedMsg.classList.remove('show');
+function autoSave(): void {
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => {
+    const isAll = checkedIds.size >= allSpeakers.length;
+    const ids = isAll ? null : Array.from(checkedIds);
+
+    chrome.runtime.sendMessage({
+      action: 'updateRandomSpeakerAllowedIds',
+      ids,
+      engine: currentEngine,
+    });
+  }, 300);
 }
 
 // --- Select All / Deselect All ---
@@ -294,7 +300,7 @@ document.getElementById('selectAllBtn')!.addEventListener('click', () => {
     updateCheckedId(cb.dataset.id!, true);
   }
   refreshAllCharCheckboxes();
-  markDirty();
+  autoSave();
 });
 
 document.getElementById('deselectAllBtn')!.addEventListener('click', () => {
@@ -304,7 +310,7 @@ document.getElementById('deselectAllBtn')!.addEventListener('click', () => {
     updateCheckedId(cb.dataset.id!, false);
   }
   refreshAllCharCheckboxes();
-  markDirty();
+  autoSave();
 });
 
 function getVisibleStyleCheckboxes(): HTMLInputElement[] {
@@ -362,7 +368,7 @@ function batchToggleStyle(checked: boolean): void {
     }
   }
   refreshAllCharCheckboxes();
-  markDirty();
+  autoSave();
 }
 
 function applyFilters(): void {
@@ -404,29 +410,3 @@ function applyFilters(): void {
   }
 }
 
-// --- Save ---
-document.getElementById('saveBtn')!.addEventListener('click', () => {
-  const isAll = checkedIds.size >= allSpeakers.length;
-  const ids = isAll ? null : Array.from(checkedIds);
-
-  chrome.runtime.sendMessage(
-    {
-      action: 'updateRandomSpeakerAllowedIds',
-      ids,
-      engine: currentEngine,
-    },
-    () => {
-      isDirty = false;
-      const savedMsg = document.getElementById('savedMsg')!;
-      savedMsg.classList.add('show');
-      setTimeout(() => savedMsg.classList.remove('show'), 2000);
-    }
-  );
-});
-
-// 未保存の変更がある場合の警告
-window.addEventListener('beforeunload', (e) => {
-  if (isDirty) {
-    e.preventDefault();
-  }
-});
