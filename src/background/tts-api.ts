@@ -408,7 +408,14 @@ async function fetchLocalVoiceVox(text: string, speakerId?: string): Promise<str
   }
 
   if (!audioQueryRes.ok) {
-    throw new Error(`audio_query エラー (${audioQueryRes.status})`);
+    let detail = '';
+    try {
+      const body = await audioQueryRes.json();
+      detail = JSON.stringify(body);
+    } catch {
+      try { detail = await audioQueryRes.text(); } catch { /* ignore */ }
+    }
+    throw new Error(`audio_query エラー (${audioQueryRes.status})${detail ? ': ' + detail : ''}`);
   }
 
   const audioQuery: unknown = await audioQueryRes.json();
@@ -429,7 +436,14 @@ async function fetchLocalVoiceVox(text: string, speakerId?: string): Promise<str
   }
 
   if (!synthesisRes.ok) {
-    throw new Error(`synthesis エラー (${synthesisRes.status})`);
+    let detail = '';
+    try {
+      const body = await synthesisRes.json();
+      detail = JSON.stringify(body);
+    } catch {
+      try { detail = await synthesisRes.text(); } catch { /* ignore */ }
+    }
+    throw new Error(`synthesis エラー (${synthesisRes.status})${detail ? ': ' + detail : ''}`);
   }
 
   // Step 3: WAV バイナリ → data URI
