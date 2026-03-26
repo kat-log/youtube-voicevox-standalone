@@ -16,7 +16,7 @@
       .page-container {
         max-width: 480px;
         margin: 0 auto;
-        padding: 24px 20px 80px;
+        padding: 24px 20px;
       }
       .page-header {
         text-align: center;
@@ -97,44 +97,6 @@
         font-size: 13px;
       }
 
-      /* Footer */
-      .page-footer {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 16px;
-        padding: 12px 20px;
-        background: var(--bg-primary);
-        border-top: 1px solid var(--border-color);
-        z-index: 10;
-      }
-      .save-btn {
-        padding: 8px 24px;
-        border: none;
-        border-radius: 8px;
-        background: var(--accent-color);
-        color: #fff;
-        font-size: 14px;
-        font-weight: 600;
-        cursor: pointer;
-      }
-      .save-btn:hover {
-        opacity: 0.9;
-      }
-      .saved-msg {
-        font-size: 13px;
-        color: var(--accent-color);
-        opacity: 0;
-        transition: opacity 0.3s;
-      }
-      .saved-msg.show {
-        opacity: 1;
-      }
-
       /* Loading */
       .loading {
         text-align: center;
@@ -186,11 +148,6 @@
         持ち回り制話者モードがオフのため、個別の話者設定は不要です。<br />
         話者数（同時再生数）のみ設定してください。
       </div>
-    </div>
-
-    <div class="page-footer">
-      <button type="button" class="save-btn" id="saveBtn">保存</button>
-      <span class="saved-msg" id="savedMsg">保存しました</span>
     </div>
 
     <script type="module" src="./speaker-config.ts"></script>
