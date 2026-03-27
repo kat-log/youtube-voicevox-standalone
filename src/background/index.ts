@@ -408,9 +408,15 @@ chrome.runtime.onMessage.addListener(
         });
         return true;
       }
-    }
 
-    return true;
+      default: {
+        // eslint-disable-next-line no-console
+        console.warn(`Unknown message action: ${request.action}`);
+        sendDebugInfo(`⚠ 未知のメッセージaction: ${request.action}`);
+        sendResponse({ status: 'error', message: `Unknown action: ${request.action}` });
+        return true;
+      }
+    }
   }
 );
 
