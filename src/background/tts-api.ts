@@ -7,6 +7,7 @@ import { evaluateRushMode } from './rush-mode';
 import { getEffectiveMaxConcurrent, getParallelSpeakerId, resetParallelSlotCounter } from './parallel-playback';
 import { getSpeakerName } from './speaker-names';
 import { isRandomSpeakerEnabled, getRandomSpeakerId } from './random-speaker';
+import { fetchWithTimeout } from '@/utils/fetchWithTimeout';
 
 export class RateLimitError extends Error {
   constructor(public retryAfter: number) {
@@ -260,7 +261,7 @@ async function fetchVoiceVox(apiKey: string, text: string, speakerId?: string): 
     url += `&key=${encodeURIComponent(apiKey)}`;
   }
 
-  const response = await fetch(url);
+  const response = await fetchWithTimeout(url, 15_000);
 
   // レート制限（HTTP 429）— 即座にthrowしてパイプラインをブロックしない
   if (response.status === 429) {
@@ -301,7 +302,7 @@ async function waitForAudio(
   for (let i = 0; i < maxAttempts; i++) {
     await new Promise((r) => setTimeout(r, intervalMs));
     try {
-      const res = await fetch(audioStatusUrl);
+      const res = await fetchWithTimeout(audioStatusUrl, 10_000);
       if (!res.ok) continue;
       const status: TTSQuestAudioStatusResponse = await res.json();
       if (status.isAudioError) throw new Error('音声生成エラー');
@@ -395,8 +396,9 @@ async function fetchLocalVoiceVox(text: string, speakerId?: string): Promise<str
   // Step 1: audio_query
   let audioQueryRes: Response;
   try {
-    audioQueryRes = await fetch(
+    audioQueryRes = await fetchWithTimeout(
       `${localVoicevoxHost}/audio_query?text=${encodedText}&speaker=${effectiveSpeakerId}`,
+      30_000,
       { method: 'POST' }
     );
   } catch {
@@ -419,8 +421,9 @@ async function fetchLocalVoiceVox(text: string, speakerId?: string): Promise<str
   // Step 2: synthesis
   let synthesisRes: Response;
   try {
-    synthesisRes = await fetch(
+    synthesisRes = await fetchWithTimeout(
       `${localVoicevoxHost}/synthesis?speaker=${effectiveSpeakerId}`,
+      60_000,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
