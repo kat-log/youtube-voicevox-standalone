@@ -1,5 +1,6 @@
 import type { TtsEngine } from '@/types/state';
 import { sendDebugInfo } from './messaging';
+import { fetchWithTimeout } from '@/utils/fetchWithTimeout';
 
 let randomSpeakerEnabled = false;
 let allSpeakerIds: string[] = [];
@@ -117,7 +118,7 @@ function fetchAndCacheSpeakerIds(): void {
 }
 
 function fetchApiSpeakerIds(): void {
-  fetch('https://static.tts.quest/voicevox_speakers.json')
+  fetchWithTimeout('https://static.tts.quest/voicevox_speakers.json', 10_000)
     .then((res) => res.json())
     .then((speakers: (string | null)[]) => {
       allSpeakerIds = speakers
@@ -136,7 +137,7 @@ function fetchApiSpeakerIds(): void {
 }
 
 function fetchLocalSpeakerIds(): void {
-  fetch(`${localHost}/speakers`)
+  fetchWithTimeout(`${localHost}/speakers`, 10_000)
     .then((res) => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return res.json();

@@ -12,6 +12,7 @@ import { loadAutoCatchUpConfigFromStorage, setAutoCatchUpConfig } from './auto-c
 import { loadParallelPlaybackConfigFromStorage, setParallelPlaybackConfig, loadParallelSpeakersConfigFromStorage, setParallelSpeakersConfig } from './parallel-playback';
 import { loadRandomSpeakerConfigFromStorage, setRandomSpeakerEnabled, setRandomSpeakerEngine, setAllowedSpeakerIds, isRandomSpeakerEnabled, getRandomSpeakerStorageKey } from './random-speaker';
 import { initSpeakerNames, initLocalSpeakerNames, setSpeakerNameEngine } from './speaker-names';
+import { fetchWithTimeout } from '@/utils/fetchWithTimeout';
 import type { TtsEngine, RushModeConfig, AutoCatchUpConfig, ParallelPlaybackConfig, ParallelSpeakersConfig } from '@/types/state';
 
 // ポップアップ・ログページから session storage にアクセスできるようにする
@@ -319,7 +320,7 @@ chrome.runtime.onMessage.addListener(
       }
 
       case 'getSpeakerList': {
-        fetch('https://static.tts.quest/voicevox_speakers.json')
+        fetchWithTimeout('https://static.tts.quest/voicevox_speakers.json', 10_000)
           .then((res) => res.json())
           .then((speakers) => {
             sendResponse({ status: 'success', speakers });
@@ -372,7 +373,7 @@ chrome.runtime.onMessage.addListener(
 
       case 'testLocalVoicevox': {
         const host = request.host as string;
-        fetch(`${host}/version`)
+        fetchWithTimeout(`${host}/version`, 5_000)
           .then((res) => {
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             return res.json();
@@ -388,7 +389,7 @@ chrome.runtime.onMessage.addListener(
 
       case 'getLocalSpeakers': {
         const host = request.host as string;
-        fetch(`${host}/speakers`)
+        fetchWithTimeout(`${host}/speakers`, 10_000)
           .then((res) => {
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             return res.json();

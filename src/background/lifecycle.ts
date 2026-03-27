@@ -8,6 +8,7 @@ import { shouldFilter, getFilterConfig, stripEmojis, removeNgWords } from './com
 import { evaluateRushMode } from './rush-mode';
 import { evaluateAutoCatchUp, getAutoCatchUpConfig } from './auto-catchup';
 import { isRandomSpeakerEnabled, getRandomSpeakerId } from './random-speaker';
+import { fetchWithTimeout } from '@/utils/fetchWithTimeout';
 
 // ポーリング開始
 export function startPolling(config: {
@@ -54,7 +55,7 @@ export function startPolling(config: {
       sendStatus('fetching');
     }
 
-    fetch(requestUrl)
+    fetchWithTimeout(requestUrl, 15_000)
       .then((response) => {
         if (!response.ok) {
           if (response.status === 403) {

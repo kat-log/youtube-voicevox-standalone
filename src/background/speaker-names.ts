@@ -1,4 +1,5 @@
 import type { TtsEngine } from '@/types/state';
+import { fetchWithTimeout } from '@/utils/fetchWithTimeout';
 
 let speakerNames: Map<string, string> | null = null;
 let isFetching = false;
@@ -11,7 +12,7 @@ let currentEngine: TtsEngine = 'voicevox';
 export function initSpeakerNames(): void {
   if (speakerNames || isFetching) return;
   isFetching = true;
-  fetch('https://static.tts.quest/voicevox_speakers.json')
+  fetchWithTimeout('https://static.tts.quest/voicevox_speakers.json', 10_000)
     .then((res) => res.json())
     .then((speakers: (string | null)[]) => {
       speakerNames = new Map();
@@ -32,7 +33,7 @@ export function initSpeakerNames(): void {
 export function initLocalSpeakerNames(host: string): void {
   if (isLocalFetching) return;
   isLocalFetching = true;
-  fetch(`${host}/speakers`)
+  fetchWithTimeout(`${host}/speakers`, 10_000)
     .then((res) => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return res.json();

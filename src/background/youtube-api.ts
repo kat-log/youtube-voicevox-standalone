@@ -1,4 +1,5 @@
 import type { YouTubeVideoResponse, YouTubeChatResponse } from '@/types/api-responses';
+import { fetchWithTimeout } from '@/utils/fetchWithTimeout';
 
 export function extractVideoId(url: string): string | null {
   try {
@@ -16,7 +17,7 @@ export function extractVideoId(url: string): string | null {
 
 export async function fetchLiveChatId(videoId: string, apiKey: string): Promise<string> {
   const url = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=liveStreamingDetails,snippet&key=${apiKey}`;
-  const response = await fetch(url);
+  const response = await fetchWithTimeout(url, 15_000);
 
   if (!response.ok) {
     if (response.status === 403) {
@@ -67,7 +68,7 @@ export async function fetchChatMessages(
     url += `&pageToken=${pageToken}`;
   }
 
-  const response = await fetch(url);
+  const response = await fetchWithTimeout(url, 15_000);
 
   if (!response.ok) {
     if (response.status === 403) {
