@@ -1,6 +1,8 @@
 import type { ExtensionState, CommentQueueItem, AudioQueueItem } from '@/types/state';
 
 export const ERROR_THRESHOLD_FOR_STATUS = 3;
+export const MAX_COMMENT_QUEUE = 200;
+export const MAX_AUDIO_QUEUE = 50;
 
 const state: ExtensionState = {
   audioQueue: [],
@@ -56,6 +58,14 @@ export function incrementSessionId(): number {
 
 // キュー操作
 export function pushComment(item: CommentQueueItem): void {
+  if (state.commentQueue.length >= MAX_COMMENT_QUEUE) {
+    const discardCount = state.commentQueue.length - MAX_COMMENT_QUEUE + 1;
+    state.commentQueue.splice(0, discardCount);
+    // eslint-disable-next-line no-console
+    console.warn(
+      `commentQueue安全上限到達: ${discardCount}件の古いコメントを破棄 (上限: ${MAX_COMMENT_QUEUE})`
+    );
+  }
   state.commentQueue.push(item);
 }
 
@@ -78,6 +88,14 @@ export function clearAudioQueue(): void {
 }
 
 export function pushAudio(item: AudioQueueItem): void {
+  if (state.audioQueue.length >= MAX_AUDIO_QUEUE) {
+    const discardCount = state.audioQueue.length - MAX_AUDIO_QUEUE + 1;
+    state.audioQueue.splice(0, discardCount);
+    // eslint-disable-next-line no-console
+    console.warn(
+      `audioQueue安全上限到達: ${discardCount}件の古い音声を破棄 (上限: ${MAX_AUDIO_QUEUE})`
+    );
+  }
   state.audioQueue.push(item);
 }
 
