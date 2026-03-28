@@ -5,7 +5,6 @@ import { initTabListeners } from './tab-manager';
 import { startPolling, stopAll } from './lifecycle';
 import { sendStatus, sendDebugInfo, updateErrorMessage } from './messaging';
 import { loadFilterConfigFromStorage, setFilterConfig } from './comment-filter';
-import type { FilterConfig } from './comment-filter';
 import { setTtsEngine, setBrowserVoice, setLocalVoicevoxHost, setMaxParallelSynthesis } from './tts-api';
 import { loadRushConfigFromStorage, setRushConfig, evaluateRushMode } from './rush-mode';
 import { loadAutoCatchUpConfigFromStorage, setAutoCatchUpConfig } from './auto-catchup';
@@ -13,7 +12,8 @@ import { loadParallelPlaybackConfigFromStorage, setParallelPlaybackConfig, loadP
 import { loadRandomSpeakerConfigFromStorage, setRandomSpeakerEnabled, setRandomSpeakerEngine, setAllowedSpeakerIds, isRandomSpeakerEnabled, getRandomSpeakerStorageKey } from './random-speaker';
 import { initSpeakerNames, initLocalSpeakerNames, setSpeakerNameEngine } from './speaker-names';
 import { fetchWithTimeout } from '@/utils/fetchWithTimeout';
-import type { TtsEngine, RushModeConfig, AutoCatchUpConfig, ParallelPlaybackConfig, ParallelSpeakersConfig } from '@/types/state';
+import type { TtsEngine } from '@/types/state';
+import type { IncomingMessage } from '@/types/messages';
 
 // ポップアップ・ログページから session storage にアクセスできるようにする
 chrome.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' });
@@ -137,19 +137,19 @@ async function handleStart(config: {
 // メッセージルーター（統合された単一のリスナー）
 chrome.runtime.onMessage.addListener(
   (
-    request: { action: string; [key: string]: unknown },
+    request: IncomingMessage,
     sender: chrome.runtime.MessageSender,
     sendResponse: (response: unknown) => void
   ) => {
     switch (request.action) {
       case 'start': {
         handleStart({
-          apiKeyVOICEVOX: request.apiKeyVOICEVOX as string,
-          apiKeyYoutube: request.apiKeyYoutube as string,
-          speed: request.speed as number,
-          latestOnlyMode: request.latestOnlyMode as boolean,
-          latestOnlyCount: (request.latestOnlyCount as number) || 3,
-          speakerId: request.speakerId as string | undefined,
+          apiKeyVOICEVOX: request.apiKeyVOICEVOX,
+          apiKeyYoutube: request.apiKeyYoutube,
+          speed: request.speed,
+          latestOnlyMode: request.latestOnlyMode,
+          latestOnlyCount: request.latestOnlyCount || 3,
+          speakerId: request.speakerId,
         })
           .then((response) => sendResponse(response))
           .catch((error: Error) => sendResponse({ status: 'error', message: error.message }));
@@ -164,8 +164,8 @@ chrome.runtime.onMessage.addListener(
 
       case 'updateLatestOnlyMode': {
         updateState({
-          latestOnlyMode: request.latestOnlyMode as boolean,
-          latestOnlyCount: (request.latestOnlyCount as number) || 3,
+          latestOnlyMode: request.latestOnlyMode,
+          latestOnlyCount: request.latestOnlyCount || 3,
         });
 
         // コメントキューをクリア（モード切替時に古いキューを消去）
@@ -186,7 +186,7 @@ chrome.runtime.onMessage.addListener(
           const state = getState();
           const updatedQueue = state.commentQueue.map((comment) => ({
             ...comment,
-            speakerId: request.speakerId as string,
+            speakerId: request.speakerId,
           }));
           updateState({ commentQueue: updatedQueue });
         }
@@ -203,7 +203,7 @@ chrome.runtime.onMessage.addListener(
       }
 
       case 'audioEnded': {
-        const audioId = request.audioId as string | undefined;
+        const audioId = request.audioId;
         if (audioId) {
           handleAudioEndedById(audioId);
         } else {
@@ -217,7 +217,7 @@ chrome.runtime.onMessage.addListener(
         // eslint-disable-next-line no-console
         console.error('Offscreen audio再生エラー', request.audioId);
         sendDebugInfo(`⚠ Offscreen audio再生エラー [${request.audioId || '不明'}]`);
-        const audioId = request.audioId as string | undefined;
+        const audioId = request.audioId;
         if (audioId) {
           handleAudioEndedById(audioId);
         } else {
@@ -228,22 +228,22 @@ chrome.runtime.onMessage.addListener(
       }
 
       case 'setVolume': {
-        updateCachedVolume(request.volume as number);
+        updateCachedVolume(request.volume);
         chrome.runtime.sendMessage({
           target: 'offscreen',
           action: 'setVolume',
-          volume: request.volume as number,
+          volume: request.volume,
         }).catch(() => {});
         sendResponse({ status: 'success' });
         return true;
       }
 
       case 'setSpeed': {
-        updateCachedSpeed(request.speed as number);
+        updateCachedSpeed(request.speed);
         chrome.runtime.sendMessage({
           target: 'offscreen',
           action: 'setSpeed',
-          speed: request.speed as number,
+          speed: request.speed,
         }).catch(() => {});
         sendResponse({ status: 'success' });
         return true;
@@ -253,7 +253,7 @@ chrome.runtime.onMessage.addListener(
         const state = getState();
         const updatedQueue = state.commentQueue.map((comment) => ({
           ...comment,
-          speed: request.speed as number,
+          speed: request.speed,
         }));
         updateState({ commentQueue: updatedQueue });
         sendResponse({ status: 'success' });
@@ -261,7 +261,7 @@ chrome.runtime.onMessage.addListener(
       }
 
       case 'updateFilterConfig': {
-        const config = request.filterConfig as FilterConfig;
+        const config = request.filterConfig;
         setFilterConfig(config);
         chrome.storage.sync.set({ filterConfig: config });
         sendResponse({ status: 'success' });
@@ -269,7 +269,7 @@ chrome.runtime.onMessage.addListener(
       }
 
       case 'updateRushModeConfig': {
-        const config = request.rushModeConfig as RushModeConfig;
+        const config = request.rushModeConfig;
         setRushConfig(config);
         chrome.storage.sync.set({ rushModeConfig: config });
         evaluateRushMode();
@@ -278,7 +278,7 @@ chrome.runtime.onMessage.addListener(
       }
 
       case 'updateAutoCatchUpConfig': {
-        const config = request.autoCatchUpConfig as AutoCatchUpConfig;
+        const config = request.autoCatchUpConfig;
         setAutoCatchUpConfig(config);
         chrome.storage.sync.set({ autoCatchUpConfig: config });
         sendResponse({ status: 'success' });
@@ -286,7 +286,7 @@ chrome.runtime.onMessage.addListener(
       }
 
       case 'updateParallelPlaybackConfig': {
-        const config = request.parallelPlaybackConfig as ParallelPlaybackConfig;
+        const config = request.parallelPlaybackConfig;
         setParallelPlaybackConfig(config);
         chrome.storage.sync.set({ parallelPlaybackConfig: config });
         sendResponse({ status: 'success' });
@@ -294,7 +294,7 @@ chrome.runtime.onMessage.addListener(
       }
 
       case 'updateParallelSpeakersConfig': {
-        const config = request.parallelSpeakersConfig as ParallelSpeakersConfig;
+        const config = request.parallelSpeakersConfig;
         setParallelSpeakersConfig(config);
         chrome.storage.sync.set({ parallelSpeakersConfig: config });
         sendResponse({ status: 'success' });
@@ -302,9 +302,9 @@ chrome.runtime.onMessage.addListener(
       }
 
       case 'updateRandomSpeakerConfig': {
-        const enabled = request.enabled as boolean;
-        const engine = request.engine as TtsEngine | undefined;
-        const host = request.host as string | undefined;
+        const enabled = request.enabled;
+        const engine = request.engine;
+        const host = request.host;
         if (engine) {
           setRandomSpeakerEngine(engine, host);
         }
@@ -315,8 +315,8 @@ chrome.runtime.onMessage.addListener(
       }
 
       case 'updateRandomSpeakerAllowedIds': {
-        const ids = request.ids as string[] | null;
-        const engine = request.engine as TtsEngine;
+        const ids = request.ids;
+        const engine = request.engine;
         const storageKey = getRandomSpeakerStorageKey(engine);
         setAllowedSpeakerIds(ids);
         chrome.storage.sync.set({ [storageKey]: ids });
@@ -337,7 +337,7 @@ chrome.runtime.onMessage.addListener(
       }
 
       case 'updateTtsEngine': {
-        const engine = request.engine as TtsEngine;
+        const engine = request.engine;
         setTtsEngine(engine);
         setSpeakerNameEngine(engine);
         chrome.storage.sync.set({ ttsEngine: engine });
@@ -353,7 +353,7 @@ chrome.runtime.onMessage.addListener(
       }
 
       case 'updateBrowserVoice': {
-        const voiceName = request.voiceName as string;
+        const voiceName = request.voiceName;
         setBrowserVoice(voiceName);
         chrome.storage.sync.set({ browserVoice: voiceName });
         sendResponse({ status: 'success' });
@@ -361,7 +361,7 @@ chrome.runtime.onMessage.addListener(
       }
 
       case 'updateLocalVoicevoxHost': {
-        const host = request.host as string;
+        const host = request.host;
         setLocalVoicevoxHost(host);
         chrome.storage.sync.set({ localVoicevoxHost: host });
         sendResponse({ status: 'success' });
@@ -369,7 +369,7 @@ chrome.runtime.onMessage.addListener(
       }
 
       case 'updateParallelSynthesis': {
-        const count = request.count as number;
+        const count = request.count;
         setMaxParallelSynthesis(count);
         chrome.storage.sync.set({ parallelSynthesisCount: count });
         sendResponse({ status: 'success' });
@@ -377,7 +377,7 @@ chrome.runtime.onMessage.addListener(
       }
 
       case 'testLocalVoicevox': {
-        const host = request.host as string;
+        const host = request.host;
         fetchWithTimeout(`${host}/version`, 5_000)
           .then((res) => {
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -393,7 +393,7 @@ chrome.runtime.onMessage.addListener(
       }
 
       case 'getLocalSpeakers': {
-        const host = request.host as string;
+        const host = request.host;
         fetchWithTimeout(`${host}/speakers`, 10_000)
           .then((res) => {
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -416,10 +416,13 @@ chrome.runtime.onMessage.addListener(
       }
 
       default: {
+        // ランタイムでは未知の action が届く可能性がある
+        const _: never = request;
+        const action = (_ as { action: string }).action;
         // eslint-disable-next-line no-console
-        console.warn(`Unknown message action: ${request.action}`);
-        sendDebugInfo(`⚠ 未知のメッセージaction: ${request.action}`);
-        sendResponse({ status: 'error', message: `Unknown action: ${request.action}` });
+        console.warn(`Unknown message action: ${action}`);
+        sendDebugInfo(`⚠ 未知のメッセージaction: ${action}`);
+        sendResponse({ status: 'error', message: `Unknown action: ${action}` });
         return true;
       }
     }
