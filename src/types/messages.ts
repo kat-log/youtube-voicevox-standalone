@@ -151,6 +151,19 @@ export interface DebugInfoMessage {
   timestamp?: string;
 }
 
+// Popup → Background テスト再生メッセージ
+export interface TestSpeakMessage {
+  action: 'testSpeak';
+  text: string;
+}
+
+// Background → Popup テスト再生結果メッセージ
+export interface TestSpeakResultMessage {
+  action: 'testSpeakResult';
+  status: 'generating' | 'playing' | 'done' | 'error';
+  message?: string;
+}
+
 // Background → Stats Page メッセージ
 export interface UpdateStatsMessage {
   action: 'updateStats';
@@ -188,6 +201,7 @@ export type IncomingMessage =
   | UpdateParallelSynthesisMessage
   | TestLocalVoicevoxMessage
   | GetLocalSpeakersMessage
+  | TestSpeakMessage
   | GetStatsMessage;
 
 // メッセージレスポンス

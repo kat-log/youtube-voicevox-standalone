@@ -11,6 +11,7 @@ import { loadAutoCatchUpConfigFromStorage, setAutoCatchUpConfig } from './auto-c
 import { loadParallelPlaybackConfigFromStorage, setParallelPlaybackConfig, loadParallelSpeakersConfigFromStorage, setParallelSpeakersConfig } from './parallel-playback';
 import { loadRandomSpeakerConfigFromStorage, setRandomSpeakerEnabled, setRandomSpeakerEngine, setAllowedSpeakerIds, isRandomSpeakerEnabled, getRandomSpeakerStorageKey } from './random-speaker';
 import { initSpeakerNames, initLocalSpeakerNames, setSpeakerNameEngine } from './speaker-names';
+import { handleTestSpeak, isTestAudioId, handleTestAudioEnded, handleTestAudioError } from './test-speak';
 import { fetchWithTimeout } from '@/utils/fetchWithTimeout';
 import type { TtsEngine } from '@/types/state';
 import type { IncomingMessage } from '@/types/messages';
@@ -204,7 +205,9 @@ chrome.runtime.onMessage.addListener(
 
       case 'audioEnded': {
         const audioId = request.audioId;
-        if (audioId) {
+        if (audioId && isTestAudioId(audioId)) {
+          handleTestAudioEnded(audioId);
+        } else if (audioId) {
           handleAudioEndedById(audioId);
         } else {
           handleAudioEnded();
@@ -214,14 +217,18 @@ chrome.runtime.onMessage.addListener(
       }
 
       case 'audioError': {
-        // eslint-disable-next-line no-console
-        console.error('Offscreen audio再生エラー', request.audioId);
-        sendDebugInfo(`⚠ Offscreen audio再生エラー [${request.audioId || '不明'}]`);
         const audioId = request.audioId;
-        if (audioId) {
-          handleAudioEndedById(audioId);
+        if (audioId && isTestAudioId(audioId)) {
+          handleTestAudioError(audioId);
         } else {
-          handleAudioEnded();
+          // eslint-disable-next-line no-console
+          console.error('Offscreen audio再生エラー', audioId);
+          sendDebugInfo(`⚠ Offscreen audio再生エラー [${audioId || '不明'}]`);
+          if (audioId) {
+            handleAudioEndedById(audioId);
+          } else {
+            handleAudioEnded();
+          }
         }
         sendResponse({ status: 'success' });
         return true;
@@ -373,6 +380,13 @@ chrome.runtime.onMessage.addListener(
         setMaxParallelSynthesis(count);
         chrome.storage.sync.set({ parallelSynthesisCount: count });
         sendResponse({ status: 'success' });
+        return true;
+      }
+
+      case 'testSpeak': {
+        handleTestSpeak(request.text)
+          .then((response) => sendResponse(response))
+          .catch((error: Error) => sendResponse({ status: 'error', message: error.message }));
         return true;
       }
 

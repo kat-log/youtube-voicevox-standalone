@@ -9,6 +9,7 @@ import { initTtsEngineConfig } from './tts-engine-config';
 import { initParallelPlaybackConfig } from './parallel-playback-config';
 import { initRandomSpeakerConfig } from './random-speaker-config';
 import { initDarkMode } from './dark-mode';
+import { initTestSpeakConfig } from './test-speak-config';
 
 document.addEventListener('DOMContentLoaded', () => {
   loadSettings();
@@ -21,4 +22,5 @@ document.addEventListener('DOMContentLoaded', () => {
   initParallelPlaybackConfig();
   initRandomSpeakerConfig();
   initDarkMode();
+  initTestSpeakConfig();
 });
