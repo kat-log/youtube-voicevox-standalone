@@ -166,6 +166,7 @@ export interface DebugInfoMessage {
 export interface TestSpeakMessage {
   action: 'testSpeak';
   text: string;
+  speakerId?: string;
 }
 
 // Background → Popup テスト再生結果メッセージ
@@ -173,6 +174,7 @@ export interface TestSpeakResultMessage {
   action: 'testSpeakResult';
   status: 'generating' | 'playing' | 'done' | 'error';
   message?: string;
+  speakerId?: string;
 }
 
 // Background → Stats Page メッセージ

@@ -7,11 +7,19 @@ import {
   getUniqueStyles,
   type ParsedSpeaker,
 } from '@/utils/speaker-parser';
+import { createTestSpeakButton, initTestSpeakResultListener } from '@/utils/test-speak-ui';
 
 let allSpeakers: ParsedSpeaker[] = [];
 let currentEngine: TtsEngine = 'voicevox';
 let checkedIds = new Set<string>();
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
+
+// テスト再生結果リスナーを初期化
+initTestSpeakResultListener();
+
+function getTestText(): string {
+  return (document.getElementById('testText') as HTMLInputElement).value.trim();
+}
 
 // --- Dark mode ---
 chrome.storage.sync.get(['darkMode'], (data) => {
@@ -223,9 +231,13 @@ function render(): void {
       idSpan.className = 'style-id';
       idSpan.textContent = `ID:${speaker.id}`;
 
+      const { playBtn, playStatus } = createTestSpeakButton(speaker.id, getTestText);
+
       item.appendChild(cb);
       item.appendChild(label);
       item.appendChild(idSpan);
+      item.appendChild(playBtn);
+      item.appendChild(playStatus);
       stylesList.appendChild(item);
     }
 

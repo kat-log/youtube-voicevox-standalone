@@ -1,12 +1,20 @@
 import '../styles/styles.scss';
 import type { TtsEngine, ParallelSpeakersConfig } from '@/types/state';
 import { RANDOM_SPEAKER_SENTINEL } from '@/types/state';
+import { initTestSpeakResultListener } from '@/utils/test-speak-ui';
 
 let speakerOptions: Array<{ value: string; label: string }> = [];
 let currentEngine: TtsEngine = 'voicevox';
 let savedEnabled = false; // 持ち回り制の有効/無効（このページでは変更しない）
 let savedSpeakerIds: string[] = [];
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
+
+// テスト再生結果リスナーを初期化
+initTestSpeakResultListener();
+
+function getTestText(): string {
+  return (document.getElementById('testText') as HTMLInputElement).value.trim();
+}
 
 // --- Dark mode ---
 chrome.storage.sync.get(['darkMode'], (data) => {
@@ -160,10 +168,42 @@ function renderDropdowns(): void {
       select.value = savedSpeakerIds[i];
     }
 
-    select.addEventListener('change', () => autoSave());
+    select.addEventListener('change', () => {
+      autoSave();
+      // ランダム選択時は再生ボタンを無効化
+      playBtn.disabled = select.value === RANDOM_SPEAKER_SENTINEL;
+      // data-speaker-id を更新して結果を正しく受信できるようにする
+      playBtn.dataset.speakerId = select.value;
+      playStatus.dataset.speakerId = select.value;
+    });
+
+    const playBtn = document.createElement('button');
+    playBtn.className = 'play-btn';
+    playBtn.dataset.speakerId = select.value;
+    playBtn.textContent = '\u25B6';
+    playBtn.title = 'テスト再生';
+    playBtn.disabled = select.value === RANDOM_SPEAKER_SENTINEL;
+    playBtn.addEventListener('click', () => {
+      const text = getTestText();
+      if (!text) return;
+      const selectedId = select.value;
+      if (selectedId === RANDOM_SPEAKER_SENTINEL) return;
+      playBtn.disabled = true;
+      chrome.runtime.sendMessage({
+        action: 'testSpeak',
+        text,
+        speakerId: selectedId,
+      });
+    });
+
+    const playStatus = document.createElement('span');
+    playStatus.className = 'play-status';
+    playStatus.dataset.speakerId = select.value;
 
     row.appendChild(label);
     row.appendChild(select);
+    row.appendChild(playBtn);
+    row.appendChild(playStatus);
     container.appendChild(row);
   }
 }

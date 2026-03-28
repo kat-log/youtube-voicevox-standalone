@@ -97,6 +97,50 @@
         font-size: 13px;
       }
 
+      /* Test speak */
+      .test-text-form label {
+        display: block;
+        font-weight: 600;
+        font-size: 13px;
+        margin-bottom: 6px;
+      }
+      .test-text-input {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background: var(--bg-section);
+        color: var(--text-primary);
+        font-size: 14px;
+        box-sizing: border-box;
+        outline: none;
+      }
+      .test-text-input:focus {
+        border-color: var(--accent-color);
+      }
+      .play-btn {
+        padding: 4px 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background: var(--bg-section);
+        color: var(--text-primary);
+        cursor: pointer;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      .play-btn:hover {
+        background: var(--border-color);
+      }
+      .play-btn:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      .play-status {
+        font-size: 11px;
+        color: var(--text-secondary);
+        min-width: 50px;
+      }
+
       /* Loading */
       .loading {
         text-align: center;
@@ -128,6 +172,17 @@
           <span id="current-count">3</span>
         </div>
         <p class="info-text">並列再生時の同時再生数、持ち回り制話者モードの話者数として使用されます。</p>
+      </div>
+
+      <div class="test-text-form" style="margin-bottom: 12px;">
+        <label for="testText">テスト再生テキスト:</label>
+        <input
+          type="text"
+          class="test-text-input"
+          id="testText"
+          value="こんにちは、テスト再生です"
+          placeholder="読み上げたいテキストを入力"
+        />
       </div>
 
       <div id="speaker-assignments">

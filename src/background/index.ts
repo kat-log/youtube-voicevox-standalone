@@ -384,7 +384,7 @@ chrome.runtime.onMessage.addListener(
       }
 
       case 'testSpeak': {
-        handleTestSpeak(request.text)
+        handleTestSpeak(request.text, request.speakerId)
           .then((response) => sendResponse(response))
           .catch((error: Error) => sendResponse({ status: 'error', message: error.message }));
         return true;
