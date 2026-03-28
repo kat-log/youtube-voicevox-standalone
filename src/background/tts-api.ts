@@ -372,6 +372,7 @@ export function insertInOrder(seq: number, item: AudioQueueItem | null): void {
   }
 
   // nextAudioInsertSeq から連続する完了済みアイテムをフラッシュ
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     if (pendingResults.has(nextAudioInsertSeq)) {
       const ready = pendingResults.get(nextAudioInsertSeq)!;
