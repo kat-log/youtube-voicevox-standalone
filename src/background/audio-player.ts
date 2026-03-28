@@ -26,6 +26,26 @@ function isRateSupportedVoice(voiceName: string | undefined): boolean {
   return name === 'kyoko' || name.startsWith('google');
 }
 
+// 音量・速度のモジュールレベルキャッシュ（chrome.storage.sync.get を毎回呼ばない）
+let cachedVolume = 1.0;
+let cachedSpeed = 1.0;
+
+/** 起動時に storage から音量・速度を読み込む */
+export function initPlaybackSettings(): void {
+  chrome.storage.sync.get(['volume', 'speed'], (data) => {
+    if (data.volume !== undefined) cachedVolume = data.volume;
+    if (data.speed !== undefined) cachedSpeed = data.speed;
+  });
+}
+
+export function updateCachedVolume(v: number): void {
+  cachedVolume = v;
+}
+
+export function updateCachedSpeed(s: number): void {
+  cachedSpeed = s;
+}
+
 // キュー空通知の重複防止フラグ
 let lastQueueEmptyLogged = false;
 
@@ -71,21 +91,16 @@ export function playNextAudio(): void {
     }, 30000);
     setPlayingTimeout(audioId, timeout);
 
-    // 音量・速度を取得して再生
-    const capturedAudioId = audioId;
-    const capturedItem = item;
-    chrome.storage.sync.get(['volume', 'speed'], (data) => {
-      const volume = data.volume !== undefined ? data.volume : 1.0;
-      const baseSpeed = data.speed !== undefined ? data.speed : 1.0;
-      const speed = resolveEffectiveSpeed(baseSpeed);
+    // キャッシュ済みの音量・速度で再生
+    const volume = cachedVolume;
+    const speed = resolveEffectiveSpeed(cachedSpeed);
 
-      if (capturedItem.type === 'url') {
-        playAudioViaOffscreen(capturedAudioId, capturedItem.url!, volume, speed);
-      } else {
-        currentChromeTtsAudioId = capturedAudioId;
-        playSpeechSynthesis(capturedAudioId, capturedItem.text!, capturedItem.voiceName, volume, speed);
-      }
-    });
+    if (item.type === 'url') {
+      playAudioViaOffscreen(audioId, item.url!, volume, speed);
+    } else {
+      currentChromeTtsAudioId = audioId;
+      playSpeechSynthesis(audioId, item.text!, item.voiceName, volume, speed);
+    }
   }
 
   // キュー空チェック（何も再生中でない場合のみ）

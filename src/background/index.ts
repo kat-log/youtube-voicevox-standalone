@@ -1,6 +1,6 @@
 import { getState, updateState } from './state';
 import { extractVideoId, fetchLiveChatId } from './youtube-api';
-import { handleAudioEnded, handleAudioEndedById } from './audio-player';
+import { handleAudioEnded, handleAudioEndedById, initPlaybackSettings, updateCachedVolume, updateCachedSpeed } from './audio-player';
 import { initTabListeners } from './tab-manager';
 import { startPolling, stopAll } from './lifecycle';
 import { sendStatus, sendDebugInfo, updateErrorMessage } from './messaging';
@@ -38,6 +38,9 @@ loadParallelSpeakersConfigFromStorage();
 
 // ランダム話者設定をストレージから読み込み
 loadRandomSpeakerConfigFromStorage();
+
+// 音量・速度キャッシュを初期化
+initPlaybackSettings();
 
 // 話者名キャッシュを初期化
 initSpeakerNames();
@@ -225,6 +228,7 @@ chrome.runtime.onMessage.addListener(
       }
 
       case 'setVolume': {
+        updateCachedVolume(request.volume as number);
         chrome.runtime.sendMessage({
           target: 'offscreen',
           action: 'setVolume',
@@ -235,6 +239,7 @@ chrome.runtime.onMessage.addListener(
       }
 
       case 'setSpeed': {
+        updateCachedSpeed(request.speed as number);
         chrome.runtime.sendMessage({
           target: 'offscreen',
           action: 'setSpeed',
