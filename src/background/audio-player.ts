@@ -15,12 +15,12 @@ import { evaluateRushMode, resolveEffectiveSpeed } from './rush-mode';
 import { getEffectiveMaxConcurrent } from './parallel-playback';
 
 /** chrome.tts の rate を補正（エンジンの指数的スケーリングを相殺） */
-function correctTtsRate(sliderSpeed: number): number {
+export function correctTtsRate(sliderSpeed: number): number {
   return Math.sqrt(sliderSpeed);
 }
 
 /** 指定音声が rate パラメータをサポートするか判定 */
-function isRateSupportedVoice(voiceName: string | undefined): boolean {
+export function isRateSupportedVoice(voiceName: string | undefined): boolean {
   if (!voiceName) return true;
   const name = voiceName.toLowerCase();
   return name === 'kyoko' || name.startsWith('google');
@@ -118,7 +118,7 @@ export function playNextAudio(): void {
 
 const OFFSCREEN_DOCUMENT_PATH = 'offscreen/offscreen.html';
 
-async function ensureOffscreenDocument(): Promise<void> {
+export async function ensureOffscreenDocument(): Promise<void> {
   const existingContexts = await chrome.runtime.getContexts({
     contextTypes: [chrome.runtime.ContextType.OFFSCREEN_DOCUMENT],
     documentUrls: [chrome.runtime.getURL(OFFSCREEN_DOCUMENT_PATH)],

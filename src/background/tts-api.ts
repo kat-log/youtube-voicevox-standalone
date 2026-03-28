@@ -251,7 +251,7 @@ function synthesizeWithRetry(
 }
 
 // TTS Quest v3 API で音声合成を行い、音声URLを返す
-async function fetchVoiceVox(apiKey: string, text: string, speakerId?: string): Promise<string> {
+export async function fetchVoiceVox(apiKey: string, text: string, speakerId?: string): Promise<string> {
   const encodedText = encodeURIComponent(text);
   const effectiveSpeakerId =
     speakerId || (await chrome.storage.sync.get(['speakerId'])).speakerId || '1';
@@ -389,7 +389,7 @@ export function insertInOrder(seq: number, item: AudioQueueItem | null): void {
 }
 
 // ローカル VOICEVOX API で音声合成（audio_query → synthesis → data URI）
-async function fetchLocalVoiceVox(text: string, speakerId?: string): Promise<string> {
+export async function fetchLocalVoiceVox(text: string, speakerId?: string): Promise<string> {
   const effectiveSpeakerId =
     speakerId || (await chrome.storage.sync.get(['localSpeakerId'])).localSpeakerId || '1';
   const encodedText = encodeURIComponent(text);
