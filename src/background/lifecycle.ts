@@ -34,7 +34,7 @@ export function startPolling(config: {
   const getEffectiveSpeakerId = (): string | undefined =>
     isRandomSpeakerEnabled() ? (getRandomSpeakerId() || config.speakerId) : config.speakerId;
 
-  const checkNewComments = (): void => {
+  const checkNewComments = async (): Promise<void> => {
     const state = getState();
     // ポーリング停止判定
     if (!state.liveChatId || !state.activeTabId) return;
@@ -54,86 +54,134 @@ export function startPolling(config: {
       sendStatus('fetching');
     }
 
-    fetchWithTimeout(requestUrl, 15_000)
-      .then((response) => {
-        if (!response.ok) {
-          if (response.status === 403) {
-            // 配信終了の検出: liveChatEnded reason をチェック
-            return response
-              .json()
-              .then((errorData) => {
-                if (
-                  errorData?.error?.errors?.some(
-                    (e: { reason: string }) => e.reason === 'liveChatEnded'
-                  )
-                ) {
-                  throw new LiveChatEndedError('ライブ配信が終了しました。');
-                }
-                // liveChatEnded以外の403はレート制限
-                const rateLimitError = new Error('YouTube APIレート制限（403）') as Error & {
-                  isRateLimit: boolean;
-                };
-                rateLimitError.isRateLimit = true;
-                throw rateLimitError;
-              })
-              .catch((e) => {
-                if (e instanceof LiveChatEndedError) throw e;
-                if ((e as Error & { isRateLimit?: boolean }).isRateLimit) throw e;
-                // JSONパース失敗はレート制限として扱う
-                const rateLimitError = new Error('YouTube APIレート制限（403）') as Error & {
-                  isRateLimit: boolean;
-                };
-                rateLimitError.isRateLimit = true;
-                throw rateLimitError;
-              });
+    try {
+      const response = await fetchWithTimeout(requestUrl, 15_000);
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          // 配信終了の検出: liveChatEnded reason をチェック
+          try {
+            const errorData = await response.json();
+            if (
+              errorData?.error?.errors?.some(
+                (e: { reason: string }) => e.reason === 'liveChatEnded'
+              )
+            ) {
+              throw new LiveChatEndedError('ライブ配信が終了しました。');
+            }
+          } catch (e) {
+            if (e instanceof LiveChatEndedError) throw e;
+            // JSONパース失敗は無視してレート制限として扱う
           }
-          throw new Error(`YouTube APIリクエストに失敗しました（${response.status}）。`);
+          // liveChatEnded以外の403はレート制限
+          const rateLimitError = new Error('YouTube APIレート制限（403）') as Error & {
+            isRateLimit: boolean;
+          };
+          rateLimitError.isRateLimit = true;
+          throw rateLimitError;
         }
-        return response.json();
-      })
-      .then((data) => {
-        if (!data) return;
+        throw new Error(`YouTube APIリクエストに失敗しました（${response.status}）。`);
+      }
 
-        // 成功時にエラーカウンタとレート制限フラグをリセット
-        updateState({ consecutiveErrors: 0, isYouTubeRateLimited: false });
+      const data = await response.json();
+      if (!data) return;
 
-        // YouTube APIの推奨ポーリング間隔を保存
-        if (data.pollingIntervalMillis) {
-          updateState({ pollingIntervalMs: data.pollingIntervalMillis });
-        }
+      // 成功時にエラーカウンタとレート制限フラグをリセット
+      updateState({ consecutiveErrors: 0, isYouTubeRateLimited: false });
 
-        // エラー状態からの復帰: 実際の状態に応じたステータス設定
-        const currentState2 = getState();
-        if (currentState2.playingCount > 0) {
-          // 再生中はそのまま維持
-        } else if (currentState2.audioQueue.length === 0 && currentState2.commentQueue.length === 0) {
-          sendStatus('waiting');
-        }
-        // それ以外（キューにアイテムあり）は generating/listening が適宜セットされる
+      // YouTube APIの推奨ポーリング間隔を保存
+      if (data.pollingIntervalMillis) {
+        updateState({ pollingIntervalMs: data.pollingIntervalMillis });
+      }
 
-        if (!data.items || data.items.length === 0) {
-          sendDebugInfo(`YouTube新着コメント: 0件 | キュー: ${formatQueueState()} | 次回YouTubeコメント取得まで: ${getState().pollingIntervalMs}ms`);
-          updateState({ nextPageToken: data.nextPageToken || null });
-          return;
-        }
+      // エラー状態からの復帰: 実際の状態に応じたステータス設定
+      const currentState2 = getState();
+      if (currentState2.playingCount > 0) {
+        // 再生中はそのまま維持
+      } else if (currentState2.audioQueue.length === 0 && currentState2.commentQueue.length === 0) {
+        sendStatus('waiting');
+      }
+      // それ以外（キューにアイテムあり）は generating/listening が適宜セットされる
 
-        const currentState = getState();
-        const autoCatchUpEnabled = getAutoCatchUpConfig().enabled;
-        if (isFirstFetch || (currentState.latestOnlyMode && !autoCatchUpEnabled)) {
-          // 最初の取得または最新N件モードでは最新のN件のみを取得
-          const N = currentState.latestOnlyCount || 3;
-          const latestItems = data.items.slice(-N);
-          const filterConfig = getFilterConfig();
-          let addedCount = 0;
+      if (!data.items || data.items.length === 0) {
+        sendDebugInfo(`YouTube新着コメント: 0件 | キュー: ${formatQueueState()} | 次回YouTubeコメント取得まで: ${getState().pollingIntervalMs}ms`);
+        updateState({ nextPageToken: data.nextPageToken || null });
+        return;
+      }
 
-          for (const item of latestItems) {
-            const rawMessage: string = item.snippet.displayMessage;
-            const timestamp = new Date(item.snippet.publishedAt).getTime();
+      const currentState = getState();
+      const autoCatchUpEnabled = getAutoCatchUpConfig().enabled;
+      if (isFirstFetch || (currentState.latestOnlyMode && !autoCatchUpEnabled)) {
+        // 最初の取得または最新N件モードでは最新のN件のみを取得
+        const N = currentState.latestOnlyCount || 3;
+        const latestItems = data.items.slice(-N);
+        const filterConfig = getFilterConfig();
+        let addedCount = 0;
 
-            if (currentState.latestTimestamp && timestamp <= currentState.latestTimestamp) {
+        for (const item of latestItems) {
+          const rawMessage: string = item.snippet.displayMessage;
+          const timestamp = new Date(item.snippet.publishedAt).getTime();
+
+          if (currentState.latestTimestamp && timestamp <= currentState.latestTimestamp) {
+            continue;
+          }
+
+          updateState({ latestTimestamp: timestamp });
+          let newMessage =
+            filterConfig.enabled && filterConfig.stripEmoji
+              ? stripEmojis(rawMessage)
+              : rawMessage;
+          if (newMessage.length === 0) {
+            sendDebugInfo(`絵文字除去で空: "${rawMessage}"`);
+            continue;
+          }
+          if (filterConfig.enabled && filterConfig.ngWordAction === 'remove') {
+            const before = newMessage;
+            newMessage = removeNgWords(newMessage, filterConfig.ngWords);
+            if (newMessage.length === 0) {
+              sendDebugInfo(`NGワード除去で空: "${rawMessage}"`);
               continue;
             }
+            if (newMessage !== before) {
+              sendDebugInfo(`NGワード除去: "${before}" → "${newMessage}"`);
+            }
+          }
+          if (shouldFilter(newMessage, filterConfig)) {
+            sendDebugInfo(`フィルタ除外: "${newMessage}"`);
+          } else {
+            pushComment({
+              apiKeyVOICEVOX: config.apiKeyVOICEVOX,
+              newMessage,
+              speed: config.speed,
+              tabId: config.tabId,
+              speakerId: getEffectiveSpeakerId(),
+            });
+            addedCount++;
+          }
+        }
 
+        // 最新N件モードではキューをN件にキャップ（古いコメントを破棄）
+        // 自動発動が有効な場合はキャップせず、evaluateAutoCatchUp() に任せる
+        if (currentState.latestOnlyMode && !autoCatchUpEnabled) {
+          const queue = getState().commentQueue;
+          if (queue.length > N) {
+            const discarded = queue.length - N;
+            updateState({ commentQueue: queue.slice(-N) });
+            sendDebugInfo(`🗑️ キューキャップ: ${discarded}件破棄, ${N}件保持`);
+          }
+        }
+
+        sendDebugInfo(`📥 YouTube新着コメント: ${addedCount}件追加（最新${N}件モード, ${data.items.length}件取得） | キュー: ${formatQueueState()} | 次回YouTubeコメント取得まで: ${getState().pollingIntervalMs}ms`);
+        isFirstFetch = false;
+      } else {
+        // 通常モードでは差分をすべて取得
+        const beforeQueueSize = currentState.commentQueue.length;
+        const filterConfig = getFilterConfig();
+        for (const item of data.items) {
+          const rawMessage: string = item.snippet.displayMessage;
+          const timestamp = new Date(item.snippet.publishedAt).getTime();
+
+          if (!currentState.latestTimestamp || timestamp > currentState.latestTimestamp) {
             updateState({ latestTimestamp: timestamp });
             let newMessage =
               filterConfig.enabled && filterConfig.stripEmoji
@@ -141,147 +189,91 @@ export function startPolling(config: {
                 : rawMessage;
             if (newMessage.length === 0) {
               sendDebugInfo(`絵文字除去で空: "${rawMessage}"`);
-              continue;
-            }
-            if (filterConfig.enabled && filterConfig.ngWordAction === 'remove') {
-              const before = newMessage;
-              newMessage = removeNgWords(newMessage, filterConfig.ngWords);
-              if (newMessage.length === 0) {
-                sendDebugInfo(`NGワード除去で空: "${rawMessage}"`);
-                continue;
-              }
-              if (newMessage !== before) {
-                sendDebugInfo(`NGワード除去: "${before}" → "${newMessage}"`);
-              }
-            }
-            if (shouldFilter(newMessage, filterConfig)) {
-              sendDebugInfo(`フィルタ除外: "${newMessage}"`);
             } else {
-              pushComment({
-                apiKeyVOICEVOX: config.apiKeyVOICEVOX,
-                newMessage,
-                speed: config.speed,
-                tabId: config.tabId,
-                speakerId: getEffectiveSpeakerId(),
-              });
-              addedCount++;
-            }
-          }
-
-          // 最新N件モードではキューをN件にキャップ（古いコメントを破棄）
-          // 自動発動が有効な場合はキャップせず、evaluateAutoCatchUp() に任せる
-          if (currentState.latestOnlyMode && !autoCatchUpEnabled) {
-            const queue = getState().commentQueue;
-            if (queue.length > N) {
-              const discarded = queue.length - N;
-              updateState({ commentQueue: queue.slice(-N) });
-              sendDebugInfo(`🗑️ キューキャップ: ${discarded}件破棄, ${N}件保持`);
-            }
-          }
-
-          sendDebugInfo(`📥 YouTube新着コメント: ${addedCount}件追加（最新${N}件モード, ${data.items.length}件取得） | キュー: ${formatQueueState()} | 次回YouTubeコメント取得まで: ${getState().pollingIntervalMs}ms`);
-          isFirstFetch = false;
-        } else {
-          // 通常モードでは差分をすべて取得
-          const beforeQueueSize = currentState.commentQueue.length;
-          const filterConfig = getFilterConfig();
-          for (const item of data.items) {
-            const rawMessage: string = item.snippet.displayMessage;
-            const timestamp = new Date(item.snippet.publishedAt).getTime();
-
-            if (!currentState.latestTimestamp || timestamp > currentState.latestTimestamp) {
-              updateState({ latestTimestamp: timestamp });
-              let newMessage =
-                filterConfig.enabled && filterConfig.stripEmoji
-                  ? stripEmojis(rawMessage)
-                  : rawMessage;
-              if (newMessage.length === 0) {
-                sendDebugInfo(`絵文字除去で空: "${rawMessage}"`);
+              if (filterConfig.enabled && filterConfig.ngWordAction === 'remove') {
+                const before = newMessage;
+                newMessage = removeNgWords(newMessage, filterConfig.ngWords);
+                if (newMessage.length === 0) {
+                  sendDebugInfo(`NGワード除去で空: "${rawMessage}"`);
+                  continue;
+                }
+                if (newMessage !== before) {
+                  sendDebugInfo(`NGワード除去: "${before}" → "${newMessage}"`);
+                }
+              }
+              if (shouldFilter(newMessage, filterConfig)) {
+                sendDebugInfo(`フィルタ除外: "${newMessage}"`);
               } else {
-                if (filterConfig.enabled && filterConfig.ngWordAction === 'remove') {
-                  const before = newMessage;
-                  newMessage = removeNgWords(newMessage, filterConfig.ngWords);
-                  if (newMessage.length === 0) {
-                    sendDebugInfo(`NGワード除去で空: "${rawMessage}"`);
-                    continue;
-                  }
-                  if (newMessage !== before) {
-                    sendDebugInfo(`NGワード除去: "${before}" → "${newMessage}"`);
-                  }
-                }
-                if (shouldFilter(newMessage, filterConfig)) {
-                  sendDebugInfo(`フィルタ除外: "${newMessage}"`);
-                } else {
-                  pushComment({
-                    apiKeyVOICEVOX: config.apiKeyVOICEVOX,
-                    newMessage,
-                    speed: config.speed,
-                    tabId: config.tabId,
-                    speakerId: getEffectiveSpeakerId(),
-                  });
-                }
+                pushComment({
+                  apiKeyVOICEVOX: config.apiKeyVOICEVOX,
+                  newMessage,
+                  speed: config.speed,
+                  tabId: config.tabId,
+                  speakerId: getEffectiveSpeakerId(),
+                });
               }
             }
           }
-          const afterQueueSize = getState().commentQueue.length;
-          const addedCount = afterQueueSize - beforeQueueSize;
-          sendDebugInfo(`📥 YouTube新着コメント: ${addedCount}件追加（${data.items.length}件取得） | キュー: [音声生成待ち:${beforeQueueSize}→${afterQueueSize}, 再生待ち:${getState().audioQueue.length}] | 次回YouTubeコメント取得まで: ${getState().pollingIntervalMs}ms`);
         }
+        const afterQueueSize = getState().commentQueue.length;
+        const addedCount = afterQueueSize - beforeQueueSize;
+        sendDebugInfo(`📥 YouTube新着コメント: ${addedCount}件追加（${data.items.length}件取得） | キュー: [音声生成待ち:${beforeQueueSize}→${afterQueueSize}, 再生待ち:${getState().audioQueue.length}] | 次回YouTubeコメント取得まで: ${getState().pollingIntervalMs}ms`);
+      }
 
-        updateState({ nextPageToken: data.nextPageToken || null });
-        updateBadge();
-        evaluateAutoCatchUp();
-        evaluateRushMode();
-        scheduleNextProcessing();
-      })
-      .catch((error: Error & { isRateLimit?: boolean }) => {
-        if (error instanceof LiveChatEndedError) {
-          // 配信終了検出: 自動停止
-          sendDebugInfo('ライブ配信が終了しました。読み上げを停止します。');
-          sendStatus('idle', 'ライブ配信が終了しました');
-          stopAll();
-          return;
-        }
+      updateState({ nextPageToken: data.nextPageToken || null });
+      updateBadge();
+      evaluateAutoCatchUp();
+      evaluateRushMode();
+      scheduleNextProcessing();
+    } catch (err) {
+      const error = err as Error & { isRateLimit?: boolean };
 
-        const state = getState();
-        updateState({ consecutiveErrors: state.consecutiveErrors + 1 });
+      if (error instanceof LiveChatEndedError) {
+        // 配信終了検出: 自動停止
+        sendDebugInfo('ライブ配信が終了しました。読み上げを停止します。');
+        sendStatus('idle', 'ライブ配信が終了しました');
+        stopAll();
+        return;
+      }
 
-        if (error.isRateLimit) {
-          // レート制限: 即座にUIに表示（閾値チェック不要）
-          // eslint-disable-next-line no-console
-          console.warn('YouTube APIレート制限:', error.message);
-          sendDebugInfo(
-            `🚫 レート制限検知（${state.consecutiveErrors + 1}回連続）- ポーリング間隔を延長`
-          );
-          updateState({ isYouTubeRateLimited: true });
+      const currentState = getState();
+      updateState({ consecutiveErrors: currentState.consecutiveErrors + 1 });
+
+      if (error.isRateLimit) {
+        // レート制限: 即座にUIに表示（閾値チェック不要）
+        // eslint-disable-next-line no-console
+        console.warn('YouTube APIレート制限:', error.message);
+        sendDebugInfo(
+          `🚫 レート制限検知（${currentState.consecutiveErrors + 1}回連続）- ポーリング間隔を延長`
+        );
+        updateState({ isYouTubeRateLimited: true });
+        sendStatus('error', error.message);
+      } else {
+        // eslint-disable-next-line no-console
+        console.error('YouTube APIリクエストエラー:', error);
+        sendDebugInfo(
+          `YouTube APIエラー（${currentState.consecutiveErrors + 1}回連続）: ${error.message}`
+        );
+        // 通常エラーは一定回数以上連続の場合のみUIに表示
+        if (getState().consecutiveErrors >= ERROR_THRESHOLD_FOR_STATUS) {
           sendStatus('error', error.message);
-        } else {
-          // eslint-disable-next-line no-console
-          console.error('YouTube APIリクエストエラー:', error);
-          sendDebugInfo(
-            `YouTube APIエラー（${state.consecutiveErrors + 1}回連続）: ${error.message}`
-          );
-          // 通常エラーは一定回数以上連続の場合のみUIに表示
-          if (getState().consecutiveErrors >= ERROR_THRESHOLD_FOR_STATUS) {
-            sendStatus('error', error.message);
-          }
         }
-      })
-      .finally(() => {
-        const state = getState();
-        // 配信終了で stopAll が呼ばれた場合はポーリングしない
-        if (!state.liveChatId || !state.activeTabId) return;
-
+      }
+    } finally {
+      const finalState = getState();
+      // 配信終了で stopAll が呼ばれた場合はポーリングしない
+      if (finalState.liveChatId && finalState.activeTabId) {
         // 成功時: YouTube API推奨間隔を使用
         // エラー時: 推奨間隔を基準に指数バックオフ（最大60秒）
         let delay: number;
-        if (state.consecutiveErrors === 0) {
-          delay = state.pollingIntervalMs;
+        if (finalState.consecutiveErrors === 0) {
+          delay = finalState.pollingIntervalMs;
         } else {
-          delay = Math.min(state.pollingIntervalMs * Math.pow(2, state.consecutiveErrors), 60000);
+          delay = Math.min(finalState.pollingIntervalMs * Math.pow(2, finalState.consecutiveErrors), 60000);
         }
         updateState({ intervalId: setTimeout(checkNewComments, delay) });
-      });
+      }
+    }
   };
 
   // コメント処理開始
