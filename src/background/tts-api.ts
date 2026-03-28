@@ -451,12 +451,13 @@ async function fetchLocalVoiceVox(text: string, speakerId?: string): Promise<str
   return `data:audio/wav;base64,${base64}`;
 }
 
-// ArrayBuffer → Base64 文字列変換
+// ArrayBuffer → Base64 文字列変換（チャンク分割で O(n) に最適化）
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
-  let binary = '';
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
+  const chunks: string[] = [];
+  const chunkSize = 8192;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    chunks.push(String.fromCharCode(...bytes.subarray(i, i + chunkSize)));
   }
-  return btoa(binary);
+  return btoa(chunks.join(''));
 }
