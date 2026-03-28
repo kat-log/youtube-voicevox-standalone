@@ -187,6 +187,14 @@ function render(): void {
   }
 }
 
+// --- Expand / Collapse all ---
+document.getElementById('expandAllBtn')!.addEventListener('click', () => {
+  document.querySelectorAll<HTMLElement>('.char-group:not(.hidden)').forEach((g) => g.classList.add('open'));
+});
+document.getElementById('collapseAllBtn')!.addEventListener('click', () => {
+  document.querySelectorAll<HTMLElement>('.char-group').forEach((g) => g.classList.remove('open'));
+});
+
 // --- Search filter ---
 document.getElementById('searchInput')!.addEventListener('input', () => {
   const query = (document.getElementById('searchInput') as HTMLInputElement).value.toLowerCase();

@@ -85,6 +85,19 @@
       .toolbar-search:focus {
         border-color: var(--accent-color);
       }
+      .toolbar-btn {
+        padding: 6px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background: var(--bg-section);
+        color: var(--text-primary);
+        cursor: pointer;
+        font-size: 13px;
+        white-space: nowrap;
+      }
+      .toolbar-btn:hover {
+        background: var(--border-color);
+      }
 
       /* Character group */
       .char-group {
@@ -206,6 +219,8 @@
       </div>
 
       <div class="toolbar">
+        <button type="button" class="toolbar-btn" id="expandAllBtn">全て開く</button>
+        <button type="button" class="toolbar-btn" id="collapseAllBtn">全て閉じる</button>
         <input type="text" class="toolbar-search" id="searchInput" placeholder="話者を検索..." />
       </div>
 
