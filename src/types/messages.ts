@@ -1,4 +1,4 @@
-import type { ExtensionStatus, TtsEngine, RushModeConfig, AutoCatchUpConfig } from './state';
+import type { ExtensionStatus, TtsEngine, RushModeConfig, AutoCatchUpConfig, ParallelPlaybackConfig, ParallelSpeakersConfig } from './state';
 import type { FilterConfig } from '@/background/comment-filter';
 
 // Popup → Background メッセージ
@@ -10,7 +10,7 @@ export interface StartMessage {
   volume: number;
   latestOnlyMode: boolean;
   latestOnlyCount: number;
-  speakerId: string;
+  speakerId?: string;
 }
 
 export interface StopMessage {
@@ -90,11 +90,44 @@ export interface UpdateAutoCatchUpConfigMessage {
 export interface UpdateRandomSpeakerConfigMessage {
   action: 'updateRandomSpeakerConfig';
   enabled: boolean;
+  engine?: TtsEngine;
+  host?: string;
 }
 
-// Content → Background メッセージ
+export interface UpdateRandomSpeakerAllowedIdsMessage {
+  action: 'updateRandomSpeakerAllowedIds';
+  ids: string[] | null;
+  engine: TtsEngine;
+}
+
+export interface GetSpeakerListMessage {
+  action: 'getSpeakerList';
+}
+
+export interface UpdateParallelPlaybackConfigMessage {
+  action: 'updateParallelPlaybackConfig';
+  parallelPlaybackConfig: ParallelPlaybackConfig;
+}
+
+export interface UpdateParallelSpeakersConfigMessage {
+  action: 'updateParallelSpeakersConfig';
+  parallelSpeakersConfig: ParallelSpeakersConfig;
+}
+
+export interface UpdateParallelSynthesisMessage {
+  action: 'updateParallelSynthesis';
+  count: number;
+}
+
+// Content / Offscreen → Background メッセージ
 export interface AudioEndedMessage {
   action: 'audioEnded';
+  audioId?: string;
+}
+
+export interface AudioErrorMessage {
+  action: 'audioError';
+  audioId?: string;
 }
 
 // Background → Popup メッセージ
@@ -128,6 +161,34 @@ export interface UpdateStatsMessage {
 export interface GetStatsMessage {
   action: 'getStats';
 }
+
+// Background が受信するメッセージの Discriminated Union
+export type IncomingMessage =
+  | StartMessage
+  | StopMessage
+  | UpdateLatestOnlyModeMessage
+  | UpdateSpeakerMessage
+  | GetStatusMessage
+  | AudioEndedMessage
+  | AudioErrorMessage
+  | SetVolumeMessage
+  | SetSpeedMessage
+  | UpdateQueueSpeedMessage
+  | UpdateFilterConfigMessage
+  | UpdateRushModeConfigMessage
+  | UpdateAutoCatchUpConfigMessage
+  | UpdateParallelPlaybackConfigMessage
+  | UpdateParallelSpeakersConfigMessage
+  | UpdateRandomSpeakerConfigMessage
+  | UpdateRandomSpeakerAllowedIdsMessage
+  | GetSpeakerListMessage
+  | UpdateTtsEngineMessage
+  | UpdateBrowserVoiceMessage
+  | UpdateLocalVoicevoxHostMessage
+  | UpdateParallelSynthesisMessage
+  | TestLocalVoicevoxMessage
+  | GetLocalSpeakersMessage
+  | GetStatsMessage;
 
 // メッセージレスポンス
 export interface MessageResponse {
