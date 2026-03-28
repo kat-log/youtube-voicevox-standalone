@@ -1,4 +1,4 @@
-import { setRangeFill, updateDualRangeFill, formatMaxLength, sliderToMaxLength } from './slider-utils';
+import { updateDualRangeFill, formatMaxLength, sliderToMaxLength } from './slider-utils';
 
 function sendFilterConfig(): void {
   const enabled = (document.getElementById('filterEnabled') as HTMLInputElement).checked;

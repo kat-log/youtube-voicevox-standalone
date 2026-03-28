@@ -29,7 +29,6 @@ export function startPolling(config: {
     sendStatus('error', 'YouTube APIレート制限（403）');
     sendDebugInfo('🚫 前回のセッションでYouTube APIレート制限が検知されています');
   }
-  let latestMessage = '';
   let isFirstFetch = true;
 
   const getEffectiveSpeakerId = (): string | undefined =>
@@ -136,8 +135,6 @@ export function startPolling(config: {
             }
 
             updateState({ latestTimestamp: timestamp });
-            latestMessage = rawMessage;
-
             let newMessage =
               filterConfig.enabled && filterConfig.stripEmoji
                 ? stripEmojis(rawMessage)
@@ -194,7 +191,6 @@ export function startPolling(config: {
 
             if (!currentState.latestTimestamp || timestamp > currentState.latestTimestamp) {
               updateState({ latestTimestamp: timestamp });
-              latestMessage = rawMessage;
               let newMessage =
                 filterConfig.enabled && filterConfig.stripEmoji
                   ? stripEmojis(rawMessage)
