@@ -197,6 +197,30 @@
         <button type="button" id="openSpeakerConfig" class="small-btn">話者を設定</button>
         <span id="round-robin-speaker-summary" class="info-text"></span>
       </div>
+
+      <div class="toggle-container">
+        <label class="toggle-switch" aria-label="テスト再生">
+          <input type="checkbox" id="testSpeakEnabled" role="switch" aria-checked="false" />
+          <span class="slider round"></span>
+        </label>
+        <span>テスト再生</span>
+      </div>
+      <div id="test-speak-options" class="toggle-detail" style="display: none">
+        <label for="testSpeakText">テキスト:</label>
+        <input
+          type="text"
+          id="testSpeakText"
+          value="こんにちは、テスト再生です"
+          placeholder="読み上げたいテキストを入力"
+        />
+        <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px">
+          <button id="testSpeakBtn" class="small-btn" aria-label="テスト再生を実行">再生</button>
+          <span id="testSpeakStatus" class="info-text" style="margin: 0"></span>
+        </div>
+        <button type="button" id="openTestSpeakPage" class="small-btn" style="margin-top: 8px">
+          全話者でプレビュー
+        </button>
+      </div>
     </div>
 
     <!-- 基本設定セクション -->
@@ -239,22 +263,6 @@
       <p id="speed-unsupported-info" class="info-text" style="display: none">
         この音声では再生速度の変更はサポートされていません（等速固定）
       </p>
-    </div>
-
-    <!-- テスト再生セクション -->
-    <div class="section">
-      <div class="section-title">テスト再生</div>
-      <label for="testSpeakText">テキスト:</label>
-      <input
-        type="text"
-        id="testSpeakText"
-        value="こんにちは、テスト再生です"
-        placeholder="読み上げたいテキストを入力"
-      />
-      <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px">
-        <button id="testSpeakBtn" class="small-btn" aria-label="テスト再生を実行">再生</button>
-        <span id="testSpeakStatus" class="info-text" style="margin: 0"></span>
-      </div>
     </div>
 
     <!-- おもしろ設定セクション -->

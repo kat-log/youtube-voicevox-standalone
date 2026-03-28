@@ -1,8 +1,22 @@
 export function initTestSpeakConfig(): void {
+  const toggle = document.getElementById('testSpeakEnabled') as HTMLInputElement;
+  const options = document.getElementById('test-speak-options')!;
   const btn = document.getElementById('testSpeakBtn') as HTMLButtonElement;
   const input = document.getElementById('testSpeakText') as HTMLInputElement;
   const statusEl = document.getElementById('testSpeakStatus')!;
 
+  // トグル表示/非表示
+  toggle.addEventListener('change', () => {
+    toggle.setAttribute('aria-checked', String(toggle.checked));
+    options.style.display = toggle.checked ? 'block' : 'none';
+  });
+
+  // 全話者でプレビューページを開く
+  document.getElementById('openTestSpeakPage')?.addEventListener('click', () => {
+    chrome.tabs.create({ url: chrome.runtime.getURL('test-speak/test-speak.html') });
+  });
+
+  // テスト再生ボタン
   btn.addEventListener('click', () => {
     const text = input.value.trim();
     if (!text) {
@@ -36,8 +50,10 @@ export function initTestSpeakConfig(): void {
 
   // background からのテスト再生進捗を受信
   chrome.runtime.onMessage.addListener(
-    (request: { action: string; status?: string; message?: string }) => {
+    (request: { action: string; status?: string; message?: string; speakerId?: string }) => {
       if (request.action !== 'testSpeakResult') return;
+      // speakerId がある場合は専用ページ向けなので無視
+      if (request.speakerId !== undefined) return;
 
       switch (request.status) {
         case 'generating':

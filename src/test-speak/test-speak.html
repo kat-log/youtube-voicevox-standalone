@@ -2,7 +2,7 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <title>Hello Voice - ランダム話者の選択</title>
+    <title>Hello Voice - テスト再生</title>
     <style>
       body {
         width: 100% !important;
@@ -32,6 +32,37 @@
         font-size: 13px;
       }
 
+      /* Test text form */
+      .test-text-form {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        background: var(--bg-primary);
+        padding: 12px 0;
+        margin-bottom: 12px;
+        border-bottom: 1px solid var(--border-color);
+      }
+      .test-text-form label {
+        display: block;
+        font-weight: 600;
+        font-size: 13px;
+        margin-bottom: 6px;
+      }
+      .test-text-input {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background: var(--bg-section);
+        color: var(--text-primary);
+        font-size: 14px;
+        box-sizing: border-box;
+        outline: none;
+      }
+      .test-text-input:focus {
+        border-color: var(--accent-color);
+      }
+
       /* Toolbar */
       .toolbar {
         display: flex;
@@ -39,19 +70,6 @@
         gap: 8px;
         margin-bottom: 16px;
         align-items: center;
-      }
-      .toolbar-btn {
-        padding: 6px 12px;
-        border: 1px solid var(--border-color);
-        border-radius: 6px;
-        background: var(--bg-section);
-        color: var(--text-primary);
-        cursor: pointer;
-        font-size: 13px;
-        white-space: nowrap;
-      }
-      .toolbar-btn:hover {
-        background: var(--border-color);
       }
       .toolbar-search {
         flex: 1;
@@ -66,34 +84,6 @@
       }
       .toolbar-search:focus {
         border-color: var(--accent-color);
-      }
-      .toolbar-select {
-        padding: 6px 10px;
-        border: 1px solid var(--border-color);
-        border-radius: 6px;
-        background: var(--bg-section);
-        color: var(--text-primary);
-        font-size: 13px;
-        outline: none;
-      }
-
-      /* Style batch action */
-      .style-batch {
-        display: none;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 12px;
-        margin-bottom: 12px;
-        background: var(--bg-section);
-        border: 1px solid var(--accent-color);
-        border-radius: 8px;
-        font-size: 13px;
-      }
-      .style-batch.visible {
-        display: flex;
-      }
-      .style-batch-label {
-        flex: 1;
       }
 
       /* Character group */
@@ -118,12 +108,6 @@
       .char-header:hover {
         background: var(--border-color);
       }
-      .char-checkbox {
-        width: 16px;
-        height: 16px;
-        accent-color: var(--accent-color);
-        cursor: pointer;
-      }
       .char-name {
         flex: 1;
         font-weight: 600;
@@ -143,7 +127,7 @@
       }
       .char-styles {
         display: none;
-        padding: 4px 14px 8px 42px;
+        padding: 4px 14px 8px 14px;
       }
       .char-group.open .char-styles {
         display: block;
@@ -157,43 +141,16 @@
       .style-item.hidden {
         display: none;
       }
-      .style-checkbox {
-        width: 15px;
-        height: 15px;
-        accent-color: var(--accent-color);
-        cursor: pointer;
-      }
       .style-label {
         font-size: 13px;
-        cursor: pointer;
+        flex: 1;
       }
       .style-id {
         font-size: 11px;
         color: var(--text-secondary);
-        margin-left: auto;
       }
 
-      /* Test speak */
-      .test-text-form label {
-        display: block;
-        font-weight: 600;
-        font-size: 13px;
-        margin-bottom: 6px;
-      }
-      .test-text-input {
-        width: 100%;
-        padding: 8px 12px;
-        border: 1px solid var(--border-color);
-        border-radius: 6px;
-        background: var(--bg-section);
-        color: var(--text-primary);
-        font-size: 14px;
-        box-sizing: border-box;
-        outline: none;
-      }
-      .test-text-input:focus {
-        border-color: var(--accent-color);
-      }
+      /* Play button & status */
       .play-btn {
         padding: 4px 10px;
         border: 1px solid var(--border-color);
@@ -217,26 +174,6 @@
         min-width: 50px;
       }
 
-      /* Footer */
-      .page-footer {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 16px;
-        padding: 12px 20px;
-        background: var(--bg-primary);
-        border-top: 1px solid var(--border-color);
-        z-index: 10;
-      }
-      .summary-text {
-        font-size: 13px;
-        color: var(--text-secondary);
-      }
-
       /* Loading */
       .loading {
         text-align: center;
@@ -253,27 +190,12 @@
   <body>
     <div class="page-container">
       <div class="page-header">
-        <h1>ランダム話者の選択</h1>
+        <h1>テスト再生</h1>
         <p id="engine-label">読み込み中...</p>
       </div>
 
-      <div class="toolbar">
-        <button type="button" class="toolbar-btn" id="selectAllBtn">すべて選択</button>
-        <button type="button" class="toolbar-btn" id="deselectAllBtn">すべて解除</button>
-        <input type="text" class="toolbar-search" id="searchInput" placeholder="話者を検索..." />
-        <select class="toolbar-select" id="styleFilter">
-          <option value="">全スタイル</option>
-        </select>
-      </div>
-
-      <div class="style-batch" id="styleBatch">
-        <span class="style-batch-label" id="styleBatchLabel"></span>
-        <button type="button" class="toolbar-btn" id="styleBatchSelect">選択</button>
-        <button type="button" class="toolbar-btn" id="styleBatchDeselect">解除</button>
-      </div>
-
-      <div class="test-text-form" style="margin-bottom: 12px;">
-        <label for="testText">テスト再生テキスト:</label>
+      <div class="test-text-form">
+        <label for="testText">読み上げテキスト:</label>
         <input
           type="text"
           class="test-text-input"
@@ -283,15 +205,15 @@
         />
       </div>
 
+      <div class="toolbar">
+        <input type="text" class="toolbar-search" id="searchInput" placeholder="話者を検索..." />
+      </div>
+
       <div id="speakerList">
         <div class="loading" id="loadingMsg">話者リストを取得中...</div>
       </div>
     </div>
 
-    <div class="page-footer">
-      <span class="summary-text" id="summaryText">0 / 0 話者選択中</span>
-    </div>
-
-    <script type="module" src="./speaker-selection.ts"></script>
+    <script type="module" src="./test-speak.ts"></script>
   </body>
 </html>
