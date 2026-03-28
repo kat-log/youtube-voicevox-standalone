@@ -35,6 +35,11 @@ vi.mock('./state', () => ({
 }));
 
 vi.mock('./messaging', () => ({
+  sendLog: () => {},
+  logDebug: () => {},
+  logInfo: () => {},
+  logWarn: () => {},
+  logError: () => {},
   sendDebugInfo: () => {},
   formatQueueState: () => '',
   sendStatus: () => {},

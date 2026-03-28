@@ -1,5 +1,5 @@
 import type { TtsEngine } from '@/types/state';
-import { sendDebugInfo } from './messaging';
+import { logWarn } from './messaging';
 import { fetchWithTimeout } from '@/utils/fetchWithTimeout';
 
 let randomSpeakerEnabled = false;
@@ -129,7 +129,7 @@ function fetchApiSpeakerIds(): void {
     .catch((err) => {
       // eslint-disable-next-line no-console
       console.error('Failed to fetch speaker list for random mode:', err);
-      sendDebugInfo(`⚠ ランダム話者リスト取得失敗: ${(err as Error).message}`);
+      logWarn(`⚠ ランダム話者リスト取得失敗: ${(err as Error).message}`);
     })
     .finally(() => {
       isFetching = false;
@@ -151,7 +151,7 @@ function fetchLocalSpeakerIds(): void {
     .catch((err) => {
       // eslint-disable-next-line no-console
       console.error('Failed to fetch local speaker list for random mode:', err);
-      sendDebugInfo(`⚠ ローカル話者リスト取得失敗: ${(err as Error).message}`);
+      logWarn(`⚠ ローカル話者リスト取得失敗: ${(err as Error).message}`);
     })
     .finally(() => {
       isFetching = false;

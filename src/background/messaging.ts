@@ -1,4 +1,5 @@
 import type { ExtensionStatus } from '@/types/state';
+import type { LogLevel, LogEntry } from '@/types/messages';
 import { getState, updateState } from './state';
 
 // ステータス情報をポップアップに送信する関数
@@ -25,30 +26,65 @@ export function formatQueueState(): string {
 
 const MAX_LOG_ENTRIES = 500;
 
-// デバッグ情報をポップアップに送信し、session storage に永続化する関数
-export function sendDebugInfo(message: string): void {
-  const timestamp = new Date().toLocaleTimeString();
-  const entry = `[${timestamp}] ${message}`;
+// レベル別eviction: debug→info順に古いものから削除し、warn/errorを長く保持
+function trimLogs(logs: LogEntry[]): void {
+  let excess = logs.length - MAX_LOG_ENTRIES;
+  // Pass 1: debug を古い順に削除
+  for (let i = 0; i < logs.length && excess > 0; ) {
+    if (logs[i].level === 'debug') {
+      logs.splice(i, 1);
+      excess--;
+    } else {
+      i++;
+    }
+  }
+  // Pass 2: info を古い順に削除
+  for (let i = 0; i < logs.length && excess > 0; ) {
+    if (logs[i].level === 'info') {
+      logs.splice(i, 1);
+      excess--;
+    } else {
+      i++;
+    }
+  }
+  // Pass 3: それでも超過なら先頭から削除
+  if (logs.length > MAX_LOG_ENTRIES) {
+    logs.splice(0, logs.length - MAX_LOG_ENTRIES);
+  }
+}
 
-  // session storage に追記
+// レベル付きログを session storage に保存し、ポップアップ・ログページにブロードキャスト
+export function sendLog(level: LogLevel, message: string): void {
+  const timestamp = new Date().toLocaleTimeString();
+  const entry: LogEntry = { timestamp, level, message };
+
   chrome.storage.session.get({ debugLogs: [] }, (data) => {
-    const logs: string[] = data.debugLogs;
+    const logs: LogEntry[] = data.debugLogs;
     logs.push(entry);
     if (logs.length > MAX_LOG_ENTRIES) {
-      logs.splice(0, logs.length - MAX_LOG_ENTRIES);
+      trimLogs(logs);
     }
     chrome.storage.session.set({ debugLogs: logs });
   });
 
-  // リアルタイム配信（ポップアップ・ログページが開いていれば受信）
   chrome.runtime
     .sendMessage({
       action: 'debugInfo',
+      level,
       message,
       timestamp,
     })
     .catch(() => {});
 }
+
+// 便利関数
+export function logDebug(message: string): void { sendLog('debug', message); }
+export function logInfo(message: string): void { sendLog('info', message); }
+export function logWarn(message: string): void { sendLog('warn', message); }
+export function logError(message: string): void { sendLog('error', message); }
+
+// 後方互換エイリアス
+export function sendDebugInfo(message: string): void { sendLog('info', message); }
 
 // session storage のログをクリアする関数
 export function clearDebugLogs(): void {

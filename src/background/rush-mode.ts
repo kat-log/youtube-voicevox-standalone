@@ -1,6 +1,6 @@
 import type { RushModeConfig } from '@/types/state';
 import { getState, updateState } from './state';
-import { sendStatus, sendDebugInfo } from './messaging';
+import { sendStatus, logInfo } from './messaging';
 
 const DEFAULT_RUSH_CONFIG: RushModeConfig = {
   enabled: false,
@@ -37,7 +37,7 @@ export function evaluateRushMode(): void {
   if (!rushConfig.enabled) {
     if (state.isRushActive) {
       updateState({ isRushActive: false });
-      sendDebugInfo('ラッシュモード: 設定無効のため解除');
+      logInfo('ラッシュモード: 設定無効のため解除');
       sendStatus(state.currentStatus);
     }
     return;
@@ -48,7 +48,7 @@ export function evaluateRushMode(): void {
 
   if (!wasActive && pending >= rushConfig.activateThreshold) {
     updateState({ isRushActive: true });
-    sendDebugInfo(
+    logInfo(
       `ラッシュモード ON: 待機${pending}件 >= しきい値${rushConfig.activateThreshold} | 速度${rushConfig.rushSpeed}x`
     );
     sendStatus(getState().currentStatus);
@@ -57,7 +57,7 @@ export function evaluateRushMode(): void {
 
   if (wasActive && pending <= rushConfig.returnThreshold) {
     updateState({ isRushActive: false });
-    sendDebugInfo(
+    logInfo(
       `ラッシュモード OFF: 待機${pending}件 <= 復帰しきい値${rushConfig.returnThreshold}`
     );
     sendStatus(getState().currentStatus);

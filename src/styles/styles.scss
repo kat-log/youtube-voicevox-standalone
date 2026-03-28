@@ -549,6 +549,14 @@ select:focus {
   min-width: 100%;
 }
 
+/* ログレベル別カラー（ポップアップ・ログページ共通） */
+.log-debug { color: #94a3b8; }
+.log-warn { color: #d97706; }
+.log-error { color: #dc2626; font-weight: bold; }
+.dark-mode .log-debug { color: #64748b; }
+.dark-mode .log-warn { color: #fbbf24; }
+.dark-mode .log-error { color: #f87171; }
+
 /* ボタンコンテナ */
 .button-container {
   display: flex;

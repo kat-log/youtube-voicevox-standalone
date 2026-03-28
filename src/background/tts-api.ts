@@ -1,7 +1,7 @@
 import type { TTSQuestSynthesisResponse, TTSQuestAudioStatusResponse } from '@/types/api-responses';
 import type { TtsEngine, AudioQueueItem } from '@/types/state';
 import { getState, shiftComment, pushAudio, unshiftComment } from './state';
-import { sendDebugInfo, formatQueueState, sendStatus } from './messaging';
+import { logDebug, logWarn, logError, formatQueueState, sendStatus } from './messaging';
 import { playNextAudio, updateBadge } from './audio-player';
 import { evaluateRushMode } from './rush-mode';
 import { getEffectiveMaxConcurrent, getParallelSpeakerId, resetParallelSlotCounter } from './parallel-playback';
@@ -49,7 +49,7 @@ export function scheduleNextProcessing(): void {
   // in-flight の合成リクエスト + pending バッファも考慮
   const totalPending = state.audioQueue.length + ttsProcessingCount + pendingResults.size;
   if (totalPending >= effectiveThreshold) {
-    sendDebugInfo(`⏳ audioQueue満杯 (${totalPending}/${effectiveThreshold}) - TTS先読み一時停止`);
+    logDebug(`⏳ audioQueue満杯 (${totalPending}/${effectiveThreshold}) - TTS先読み一時停止`);
     return;
   }
 
@@ -128,7 +128,7 @@ export function processCommentQueue(): void {
       ? (getRandomSpeakerId() || browserVoiceName)
       : browserVoiceName;
     const voiceLabel = effectiveVoice || 'default';
-    sendDebugInfo(`ブラウザTTS [${voiceLabel}]：${comment.newMessage} | キュー: ${formatQueueState()}`);
+    logDebug(`ブラウザTTS [${voiceLabel}]：${comment.newMessage} | キュー: ${formatQueueState()}`);
     pushAudio({
       type: 'speech',
       text: comment.newMessage,
@@ -146,7 +146,7 @@ export function processCommentQueue(): void {
     ttsProcessingCount++;
     const seq = nextSynthesisSeq++;
     const localSpeakerLabel = getSpeakerName(comment.speakerId);
-    sendDebugInfo(`ローカルVOICEVOX REQUEST [${localSpeakerLabel}] (seq=${seq}, 並列=${ttsProcessingCount}/${maxParallelSynthesis})：${comment.newMessage} | キュー: ${formatQueueState()}`);
+    logDebug(`ローカルVOICEVOX REQUEST [${localSpeakerLabel}] (seq=${seq}, 並列=${ttsProcessingCount}/${maxParallelSynthesis})：${comment.newMessage} | キュー: ${formatQueueState()}`);
     synthesizeLocalWithRetry(comment, 0, seq);
     // 並列スロットが空いていれば即座に次のコメントもスケジュール
     scheduleNextProcessing();
@@ -156,7 +156,7 @@ export function processCommentQueue(): void {
   // VOICEVOX: TTS Quest APIで音声合成（常にシリアル）
   ttsProcessingCount++;
   const speakerLabel = getSpeakerName(comment.speakerId);
-  sendDebugInfo(`VOICEVOX REQUEST [${speakerLabel}]：${comment.newMessage} | キュー: ${formatQueueState()}`);
+  logDebug(`VOICEVOX REQUEST [${speakerLabel}]：${comment.newMessage} | キュー: ${formatQueueState()}`);
   synthesizeWithRetry(comment, 0);
 }
 
@@ -184,7 +184,7 @@ function synthesizeWithRetry(
       if (getState().sessionId !== currentSession) return;
       ttsProcessingCount--;
 
-      sendDebugInfo(`VOICEVOX RESPONSE：${audioUrl} | キュー: ${formatQueueState()}`);
+      logDebug(`VOICEVOX RESPONSE：${audioUrl} | キュー: ${formatQueueState()}`);
 
       pushAudio({ type: 'url', url: audioUrl });
       updateBadge();
@@ -200,12 +200,12 @@ function synthesizeWithRetry(
       if (error instanceof RateLimitError) {
         ttsProcessingCount--;
         sendStatus('rate-limited');
-        sendDebugInfo(
+        logWarn(
           `⚠ レート制限: ${error.retryAfter}秒待機 | text="${newMessage.substring(0, 20)}..." | キュー: ${formatQueueState()}`
         );
 
         if (rateLimitRetryCount >= MAX_RATE_LIMIT_RETRIES) {
-          sendDebugInfo(
+          logError(
             `レート制限リトライ上限到達（${MAX_RATE_LIMIT_RETRIES}回）— コメントをスキップ: "${newMessage.substring(0, 20)}..."`
           );
           sendStatus('error', 'レート制限リトライ上限 — 生成スキップ');
@@ -220,7 +220,7 @@ function synthesizeWithRetry(
           // 別のコメントが処理中なら、このコメントをキューの先頭に戻す
           if (ttsProcessingCount > 0) {
             unshiftComment(comment);
-            sendDebugInfo(
+            logWarn(
               `レート制限リトライ: 別コメント処理中のためキュー先頭に再挿入: "${newMessage.substring(0, 20)}..."`
             );
             return;
@@ -235,13 +235,13 @@ function synthesizeWithRetry(
 
       // 通常のエラー処理
       if (retryCount < maxRetries) {
-        sendDebugInfo(`VOICEVOXリトライ（${retryCount + 1}/${maxRetries}）: ${newMessage}`);
+        logWarn(`VOICEVOXリトライ（${retryCount + 1}/${maxRetries}）: ${newMessage}`);
         // リトライ中は ttsProcessingCount を維持
         setTimeout(() => synthesizeWithRetry(comment, retryCount + 1, rateLimitRetryCount), 1000);
       } else {
         // リトライ上限到達: コメントをスキップ
         ttsProcessingCount--;
-        sendDebugInfo(`VOICEVOXエラー（スキップ）: ${error.message} - "${newMessage}"`);
+        logError(`VOICEVOXエラー（スキップ）: ${error.message} - "${newMessage}"`);
         sendStatus('error', `${error.message} — 生成スキップ`);
         // eslint-disable-next-line no-console
         console.error('VoiceVoxエラー:', error);
@@ -298,7 +298,7 @@ async function waitForAudio(
   maxAttempts = 30,
   intervalMs = 1000
 ): Promise<void> {
-  sendDebugInfo(`音声生成ポーリング開始（最大${maxAttempts}秒）`);
+  logDebug(`音声生成ポーリング開始（最大${maxAttempts}秒）`);
   for (let i = 0; i < maxAttempts; i++) {
     await new Promise((r) => setTimeout(r, intervalMs));
     try {
@@ -337,7 +337,7 @@ function synthesizeLocalWithRetry(
       if (getState().sessionId !== currentSession) return;
       ttsProcessingCount--;
 
-      sendDebugInfo(`ローカルVOICEVOX RESPONSE (seq=${seq})：data URI (${dataUri.length} chars) | キュー: ${formatQueueState()}`);
+      logDebug(`ローカルVOICEVOX RESPONSE (seq=${seq})：data URI (${dataUri.length} chars) | キュー: ${formatQueueState()}`);
 
       insertInOrder(seq, { type: 'url', url: dataUri });
       updateBadge();
@@ -350,13 +350,13 @@ function synthesizeLocalWithRetry(
       if (getState().sessionId !== currentSession) return;
 
       if (retryCount < maxRetries) {
-        sendDebugInfo(`ローカルVOICEVOXリトライ（${retryCount + 1}/${maxRetries}）: ${newMessage}`);
+        logWarn(`ローカルVOICEVOXリトライ（${retryCount + 1}/${maxRetries}）: ${newMessage}`);
         setTimeout(() => synthesizeLocalWithRetry(comment, retryCount + 1, seq), 1000);
       } else {
         ttsProcessingCount--;
         // エラー時はスキップして順序を進める
         insertInOrder(seq, null);
-        sendDebugInfo(`ローカルVOICEVOXエラー（スキップ）: ${error.message} - "${newMessage}"`);
+        logError(`ローカルVOICEVOXエラー（スキップ）: ${error.message} - "${newMessage}"`);
         sendStatus('error', `${error.message} — 生成スキップ`);
         // eslint-disable-next-line no-console
         console.error('ローカルVOICEVOXエラー:', error);

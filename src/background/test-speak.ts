@@ -1,6 +1,6 @@
 import { getTtsEngine, getBrowserVoice, fetchVoiceVox, fetchLocalVoiceVox } from './tts-api';
 import { ensureOffscreenDocument, correctTtsRate, isRateSupportedVoice } from './audio-player';
-import { sendDebugInfo } from './messaging';
+import { logInfo, logDebug, logWarn, logError } from './messaging';
 
 let testAudioCounter = 0;
 
@@ -24,7 +24,7 @@ export async function handleTestSpeak(
   const engine = getTtsEngine();
   const audioId = generateTestAudioId();
 
-  sendDebugInfo(`テスト再生開始 [${engine}]: "${text}"`);
+  logInfo(`テスト再生開始 [${engine}]: "${text}"`);
   sendTestSpeakResult('generating');
 
   try {
@@ -59,13 +59,13 @@ export async function handleTestSpeak(
                 event.type === 'cancelled'
               ) {
                 sendTestSpeakResult('done');
-                sendDebugInfo(`テスト再生完了 [${audioId}]`);
+                logDebug(`テスト再生完了 [${audioId}]`);
               } else if (event.type === 'error') {
                 sendTestSpeakResult(
                   'error',
                   event.errorMessage || '不明なエラー',
                 );
-                sendDebugInfo(
+                logWarn(
                   `テスト再生エラー [${audioId}]: ${event.errorMessage}`,
                 );
               }
@@ -99,7 +99,7 @@ export async function handleTestSpeak(
       );
     }
 
-    sendDebugInfo(`テスト再生 音声取得完了 [${audioId}]`);
+    logDebug(`テスト再生 音声取得完了 [${audioId}]`);
     sendTestSpeakResult('playing');
 
     await ensureOffscreenDocument();
@@ -116,7 +116,7 @@ export async function handleTestSpeak(
   } catch (error) {
     const msg = error instanceof Error ? error.message : '不明なエラー';
     sendTestSpeakResult('error', msg);
-    sendDebugInfo(`テスト再生エラー [${audioId}]: ${msg}`);
+    logError(`テスト再生エラー [${audioId}]: ${msg}`);
     return { status: 'error', message: msg };
   }
 }
@@ -129,11 +129,11 @@ export function isTestAudioId(audioId: string): boolean {
 /** テスト再生の音声終了ハンドラ（カウンター・バッジ更新なし） */
 export function handleTestAudioEnded(audioId: string): void {
   sendTestSpeakResult('done');
-  sendDebugInfo(`テスト再生完了 [${audioId}]`);
+  logDebug(`テスト再生完了 [${audioId}]`);
 }
 
 /** テスト再生の音声エラーハンドラ */
 export function handleTestAudioError(audioId: string): void {
   sendTestSpeakResult('error', 'Offscreen再生エラー');
-  sendDebugInfo(`テスト再生エラー [${audioId}]`);
+  logWarn(`テスト再生エラー [${audioId}]`);
 }
