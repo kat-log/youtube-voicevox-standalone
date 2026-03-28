@@ -48,6 +48,34 @@
       .dark-mode .log-separator {
         color: #64B5F6;
       }
+      /* ログレベルフィルタバー */
+      .log-filter-bar {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 12px;
+      }
+      .log-filter-btn {
+        font-size: 11px;
+        padding: 3px 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: var(--bg-section);
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: background 0.15s, color 0.15s;
+      }
+      .log-filter-btn.active {
+        background: var(--accent-color);
+        color: white;
+        border-color: var(--accent-color);
+      }
+      /* ログレベル別カラー */
+      .log-debug { color: #94a3b8; }
+      .log-warn { color: #d97706; }
+      .log-error { color: #dc2626; font-weight: bold; }
+      .dark-mode .log-debug { color: #64748b; }
+      .dark-mode .log-warn { color: #fbbf24; }
+      .dark-mode .log-error { color: #f87171; }
     </style>
   </head>
   <body>
@@ -55,6 +83,12 @@
       <div class="log-header">
         <h1>拡張機能 ログ一覧</h1>
         <button id="clear-log" class="small-btn">ログをクリア</button>
+      </div>
+      <div class="log-filter-bar" id="log-filter-bar">
+        <button class="log-filter-btn" data-level="debug">DEBUG</button>
+        <button class="log-filter-btn active" data-level="info">INFO</button>
+        <button class="log-filter-btn active" data-level="warn">WARN</button>
+        <button class="log-filter-btn active" data-level="error">ERROR</button>
       </div>
       <div class="log-content" id="log-content-area">
         <pre id="debug"></pre>

@@ -3,7 +3,7 @@ import { extractVideoId, fetchLiveChatId } from './youtube-api';
 import { handleAudioEnded, handleAudioEndedById, initPlaybackSettings, updateCachedVolume, updateCachedSpeed } from './audio-player';
 import { initTabListeners } from './tab-manager';
 import { startPolling, stopAll } from './lifecycle';
-import { sendStatus, sendDebugInfo, updateErrorMessage } from './messaging';
+import { sendStatus, logInfo, logWarn, updateErrorMessage } from './messaging';
 import { loadFilterConfigFromStorage, setFilterConfig } from './comment-filter';
 import { setTtsEngine, setBrowserVoice, setLocalVoicevoxHost, setMaxParallelSynthesis } from './tts-api';
 import { loadRushConfigFromStorage, setRushConfig, evaluateRushMode } from './rush-mode';
@@ -108,7 +108,7 @@ async function handleStart(config: {
     const liveChatId = await fetchLiveChatId(videoId, config.apiKeyYoutube);
 
     // デバッグ情報をポップアップに表示
-    sendDebugInfo(`Video ID: ${videoId}\nIs Live: true\nLiveChatId: ${liveChatId}`);
+    logInfo(`Video ID: ${videoId}\nIs Live: true\nLiveChatId: ${liveChatId}`);
 
     updateState({ liveChatId });
 
@@ -223,7 +223,7 @@ chrome.runtime.onMessage.addListener(
         } else {
           // eslint-disable-next-line no-console
           console.error('Offscreen audio再生エラー', audioId);
-          sendDebugInfo(`⚠ Offscreen audio再生エラー [${audioId || '不明'}]`);
+          logWarn(`⚠ Offscreen audio再生エラー [${audioId || '不明'}]`);
           if (audioId) {
             handleAudioEndedById(audioId);
           } else {
@@ -435,7 +435,7 @@ chrome.runtime.onMessage.addListener(
         const action = (_ as { action: string }).action;
         // eslint-disable-next-line no-console
         console.warn(`Unknown message action: ${action}`);
-        sendDebugInfo(`⚠ 未知のメッセージaction: ${action}`);
+        logWarn(`⚠ 未知のメッセージaction: ${action}`);
         sendResponse({ status: 'error', message: `Unknown action: ${action}` });
         return true;
       }
@@ -492,7 +492,7 @@ chrome.commands.onCommand.addListener(async (command) => {
     }
   } else if (command === 'stop-reading') {
     stopAll();
-    sendDebugInfo('ショートカットキーによる停止コマンドを実行しました');
+    logInfo('ショートカットキーによる停止コマンドを実行しました');
     updateErrorMessage('停止しました');
   }
 });

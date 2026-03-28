@@ -14,6 +14,11 @@ import {
 } from './auto-catchup';
 
 vi.mock('./messaging', () => ({
+  sendLog: vi.fn(),
+  logDebug: vi.fn(),
+  logInfo: vi.fn(),
+  logWarn: vi.fn(),
+  logError: vi.fn(),
   sendDebugInfo: vi.fn(),
   formatQueueState: vi.fn(() => '[音声生成待ち:0, 再生待ち:0, 再生中:0]'),
 }));

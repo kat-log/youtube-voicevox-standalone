@@ -1,6 +1,6 @@
 import type { AutoCatchUpConfig } from '@/types/state';
 import { getState, clearCommentQueue, clearAudioQueue, pushComment } from './state';
-import { sendDebugInfo, formatQueueState } from './messaging';
+import { logInfo, formatQueueState } from './messaging';
 
 const DEFAULT_AUTO_CATCHUP_CONFIG: AutoCatchUpConfig = {
   enabled: false,
@@ -53,7 +53,7 @@ export function evaluateAutoCatchUp(): boolean {
   }
 
   const discarded = pending - keptComments.length;
-  sendDebugInfo(
+  logInfo(
     `🔄 最新N件取得モード自動発動: ${discarded}件破棄, ${keptComments.length}件保持（しきい値${config.threshold}件） | キュー: ${formatQueueState()}`
   );
 

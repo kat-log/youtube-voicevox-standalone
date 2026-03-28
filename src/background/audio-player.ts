@@ -9,7 +9,7 @@ import {
   clearPlayingTimeout,
   clearAllPlayingTimeouts,
 } from './state';
-import { sendStatus, sendDebugInfo, formatQueueState } from './messaging';
+import { sendStatus, logDebug, logWarn, formatQueueState } from './messaging';
 import { scheduleNextProcessing } from './tts-api';
 import { evaluateRushMode, resolveEffectiveSpeed } from './rush-mode';
 import { getEffectiveMaxConcurrent } from './parallel-playback';
@@ -78,14 +78,14 @@ export function playNextAudio(): void {
     lastQueueEmptyLogged = false;
 
     sendStatus('listening');
-    sendDebugInfo(`▶ 再生開始 [${audioId}] | 同時再生: ${getState().playingCount}/${maxConcurrent} | キュー: ${formatQueueState()}`);
+    logDebug(`▶ 再生開始 [${audioId}] | 同時再生: ${getState().playingCount}/${maxConcurrent} | キュー: ${formatQueueState()}`);
 
     // フェイルセーフタイマー（30秒で強制リセット）
     const timeout = setTimeout(() => {
       if (getState().playingCount > 0) {
         // eslint-disable-next-line no-console
         console.warn(`音声再生タイムアウト [${audioId}]: playingCountをデクリメント`);
-        sendDebugInfo(`⚠ 音声再生タイムアウト [${audioId}]: 30秒経過で強制終了`);
+        logWarn(`⚠ 音声再生タイムアウト [${audioId}]: 30秒経過で強制終了`);
         handleAudioEndedById(audioId);
       }
     }, 30000);
@@ -107,11 +107,11 @@ export function playNextAudio(): void {
   const state = getState();
   if (state.playingCount === 0 && state.audioQueue.length === 0) {
     if (state.commentQueue.length === 0 && !lastQueueEmptyLogged) {
-      sendDebugInfo(`⏸ キュー空 - 次のポーリング待ち`);
+      logDebug(`⏸ キュー空 - 次のポーリング待ち`);
       sendStatus('waiting');
       lastQueueEmptyLogged = true;
     } else if (state.commentQueue.length > 0) {
-      sendDebugInfo(`⏳ audioQueue空 / commentキュー: ${state.commentQueue.length}件 - TTS生成待ち`);
+      logDebug(`⏳ audioQueue空 / commentキュー: ${state.commentQueue.length}件 - TTS生成待ち`);
     }
   }
 }
@@ -146,7 +146,7 @@ async function playAudioViaOffscreen(audioId: string, audioUrl: string, volume: 
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Offscreen再生エラー:', (error as Error).message);
-    sendDebugInfo(`⚠ Offscreen再生エラー: ${(error as Error).message}`);
+    logWarn(`⚠ Offscreen再生エラー: ${(error as Error).message}`);
     handlePlaybackErrorById(audioId);
   }
 }
@@ -176,7 +176,7 @@ function playSpeechSynthesis(
           if (event.type === 'error') {
             // eslint-disable-next-line no-console
             console.error('chrome.tts error:', event.errorMessage);
-            sendDebugInfo(`⚠ ブラウザTTSエラー: ${event.errorMessage || '不明'}`);
+            logWarn(`⚠ ブラウザTTSエラー: ${event.errorMessage || '不明'}`);
           }
           handleAudioEndedById(audioId);
         }
@@ -186,7 +186,7 @@ function playSpeechSynthesis(
       if (chrome.runtime.lastError) {
         // eslint-disable-next-line no-console
         console.error('chrome.tts.speakエラー:', chrome.runtime.lastError.message);
-        sendDebugInfo(`⚠ ブラウザTTS再生エラー: ${chrome.runtime.lastError.message}`);
+        logWarn(`⚠ ブラウザTTS再生エラー: ${chrome.runtime.lastError.message}`);
         handlePlaybackErrorById(audioId);
       }
     }
@@ -197,7 +197,7 @@ function playSpeechSynthesis(
 function handlePlaybackErrorById(audioId: string): void {
   clearPlayingTimeout(audioId);
   decrementPlayingCount();
-  sendDebugInfo(`⚠ 再生エラー回復 [${audioId}] | 同時再生: ${getState().playingCount} | キュー: ${formatQueueState()}`);
+  logWarn(`⚠ 再生エラー回復 [${audioId}] | 同時再生: ${getState().playingCount} | キュー: ${formatQueueState()}`);
   playNextAudio();
   scheduleNextProcessing();
 }
@@ -230,7 +230,7 @@ export function handleAudioEndedById(audioId: string): void {
   incrementCumulativeCount();
   updateBadge();
   evaluateRushMode();
-  sendDebugInfo(`■ 再生終了 [${audioId}] | 同時再生: ${state.playingCount} | キュー: ${formatQueueState()}`);
+  logDebug(`■ 再生終了 [${audioId}] | 同時再生: ${state.playingCount} | キュー: ${formatQueueState()}`);
 
   // キュー状態に応じたステータス設定
   if (state.playingCount === 0 && state.audioQueue.length === 0 && state.commentQueue.length === 0) {

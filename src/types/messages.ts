@@ -1,6 +1,16 @@
 import type { ExtensionStatus, TtsEngine, RushModeConfig, AutoCatchUpConfig, ParallelPlaybackConfig, ParallelSpeakersConfig } from './state';
 import type { FilterConfig } from '@/background/comment-filter';
 
+// ログレベル
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+
+// session storage に保存するログエントリ
+export interface LogEntry {
+  timestamp: string;
+  level: LogLevel;
+  message: string;
+}
+
 // Popup → Background メッセージ
 export interface StartMessage {
   action: 'start';
@@ -147,6 +157,7 @@ export interface UpdateErrorMessage {
 
 export interface DebugInfoMessage {
   action: 'debugInfo';
+  level: LogLevel;
   message: string;
   timestamp?: string;
 }

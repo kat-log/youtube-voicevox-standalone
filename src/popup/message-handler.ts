@@ -17,6 +17,7 @@ export function initMessageHandler(): void {
   chrome.runtime.onMessage.addListener(function (request: {
     action: string;
     status?: string;
+    level?: string;
     message?: string;
     timestamp?: string;
     commentCount?: number;
@@ -57,8 +58,11 @@ export function initMessageHandler(): void {
           accordionContent.scrollTop + 50;
 
         const timestamp = request.timestamp || new Date().toLocaleTimeString();
-        const newMessage = `[${timestamp}] ${request.message}\n`;
-        debugElement.insertAdjacentText('beforeend', newMessage);
+        const level = request.level || 'info';
+        const span = document.createElement('span');
+        span.className = `log-${level}`;
+        span.textContent = `[${timestamp}] ${request.message}\n`;
+        debugElement.appendChild(span);
 
         // 一番下にいた場合のみ、新しいログに合わせて一番下までスクロールさせる
         if (isScrolledToBottom) {

@@ -16,6 +16,11 @@ import {
 
 vi.mock('./messaging', () => ({
   sendStatus: vi.fn(),
+  sendLog: vi.fn(),
+  logDebug: vi.fn(),
+  logInfo: vi.fn(),
+  logWarn: vi.fn(),
+  logError: vi.fn(),
   sendDebugInfo: vi.fn(),
 }));
 
