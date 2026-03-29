@@ -162,9 +162,14 @@ function startPolling(videoId: string, initial: ExtractedContinuation): void {
   });
 }
 
-chrome.runtime.onMessage.addListener((msg: IncomingMessage, _sender, sendResponse) => {
-  if (msg.action !== 'startStandalonePolling') return;
+// 再注入時の二重登録を防ぐ
+if (!(window as Window & { __standaloneListenerRegistered?: boolean }).__standaloneListenerRegistered) {
+  (window as Window & { __standaloneListenerRegistered?: boolean }).__standaloneListenerRegistered = true;
 
-  startPolling(msg.videoId, msg.initialContinuation);
-  sendResponse({ status: 'success' });
-});
+  chrome.runtime.onMessage.addListener((msg: IncomingMessage, _sender, sendResponse) => {
+    if (msg.action !== 'startStandalonePolling') return;
+
+    startPolling(msg.videoId, msg.initialContinuation);
+    sendResponse({ status: 'success' });
+  });
+}

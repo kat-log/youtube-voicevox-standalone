@@ -1,7 +1,7 @@
 import { getState, updateState, pushComment } from './state';
 import { getFilterConfig, shouldFilter, stripEmojis, removeNgWords } from './comment-filter';
 import { isRandomSpeakerEnabled, getRandomSpeakerId } from './random-speaker';
-import { logInfo, logWarn } from './messaging';
+import { logInfo } from './messaging';
 import { updateBadge } from './audio-player';
 import { evaluateAutoCatchUp, getAutoCatchUpConfig } from './auto-catchup';
 import { evaluateRushMode } from './rush-mode';
@@ -93,20 +93,6 @@ async function fetchInitialContinuation(videoId: string): Promise<ExtractedConti
   };
 }
 
-async function sendMessageWithInjectionFallback(
-  tabId: number,
-  message: { action: string; videoId: string; initialContinuation: ExtractedContinuation }
-): Promise<void> {
-  try {
-    await chrome.tabs.sendMessage(tabId, message);
-  } catch (err) {
-    logWarn(`スタンドアロン: Content Script が未注入。動的注入を試みます: ${(err as Error).message}`);
-    await chrome.scripting.executeScript({ target: { tabId }, files: ['standaloneChat.js'] });
-    await new Promise<void>((resolve) => setTimeout(resolve, 200));
-    await chrome.tabs.sendMessage(tabId, message);
-  }
-}
-
 export async function startPollingInternal(config: StandaloneConfig & { videoId: string }): Promise<void> {
   standaloneConfig = {
     apiKeyVOICEVOX: config.apiKeyVOICEVOX,
@@ -117,7 +103,10 @@ export async function startPollingInternal(config: StandaloneConfig & { videoId:
 
   const initialContinuation = await fetchInitialContinuation(config.videoId);
 
-  await sendMessageWithInjectionFallback(config.tabId, {
+  // Content Script を事前注入（冪等: 再注入しても二重登録しない）
+  await chrome.scripting.executeScript({ target: { tabId: config.tabId }, files: ['standaloneChat.js'] });
+
+  await chrome.tabs.sendMessage(config.tabId, {
     action: 'startStandalonePolling',
     videoId: config.videoId,
     initialContinuation,
