@@ -31,7 +31,7 @@ let nextSynthesisSeq = 0;       // コメント取り出し時に付番
 let nextAudioInsertSeq = 0;     // audioQueue に挿入すべき次の番号
 const pendingResults = new Map<number, AudioQueueItem | null>();
 
-const PREFETCH_THRESHOLD = 5;   // audioQueue にこの数まで先読み
+const PREFETCH_THRESHOLD = 25;  // audioQueue にこの数まで先読み
 const MIN_PROCESS_DELAY = 500;  // TTS API呼出の最低間隔(ms)
 const MIN_PARALLEL_DELAY = 50;  // 並列合成時の最低間隔(ms)
 const MAX_RATE_LIMIT_RETRIES = 5; // レート制限リトライ上限
