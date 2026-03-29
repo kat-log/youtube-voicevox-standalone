@@ -44,7 +44,7 @@ export function initPlaybackControls(): void {
     const speakerId = engine === 'local-voicevox'
       ? (document.getElementById('localSpeaker') as HTMLSelectElement).value
       : (document.getElementById('speaker') as HTMLSelectElement).value;
-    const chatMode = ((document.getElementById('chatMode') as HTMLSelectElement)?.value ?? 'official') as 'official' | 'standalone';
+    const chatMode = ((document.getElementById('chatMode') as HTMLSelectElement)?.value ?? 'standalone') as 'official' | 'standalone';
 
     if (chatMode === 'official' && !apiKeyYoutube) {
       document.getElementById('error')!.textContent = 'YouTube APIキーが設定されていません。';

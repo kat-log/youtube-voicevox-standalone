@@ -76,7 +76,7 @@ async function handleStart(config: {
   speakerId?: string;
   chatMode?: 'official' | 'standalone';
 }): Promise<{ status: string; message?: string; details?: string }> {
-  if ((config.chatMode ?? 'official') === 'official' && !config.apiKeyYoutube) {
+  if ((config.chatMode ?? 'standalone') === 'official' && !config.apiKeyYoutube) {
     return { status: 'error', message: 'YouTube APIキーが入力されていません。' };
   }
 
@@ -105,7 +105,7 @@ async function handleStart(config: {
   }
 
   // スタンドアロンモード: 内部 API を使用（fetchLiveChatId 不要）
-  if ((config.chatMode ?? 'official') === 'standalone') {
+  if ((config.chatMode ?? 'standalone') === 'standalone') {
     try {
       updateState({ liveChatId: 'standalone' });
       await startPollingInternal({
@@ -504,7 +504,7 @@ chrome.commands.onCommand.addListener(async (command) => {
       'chatMode',
     ]);
 
-    const mode = (data.chatMode ?? 'official') as 'official' | 'standalone';
+    const mode = (data.chatMode ?? 'standalone') as 'official' | 'standalone';
 
     if (mode === 'official' && !data.apiKeyYoutube) {
       // eslint-disable-next-line no-console
@@ -513,7 +513,7 @@ chrome.commands.onCommand.addListener(async (command) => {
       return;
     }
 
-    const shortcutEngine = data.ttsEngine || 'voicevox';
+    const shortcutEngine = data.ttsEngine || 'local-voicevox';
     const shortcutSpeakerId = shortcutEngine === 'local-voicevox'
       ? data.localSpeakerId
       : data.speakerId;
