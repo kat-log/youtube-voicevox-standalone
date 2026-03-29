@@ -1,4 +1,4 @@
-import { getState, updateState } from './state';
+import { getState, updateState, incrementSessionId } from './state';
 import { extractVideoId, fetchLiveChatId } from './youtube-api';
 import { handleAudioEnded, handleAudioEndedById, initPlaybackSettings, updateCachedVolume, updateCachedSpeed } from './audio-player';
 import { initTabListeners } from './tab-manager';
@@ -6,7 +6,7 @@ import { startPolling, stopAll } from './lifecycle';
 import { startPollingInternal, processStandaloneMessages, getStandaloneConfig } from './lifecycle-internal';
 import { sendStatus, logInfo, logWarn, updateErrorMessage } from './messaging';
 import { loadFilterConfigFromStorage, setFilterConfig } from './comment-filter';
-import { setTtsEngine, setBrowserVoice, setLocalVoicevoxHost, setMaxParallelSynthesis } from './tts-api';
+import { setTtsEngine, setBrowserVoice, setLocalVoicevoxHost, setMaxParallelSynthesis, cancelScheduledProcessing } from './tts-api';
 import { loadRushConfigFromStorage, setRushConfig, evaluateRushMode } from './rush-mode';
 import { loadAutoCatchUpConfigFromStorage, setAutoCatchUpConfig } from './auto-catchup';
 import { loadParallelPlaybackConfigFromStorage, setParallelPlaybackConfig, loadParallelSpeakersConfigFromStorage, setParallelSpeakersConfig } from './parallel-playback';
@@ -368,6 +368,8 @@ chrome.runtime.onMessage.addListener(
 
       case 'updateTtsEngine': {
         const engine = request.engine;
+        cancelScheduledProcessing();
+        incrementSessionId();
         setTtsEngine(engine);
         setSpeakerNameEngine(engine);
         chrome.storage.sync.set({ ttsEngine: engine });

@@ -17,7 +17,7 @@ export class RateLimitError extends Error {
 }
 
 // TTSエンジン設定（モジュールレベルキャッシュ）
-let currentEngine: TtsEngine = 'voicevox';
+let currentEngine: TtsEngine = 'local-voicevox';
 let browserVoiceName: string | null = null;
 let localVoicevoxHost: string = 'http://localhost:50021';
 
