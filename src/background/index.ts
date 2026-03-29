@@ -3,6 +3,7 @@ import { extractVideoId, fetchLiveChatId } from './youtube-api';
 import { handleAudioEnded, handleAudioEndedById, initPlaybackSettings, updateCachedVolume, updateCachedSpeed } from './audio-player';
 import { initTabListeners } from './tab-manager';
 import { startPolling, stopAll } from './lifecycle';
+import { startPollingInternal, processStandaloneMessages, getStandaloneConfig } from './lifecycle-internal';
 import { sendStatus, logInfo, logWarn, updateErrorMessage } from './messaging';
 import { loadFilterConfigFromStorage, setFilterConfig } from './comment-filter';
 import { setTtsEngine, setBrowserVoice, setLocalVoicevoxHost, setMaxParallelSynthesis } from './tts-api';
@@ -73,8 +74,9 @@ async function handleStart(config: {
   latestOnlyMode: boolean;
   latestOnlyCount: number;
   speakerId?: string;
+  chatMode?: 'official' | 'standalone';
 }): Promise<{ status: string; message?: string; details?: string }> {
-  if (!config.apiKeyYoutube) {
+  if ((config.chatMode ?? 'official') === 'official' && !config.apiKeyYoutube) {
     return { status: 'error', message: 'YouTube APIキーが入力されていません。' };
   }
 
@@ -100,6 +102,26 @@ async function handleStart(config: {
   const videoId = extractVideoId(tabs[0].url || '');
   if (!videoId) {
     return { status: 'error', message: 'ビデオIDが見つかりません。' };
+  }
+
+  // スタンドアロンモード: 内部 API を使用（fetchLiveChatId 不要）
+  if ((config.chatMode ?? 'official') === 'standalone') {
+    try {
+      updateState({ liveChatId: 'standalone' });
+      await startPollingInternal({
+        apiKeyVOICEVOX: config.apiKeyVOICEVOX,
+        speed: config.speed,
+        tabId: tabs[0].id!,
+        speakerId: config.speakerId,
+        videoId,
+      });
+      sendStatus('listening');
+      return { status: 'success' };
+    } catch (error) {
+      const err = error as Error;
+      sendStatus('error', err.message);
+      return { status: 'error', message: err.message };
+    }
   }
 
   sendStatus('connecting');
@@ -151,6 +173,7 @@ chrome.runtime.onMessage.addListener(
           latestOnlyMode: request.latestOnlyMode,
           latestOnlyCount: request.latestOnlyCount || 3,
           speakerId: request.speakerId,
+          chatMode: request.chatMode,
         })
           .then((response) => sendResponse(response))
           .catch((error: Error) => sendResponse({ status: 'error', message: error.message }));
@@ -429,6 +452,28 @@ chrome.runtime.onMessage.addListener(
         return true;
       }
 
+      case 'standaloneChatMessages': {
+        const config = getStandaloneConfig();
+        if (config) processStandaloneMessages(request.messages, config);
+        sendResponse({ status: 'success' });
+        return true;
+      }
+
+      case 'standaloneEnded': {
+        logInfo('スタンドアロンモード: チャットストリームが終了しました');
+        sendStatus('idle', 'ライブ配信が終了しました');
+        stopAll();
+        sendResponse({ status: 'success' });
+        return true;
+      }
+
+      case 'standaloneError': {
+        logWarn(`スタンドアロンAPIエラー: ${request.message}`);
+        sendStatus('error', request.message);
+        sendResponse({ status: 'success' });
+        return true;
+      }
+
       default: {
         // ランタイムでは未知の action が届く可能性がある
         const _: never = request;
@@ -456,9 +501,12 @@ chrome.commands.onCommand.addListener(async (command) => {
       'speakerId',
       'ttsEngine',
       'localSpeakerId',
+      'chatMode',
     ]);
 
-    if (!data.apiKeyYoutube) {
+    const mode = (data.chatMode ?? 'official') as 'official' | 'standalone';
+
+    if (mode === 'official' && !data.apiKeyYoutube) {
       // eslint-disable-next-line no-console
       console.error('YouTube APIキーが設定されていません。');
       updateErrorMessage('YouTube APIキーが設定されていません。');
@@ -473,11 +521,12 @@ chrome.commands.onCommand.addListener(async (command) => {
     try {
       const result = await handleStart({
         apiKeyVOICEVOX: data.apiKeyVOICEVOX || '',
-        apiKeyYoutube: data.apiKeyYoutube,
+        apiKeyYoutube: data.apiKeyYoutube || '',
         speed: data.speed || 1.0,
         latestOnlyMode: data.latestOnlyMode || false,
         latestOnlyCount: data.latestOnlyCount || 3,
         speakerId: shortcutSpeakerId,
+        chatMode: mode,
       });
 
       if (result.status === 'error') {

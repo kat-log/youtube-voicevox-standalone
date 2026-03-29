@@ -12,7 +12,7 @@
 
 @mixin slider-thumb-hover {
   transform: scale(1.2);
-  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.35);
+  box-shadow: 0 2px 8px rgba(234, 88, 12, 0.35);
 }
 
 @mixin slider-thumb-focus {
@@ -27,9 +27,9 @@
   --text-primary: #0f172a;
   --text-secondary: #64748b;
   --border-color: #e2e8f0;
-  --accent-color: #059669;
-  --accent-hover: #047857;
-  --accent-light: #d1fae5;
+  --accent-color: #ea580c;
+  --accent-hover: #c2410c;
+  --accent-light: #ffedd5;
   --error-color: #dc2626;
   --warning-color: #f59e0b;
   --warning-light: #fef3c7;
@@ -780,9 +780,9 @@ body.dark-mode {
   --text-primary: #f1f5f9;
   --text-secondary: #94a3b8;
   --border-color: #334155;
-  --accent-color: #10b981;
-  --accent-hover: #34d399;
-  --accent-light: #064e3b;
+  --accent-color: #fb923c;
+  --accent-hover: #fdba74;
+  --accent-light: #7c2d12;
   --error-color: #f87171;
   --warning-color: #f59e0b;
   --warning-light: #78350f;

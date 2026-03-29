@@ -21,6 +21,7 @@ export interface StartMessage {
   latestOnlyMode: boolean;
   latestOnlyCount: number;
   speakerId?: string;
+  chatMode?: 'official' | 'standalone';
 }
 
 export interface StopMessage {
@@ -129,6 +130,32 @@ export interface UpdateParallelSynthesisMessage {
   count: number;
 }
 
+// Background → Content Script メッセージ（スタンドアロンモード）
+export interface StartStandalonePollingMessage {
+  action: 'startStandalonePolling';
+  videoId: string;
+  initialContinuation: { continuation: string; timeoutMs: number; isReplay: boolean };
+}
+
+export interface StopStandalonePollingMessage {
+  action: 'stopStandalonePolling';
+}
+
+// Content Script → Background メッセージ（スタンドアロンモード）
+export interface StandaloneChatMessagesMessage {
+  action: 'standaloneChatMessages';
+  messages: Array<{ text: string; timestampMs: number }>;
+}
+
+export interface StandaloneEndedMessage {
+  action: 'standaloneEnded';
+}
+
+export interface StandaloneErrorMessage {
+  action: 'standaloneError';
+  message: string;
+}
+
 // Content / Offscreen → Background メッセージ
 export interface AudioEndedMessage {
   action: 'audioEnded';
@@ -215,7 +242,10 @@ export type IncomingMessage =
   | TestLocalVoicevoxMessage
   | GetLocalSpeakersMessage
   | TestSpeakMessage
-  | GetStatsMessage;
+  | GetStatsMessage
+  | StandaloneChatMessagesMessage
+  | StandaloneEndedMessage
+  | StandaloneErrorMessage;
 
 // メッセージレスポンス
 export interface MessageResponse {

@@ -1,9 +1,16 @@
 {
   "manifest_version": 3,
-  "name": "YouTubeライブチャットずんだもんボイス読み上げ",
+  "name": "ずんだもんボイス読み上げ（APIキー不要版）",
   "version": "8.43",
-  "permissions": ["activeTab", "storage", "offscreen", "tts"],
+  "permissions": ["activeTab", "scripting", "storage", "offscreen", "tts"],
   "host_permissions": ["https://www.youtube.com/*", "https://*.tts.quest/*", "http://localhost/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["standaloneChat.js"],
+      "run_at": "document_idle"
+    }
+  ],
   "action": {
     "default_popup": "popup/popup.html",
     "default_icon": "./icon/youtube-live-comment-icon.png",

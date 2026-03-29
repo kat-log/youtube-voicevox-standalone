@@ -53,7 +53,8 @@
       "Bash(npm test:*)",
       "Bash(npx vitest run:*)",
       "Bash(grep:*)",
-      "Bash(node --version:*)"
+      "Bash(node --version:*)",
+      "Bash(node_modules/.bin/tsc --noEmit)"
     ],
     "deny": []
   }

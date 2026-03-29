@@ -103,11 +103,14 @@ export function updateStatusUI(status: string, message: string, count: number, q
 export function validateInputs(): void {
   const apiKeyInput = document.getElementById('apiKeyYoutube') as HTMLInputElement;
   const apiKey = apiKeyInput.value.trim();
+  const chatModeSelect = document.getElementById('chatMode') as HTMLSelectElement | null;
+  const chatMode = chatModeSelect?.value ?? 'official';
+  const requiresApiKey = chatMode !== 'standalone';
   const playBtn = document.getElementById('play') as HTMLButtonElement;
   const playTooltip = document.getElementById('play-tooltip') as HTMLElement;
   const banner = document.getElementById('api-key-banner');
 
-  if (!apiKey) {
+  if (requiresApiKey && !apiKey) {
     playBtn.disabled = true;
     playTooltip.textContent = 'YouTube APIキーを設定してください';
     playTooltip.style.color = '#ef4444'; // Error color
@@ -126,6 +129,6 @@ export function validateInputs(): void {
   // YouTubeクォータリンクの表示/非表示
   const youtubeQuotaLink = document.getElementById('youtube-quota-link');
   if (youtubeQuotaLink) {
-    youtubeQuotaLink.style.display = apiKey ? 'block' : 'none';
+    youtubeQuotaLink.style.display = (requiresApiKey && apiKey) ? 'block' : 'none';
   }
 }

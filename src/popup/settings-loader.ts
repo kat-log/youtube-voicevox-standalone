@@ -28,6 +28,7 @@ export function loadSettings(): void {
       'parallelSpeakersConfig',
       'randomSpeakerEnabled',
       'parallelSynthesisCount',
+      'chatMode',
     ],
     function (data) {
       (document.getElementById('apiKeyVOICEVOX') as HTMLInputElement).value =
@@ -263,6 +264,14 @@ export function loadSettings(): void {
           // 持ち回り制トグルの有効/無効を設定
           updateParallelSpeakersToggleState();
         });
+
+      // chatMode 設定を復元
+      const chatMode = (data.chatMode as 'official' | 'standalone') ?? 'official';
+      (document.getElementById('chatMode') as HTMLSelectElement).value = chatMode;
+      const ytSection = document.getElementById('youtube-api-key-section');
+      const saInfo = document.getElementById('standalone-mode-info');
+      if (ytSection) ytSection.style.display = chatMode === 'standalone' ? 'none' : 'block';
+      if (saInfo) saInfo.style.display = chatMode === 'standalone' ? 'block' : 'none';
 
       // OSに応じてツールチップのテキストを更新
       updateShortcutTooltips();
