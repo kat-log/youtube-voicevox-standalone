@@ -26,7 +26,7 @@ chrome.storage.sync.get(['darkMode'], (data) => {
 
 // --- Init ---
 chrome.storage.sync.get(['ttsEngine', 'localVoicevoxHost'], (data) => {
-  currentEngine = (data.ttsEngine as TtsEngine) || 'voicevox';
+  currentEngine = (data.ttsEngine as TtsEngine) || 'local-voicevox';
   const host = data.localVoicevoxHost || 'http://localhost:50021';
 
   const engineLabel = document.getElementById('engine-label')!;

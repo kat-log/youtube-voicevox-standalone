@@ -513,7 +513,7 @@ chrome.commands.onCommand.addListener(async (command) => {
       return;
     }
 
-    const shortcutEngine = data.ttsEngine || 'voicevox';
+    const shortcutEngine = data.ttsEngine || 'local-voicevox';
     const shortcutSpeakerId = shortcutEngine === 'local-voicevox'
       ? data.localSpeakerId
       : data.speakerId;

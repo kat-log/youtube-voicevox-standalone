@@ -192,7 +192,7 @@ export function loadSettings(): void {
       setRangeFill(parallelAutoThresholdSlider);
 
       // TTSエンジン設定を復元
-      const engine = data.ttsEngine || 'voicevox';
+      const engine = data.ttsEngine || 'local-voicevox';
       (document.getElementById('ttsEngine') as HTMLSelectElement).value = engine;
       toggleEngineUI(engine);
 
