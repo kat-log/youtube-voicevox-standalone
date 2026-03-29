@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF8C00;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FF5500;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="bubble" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FFE8CC;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000033"/>
+    </filter>
+  </defs>
+
+  <!-- Background rounded square -->
+  <rect x="4" y="4" width="120" height="120" rx="24" ry="24" fill="url(#bg)" filter="url(#shadow)"/>
+
+  <!-- Inner highlight -->
+  <rect x="4" y="4" width="120" height="60" rx="24" ry="24" fill="#ffffff" opacity="0.08"/>
+
+  <!-- Speech bubble -->
+  <path d="M22 36 Q22 24 34 24 L94 24 Q106 24 106 36 L106 72 Q106 84 94 84 L62 84 L48 100 L48 84 L34 84 Q22 84 22 72 Z"
+        fill="url(#bubble)" filter="url(#shadow)"/>
+
+  <!-- Play button triangle -->
+  <polygon points="52,44 52,68 78,56" fill="url(#bg)" opacity="0.95"/>
+
+  <!-- Sound wave lines (right side) -->
+  <line x1="85" y1="50" x2="85" y2="62" stroke="#FF7000" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+  <line x1="91" y1="44" x2="91" y2="68" stroke="#FF7000" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+</svg>
