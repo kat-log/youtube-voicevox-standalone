@@ -82,6 +82,8 @@ function startPolling(videoId: string, initial: ExtractedContinuation): void {
   let stopped = false;
   let currentContinuation = initial.continuation;
   let currentTimeoutMs = initial.timeoutMs;
+  let consecutiveErrors = 0;
+  const MAX_RETRIES = 5;
   const endpoint = initial.isReplay
     ? '/youtubei/v1/live_chat/get_live_chat_replay'
     : '/youtubei/v1/live_chat/get_live_chat';
@@ -127,11 +129,21 @@ function startPolling(videoId: string, initial: ExtractedContinuation): void {
         return;
       }
 
+      consecutiveErrors = 0;
       currentContinuation = next.continuation;
       currentTimeoutMs = next.timeoutMs;
     } catch (err) {
+      consecutiveErrors++;
       const message = err instanceof Error ? err.message : String(err);
-      chrome.runtime.sendMessage({ action: 'standaloneError', message }).catch(() => {});
+      if (consecutiveErrors >= MAX_RETRIES) {
+        chrome.runtime.sendMessage({ action: 'standaloneError', message: `${message}（最大再試行回数(${MAX_RETRIES}回)に達しました）` }).catch(() => {});
+        return;
+      }
+      const backoffMs = Math.min(5000 * Math.pow(2, consecutiveErrors - 1), 60000);
+      chrome.runtime.sendMessage({ action: 'standaloneError', message: `${message}（${consecutiveErrors}回目のエラー、${backoffMs / 1000}秒後に再試行）` }).catch(() => {});
+      if (!stopped) {
+        setTimeout(() => { void loop(); }, backoffMs);
+      }
       return;
     }
 
