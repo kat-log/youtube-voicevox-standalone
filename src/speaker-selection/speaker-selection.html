@@ -40,31 +40,39 @@
         margin-bottom: 16px;
         align-items: center;
       }
-      .toolbar-btn {
-        padding: 6px 12px;
+      .toolbar button.toolbar-btn {
+        height: 30px;
+        padding: 0 12px;
+        margin: 0;
         border: 1px solid var(--border-color);
         border-radius: 6px;
         background: var(--bg-section);
         color: var(--text-primary);
         cursor: pointer;
         font-size: 13px;
+        font-weight: normal;
         white-space: nowrap;
+        box-sizing: border-box;
       }
-      .toolbar-btn:hover {
+      .toolbar button.toolbar-btn:hover {
         background: var(--border-color);
       }
-      .toolbar-search {
+      .toolbar input.toolbar-search {
+        height: 30px;
         flex: 1;
         min-width: 140px;
-        padding: 6px 10px;
+        padding: 0 10px;
+        margin: 0;
         border: 1px solid var(--border-color);
         border-radius: 6px;
         background: var(--bg-section);
         color: var(--text-primary);
         font-size: 13px;
         outline: none;
+        box-sizing: border-box;
+        width: auto;
       }
-      .toolbar-search:focus {
+      .toolbar input.toolbar-search:focus {
         border-color: var(--accent-color);
       }
       .toolbar-select {
@@ -260,8 +268,8 @@
       <div class="toolbar">
         <button type="button" class="toolbar-btn" id="selectAllBtn">すべて選択</button>
         <button type="button" class="toolbar-btn" id="deselectAllBtn">すべて解除</button>
-        <button type="button" class="toolbar-btn" id="expandAllBtn">全て開く</button>
-        <button type="button" class="toolbar-btn" id="collapseAllBtn">全て閉じる</button>
+        <button type="button" class="toolbar-btn" id="expandAllBtn">すべて開く</button>
+        <button type="button" class="toolbar-btn" id="collapseAllBtn">すべて閉じる</button>
         <input type="text" class="toolbar-search" id="searchInput" placeholder="話者を検索..." />
         <select class="toolbar-select" id="styleFilter">
           <option value="">全スタイル</option>
