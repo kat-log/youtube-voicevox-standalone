@@ -39,6 +39,16 @@
     <div class="section">
       <div class="section-title">初期設定</div>
 
+      <label for="chatMode">コメント取得方式:</label>
+      <select id="chatMode" name="chatMode">
+        <option value="official">YouTube Data API v3（公式・要APIキー）</option>
+        <option value="standalone">スタンドアロンモード（APIキー不要）</option>
+      </select>
+      <p id="standalone-mode-info" class="info-text" style="display: none">
+        YouTubeの内部APIを使用します。APIキーは不要ですが、YouTube側の仕様変更で動作しなくなる場合があります。
+      </p>
+
+      <div id="youtube-api-key-section">
       <div class="label-with-help">
         <label for="apiKeyYoutube">YouTube API Key:</label>
         <a
@@ -70,6 +80,7 @@
            target="_blank" rel="noopener noreferrer">
           Google Cloud Console でクォータを確認 &#8599;
         </a>
+      </div>
       </div>
 
       <label for="ttsEngine">読み上げエンジン:</label>

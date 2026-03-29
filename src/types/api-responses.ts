@@ -68,3 +68,9 @@ export interface TTSQuestKeyPointsResponse {
   isApiKeyValid: boolean;
   points: number;
 }
+
+// YouTubei 内部 API (非公式)
+export interface YouTubeiContinuationData {
+  continuation: string;
+  timeoutMs?: number;
+}
