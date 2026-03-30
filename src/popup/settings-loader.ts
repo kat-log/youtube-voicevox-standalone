@@ -266,12 +266,14 @@ export function loadSettings(): void {
         });
 
       // chatMode 設定を復元
-      const chatMode = (data.chatMode as 'official' | 'standalone') ?? 'standalone';
+      const chatMode = (data.chatMode as 'official' | 'standalone' | 'dom') ?? 'standalone';
       (document.getElementById('chatMode') as HTMLSelectElement).value = chatMode;
       const ytSection = document.getElementById('youtube-api-key-section');
       const saInfo = document.getElementById('standalone-mode-info');
-      if (ytSection) ytSection.style.display = chatMode === 'standalone' ? 'none' : 'block';
+      const domInfo = document.getElementById('dom-mode-info');
+      if (ytSection) ytSection.style.display = chatMode === 'official' ? 'block' : 'none';
       if (saInfo) saInfo.style.display = chatMode === 'standalone' ? 'block' : 'none';
+      if (domInfo) domInfo.style.display = chatMode === 'dom' ? 'block' : 'none';
 
       // OSに応じてツールチップのテキストを更新
       updateShortcutTooltips();

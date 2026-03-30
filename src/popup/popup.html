@@ -43,9 +43,13 @@
       <select id="chatMode" name="chatMode">
         <option value="official">YouTube Data API v3（公式・要APIキー）</option>
         <option value="standalone">スタンドアロンモード（APIキー不要）</option>
+        <option value="dom">スタンドアロンモード（ブラウザ画面取得）</option>
       </select>
       <p id="standalone-mode-info" class="info-text" style="display: none">
         YouTubeの内部APIを使用します。APIキーは不要ですが、YouTube側の仕様変更で動作しなくなる場合があります。
+      </p>
+      <p id="dom-mode-info" class="info-text" style="display: none">
+        YouTubeのチャット表示をそのまま取得します。アーカイブ配信のタイムライン同期が正確です。APIキー不要。YouTubeでチャット欄を表示した状態でご使用ください。
       </p>
 
       <div id="youtube-api-key-section">

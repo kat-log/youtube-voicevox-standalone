@@ -3,7 +3,7 @@ import { extractVideoId, fetchLiveChatId } from './youtube-api';
 import { handleAudioEnded, handleAudioEndedById, initPlaybackSettings, updateCachedVolume, updateCachedSpeed } from './audio-player';
 import { initTabListeners } from './tab-manager';
 import { startPolling, stopAll } from './lifecycle';
-import { startPollingInternal, processStandaloneMessages, getStandaloneConfig } from './lifecycle-internal';
+import { startPollingInternal, processStandaloneMessages, getStandaloneConfig, setStandaloneConfig } from './lifecycle-internal';
 import { sendStatus, logInfo, logWarn, updateErrorMessage } from './messaging';
 import { loadFilterConfigFromStorage, setFilterConfig } from './comment-filter';
 import { setTtsEngine, setBrowserVoice, setLocalVoicevoxHost, setMaxParallelSynthesis, cancelScheduledProcessing } from './tts-api';
@@ -74,7 +74,7 @@ async function handleStart(config: {
   latestOnlyMode: boolean;
   latestOnlyCount: number;
   speakerId?: string;
-  chatMode?: 'official' | 'standalone';
+  chatMode?: 'official' | 'standalone' | 'dom';
 }): Promise<{ status: string; message?: string; details?: string }> {
   if ((config.chatMode ?? 'standalone') === 'official' && !config.apiKeyYoutube) {
     return { status: 'error', message: 'YouTube APIキーが入力されていません。' };
@@ -102,6 +102,33 @@ async function handleStart(config: {
   const videoId = extractVideoId(tabs[0].url || '');
   if (!videoId) {
     return { status: 'error', message: 'ビデオIDが見つかりません。' };
+  }
+
+  // DOMモード: YouTube のチャット DOM を MutationObserver で監視（fetchLiveChatId 不要）
+  if (config.chatMode === 'dom') {
+    updateState({ liveChatId: 'dom' });
+    setStandaloneConfig({
+      apiKeyVOICEVOX: config.apiKeyVOICEVOX,
+      speed: config.speed,
+      tabId: tabs[0].id!,
+      speakerId: config.speakerId,
+    });
+    // storage にモードをセット（content script の onChanged で検知）
+    await chrome.storage.session.set({ chatMode: 'dom', domModeActive: true });
+    // live_chat iframe を含む全フレームに domChat.js を注入（既存タブ対応）
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: tabs[0].id!, allFrames: true },
+        files: ['domChat.js'],
+      });
+      logInfo(`DOMモード開始: tabId=${tabs[0].id}, videoId=${videoId} (全フレームに注入済み)`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      logWarn(`DOMモード: スクリプト注入エラー: ${msg} (storage onChanged にフォールバック)`);
+      logInfo(`DOMモード開始: tabId=${tabs[0].id}, videoId=${videoId}`);
+    }
+    sendStatus('listening');
+    return { status: 'success' };
   }
 
   // スタンドアロンモード: 内部 API を使用（fetchLiveChatId 不要）
@@ -476,6 +503,26 @@ chrome.runtime.onMessage.addListener(
         return true;
       }
 
+      case 'domChatMessages': {
+        const config = getStandaloneConfig();
+        if (config) processStandaloneMessages(request.messages, config);
+        sendResponse({ status: 'success' });
+        return true;
+      }
+
+      case 'domChatError': {
+        logWarn(`DOMチャット取得エラー: ${request.message}`);
+        sendStatus('error', request.message);
+        sendResponse({ status: 'success' });
+        return true;
+      }
+
+      case 'domChatLog': {
+        logInfo(`[DOM] ${request.message}`);
+        sendResponse({ status: 'success' });
+        return true;
+      }
+
       default: {
         // ランタイムでは未知の action が届く可能性がある
         const _: never = request;
@@ -506,7 +553,7 @@ chrome.commands.onCommand.addListener(async (command) => {
       'chatMode',
     ]);
 
-    const mode = (data.chatMode ?? 'standalone') as 'official' | 'standalone';
+    const mode = (data.chatMode ?? 'standalone') as 'official' | 'standalone' | 'dom';
 
     if (mode === 'official' && !data.apiKeyYoutube) {
       // eslint-disable-next-line no-console

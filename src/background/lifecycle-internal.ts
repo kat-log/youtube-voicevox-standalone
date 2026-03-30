@@ -22,6 +22,10 @@ export function getStandaloneConfig(): StandaloneConfig | null {
   return standaloneConfig;
 }
 
+export function setStandaloneConfig(config: StandaloneConfig): void {
+  standaloneConfig = config;
+}
+
 interface ContinuationItem {
   reloadContinuationData?: { continuation: string };
   timedContinuationData?: { continuation: string; timeoutMs?: number };

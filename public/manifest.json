@@ -9,6 +9,12 @@
       "matches": ["https://www.youtube.com/*"],
       "js": ["standaloneChat.js"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.youtube.com/live_chat*"],
+      "js": ["domChat.js"],
+      "run_at": "document_idle",
+      "all_frames": true
     }
   ],
   "action": {

@@ -105,7 +105,7 @@ export function validateInputs(): void {
   const apiKey = apiKeyInput.value.trim();
   const chatModeSelect = document.getElementById('chatMode') as HTMLSelectElement | null;
   const chatMode = chatModeSelect?.value ?? 'standalone';
-  const requiresApiKey = chatMode !== 'standalone';
+  const requiresApiKey = chatMode === 'official';
   const playBtn = document.getElementById('play') as HTMLButtonElement;
   const playTooltip = document.getElementById('play-tooltip') as HTMLElement;
   const banner = document.getElementById('api-key-banner');

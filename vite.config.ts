@@ -13,6 +13,7 @@ export default defineConfig({
       input: {
         background: resolve(__dirname, 'src/background/index.ts'),
         standaloneChat: resolve(__dirname, 'src/content/standalone-chat.ts'),
+        domChat: resolve(__dirname, 'src/content/dom-chat.ts'),
         popup: resolve(__dirname, 'src/popup/popup.html'),
         log: resolve(__dirname, 'src/log/log.html'),
         onboarding: resolve(__dirname, 'src/onboarding/onboarding.html'),
