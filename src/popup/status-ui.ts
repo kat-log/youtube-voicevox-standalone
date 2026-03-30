@@ -104,7 +104,7 @@ export function validateInputs(): void {
   const apiKeyInput = document.getElementById('apiKeyYoutube') as HTMLInputElement;
   const apiKey = apiKeyInput.value.trim();
   const chatModeSelect = document.getElementById('chatMode') as HTMLSelectElement | null;
-  const chatMode = chatModeSelect?.value ?? 'standalone';
+  const chatMode = chatModeSelect?.value ?? 'dom';
   const requiresApiKey = chatMode === 'official';
   const playBtn = document.getElementById('play') as HTMLButtonElement;
   const playTooltip = document.getElementById('play-tooltip') as HTMLElement;

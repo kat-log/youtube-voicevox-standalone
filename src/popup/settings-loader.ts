@@ -266,7 +266,7 @@ export function loadSettings(): void {
         });
 
       // chatMode 設定を復元
-      const chatMode = (data.chatMode as 'official' | 'standalone' | 'dom') ?? 'standalone';
+      const chatMode = (data.chatMode as 'official' | 'standalone' | 'dom') ?? 'dom';
       (document.getElementById('chatMode') as HTMLSelectElement).value = chatMode;
       const ytSection = document.getElementById('youtube-api-key-section');
       const saInfo = document.getElementById('standalone-mode-info');
