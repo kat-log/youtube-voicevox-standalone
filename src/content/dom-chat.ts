@@ -141,6 +141,8 @@ if (_win.__domChatInitialized) {
     const modeActive = changes.domModeActive;
     const chatMode = changes.chatMode;
 
+    if (!modeActive && !chatMode) return;
+
     sendLog(`storage 変化: domModeActive=${String(modeActive?.newValue)}, chatMode=${String(chatMode?.newValue)}`);
 
     if (modeActive?.newValue === true) {
