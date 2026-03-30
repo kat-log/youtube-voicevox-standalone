@@ -278,6 +278,9 @@ export function loadSettings(): void {
       // OSに応じてツールチップのテキストを更新
       updateShortcutTooltips();
 
+      // アーカイブ配信時はスタンドアロンモードを無効化
+      applyArchiveRestrictions();
+
       // 現在のステータスを取得
       chrome.runtime.sendMessage(
         { action: 'getStatus' },
@@ -316,4 +319,38 @@ export function loadSettings(): void {
       }
     }
   });
+}
+
+async function applyArchiveRestrictions(): Promise<void> {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.url?.includes('youtube.com/watch')) return;
+
+  const url = new URL(tab.url);
+  const videoId = url.searchParams.get('v');
+  if (!videoId) return;
+
+  const data = await chrome.storage.session.get({ archiveStatus: null });
+  const archiveStatus = data.archiveStatus as { videoId: string; isReplay: boolean } | null;
+
+  // 現在の動画の情報でなければ何もしない
+  if (!archiveStatus || archiveStatus.videoId !== videoId || !archiveStatus.isReplay) return;
+
+  const select = document.getElementById('chatMode') as HTMLSelectElement;
+  const standaloneOption = select.querySelector(
+    'option[value="standalone"]'
+  ) as HTMLOptionElement | null;
+  if (!standaloneOption) return;
+
+  standaloneOption.disabled = true;
+  standaloneOption.title = 'アーカイブ配信では使用できません';
+
+  // standalone が選択済みだった場合は dom に切り替え
+  if (select.value === 'standalone') {
+    select.value = 'dom';
+    chrome.storage.sync.set({ chatMode: 'dom' });
+    const saInfo = document.getElementById('standalone-mode-info');
+    const domInfo = document.getElementById('dom-mode-info');
+    if (saInfo) saInfo.style.display = 'none';
+    if (domInfo) domInfo.style.display = 'block';
+  }
 }
