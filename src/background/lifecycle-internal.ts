@@ -286,6 +286,11 @@ export async function startPollingInternal(config: StandaloneConfig & { videoId:
 
   const initialContinuation = await fetchInitialContinuation(config.videoId);
 
+  // アーカイブ判定をセッションストレージに書き込み（ポップアップが参照する）
+  await chrome.storage.session.set({
+    archiveStatus: { videoId: config.videoId, isReplay: initialContinuation.isReplay },
+  });
+
   await sendMessageWithInjectionFallback(config.tabId, {
     action: 'startStandalonePolling',
     videoId: config.videoId,
