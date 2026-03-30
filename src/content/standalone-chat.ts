@@ -4,7 +4,7 @@
 interface StartStandaloneMessage {
   action: 'startStandalonePolling';
   videoId: string;
-  initialContinuation: { continuation: string; timeoutMs: number; isReplay: boolean };
+  initialContinuation: { continuation: string; timeoutMs: number; isReplay: boolean; needsPlayerState?: boolean };
 }
 
 interface StopStandaloneMessage {
@@ -24,6 +24,7 @@ interface ExtractedContinuation {
   continuation: string;
   timeoutMs: number;
   isReplay: boolean;
+  needsPlayerState?: boolean;
 }
 
 interface LiveChatContinuation {
@@ -58,30 +59,40 @@ function extractNextContinuation(lcc: LiveChatContinuation): { continuation: str
 
 function extractMessages(lcc: LiveChatContinuation): Array<{ text: string; timestampMs: number }> {
   const results: Array<{ text: string; timestampMs: number }> = [];
+
   for (const action of lcc.actions ?? []) {
-    const renderer = action.addChatItemAction?.item?.liveChatTextMessageRenderer;
-    if (!renderer) continue;
+    // ライブ配信: action.addChatItemAction
+    // アーカイブ: action.replayChatItemAction.actions[].addChatItemAction
+    const innerActions: typeof lcc.actions =
+      (action as { replayChatItemAction?: { actions?: typeof lcc.actions } }).replayChatItemAction?.actions
+      ?? [action];
 
-    const text = (renderer.message?.runs ?? [])
-      .filter((run) => run.text !== undefined)
-      .map((run) => run.text as string)
-      .join('');
+    for (const inner of innerActions ?? []) {
+      const renderer = inner.addChatItemAction?.item?.liveChatTextMessageRenderer;
+      if (!renderer) continue;
 
-    if (!text) continue;
+      const text = (renderer.message?.runs ?? [])
+        .filter((run) => run.text !== undefined)
+        .map((run) => run.text as string)
+        .join('');
 
-    const timestampMs = renderer.timestampUsec
-      ? Math.floor(parseInt(renderer.timestampUsec, 10) / 1000)
-      : Date.now();
+      if (!text) continue;
 
-    results.push({ text, timestampMs });
+      const timestampMs = renderer.timestampUsec
+        ? Math.floor(parseInt(renderer.timestampUsec, 10) / 1000)
+        : Date.now();
+
+      results.push({ text, timestampMs });
+    }
   }
   return results;
 }
 
-function startPolling(videoId: string, initial: ExtractedContinuation): void {
+function startPolling(_videoId: string, initial: ExtractedContinuation): void {
   let stopped = false;
   let currentContinuation = initial.continuation;
   let currentTimeoutMs = initial.timeoutMs;
+  let needsPlayerState = initial.needsPlayerState ?? false;
   let consecutiveErrors = 0;
   const MAX_RETRIES = 5;
   const endpoint = initial.isReplay
@@ -104,6 +115,7 @@ function startPolling(videoId: string, initial: ExtractedContinuation): void {
             },
           },
           continuation: currentContinuation,
+          ...(needsPlayerState ? { currentPlayerState: { playerOffsetMs: '0' } } : {}),
         }),
       });
 
@@ -130,6 +142,7 @@ function startPolling(videoId: string, initial: ExtractedContinuation): void {
       }
 
       consecutiveErrors = 0;
+      needsPlayerState = false;
       currentContinuation = next.continuation;
       currentTimeoutMs = next.timeoutMs;
     } catch (err) {

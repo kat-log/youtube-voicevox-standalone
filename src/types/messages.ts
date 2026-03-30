@@ -134,7 +134,7 @@ export interface UpdateParallelSynthesisMessage {
 export interface StartStandalonePollingMessage {
   action: 'startStandalonePolling';
   videoId: string;
-  initialContinuation: { continuation: string; timeoutMs: number; isReplay: boolean };
+  initialContinuation: { continuation: string; timeoutMs: number; isReplay: boolean; needsPlayerState?: boolean };
 }
 
 export interface StopStandalonePollingMessage {
