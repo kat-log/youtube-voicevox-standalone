@@ -13,15 +13,15 @@ if (_win.__domChatInitialized) {
   let observer: MutationObserver | null = null;
   let active = false;
 
-  function sendLog(message: string): void {
+  const sendLog = (message: string): void => {
     chrome.runtime.sendMessage({ action: 'domChatLog', message }).catch(() => {});
-  }
+  };
 
-  function sendError(message: string): void {
+  const sendError = (message: string): void => {
     chrome.runtime.sendMessage({ action: 'domChatError', message }).catch(() => {});
-  }
+  };
 
-  function extractText(renderer: Element): string {
+  const extractText = (renderer: Element): string => {
     const messageEl = renderer.querySelector('#message');
     if (!messageEl) return '';
 
@@ -39,9 +39,9 @@ if (_win.__domChatInitialized) {
       }
     }
     return text.trim();
-  }
+  };
 
-  function startObserver(): void {
+  const startObserver = (): void => {
     if (active) return;
     active = true;
     sendLog(`Observer 開始 (URL: ${location.href})`);
@@ -112,9 +112,9 @@ if (_win.__domChatInitialized) {
     };
 
     tryAttach();
-  }
+  };
 
-  function stopObserver(): void {
+  const stopObserver = (): void => {
     if (!active && !observer) return;
     active = false;
     if (observer) {
@@ -122,7 +122,7 @@ if (_win.__domChatInitialized) {
       observer = null;
       sendLog('Observer 停止');
     }
-  }
+  };
 
   // ページロード時ログ
   sendLog(`dom-chat.ts ロード完了 (URL: ${location.href})`);
