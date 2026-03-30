@@ -123,6 +123,7 @@ export function startPolling(config: {
           const timestamp = new Date(item.snippet.publishedAt).getTime();
 
           if (currentState.latestTimestamp && timestamp <= currentState.latestTimestamp) {
+            logDebug(`重複スキップ: "${rawMessage}"`);
             continue;
           }
 
@@ -146,8 +147,9 @@ export function startPolling(config: {
               logInfo(`NGワード除去: "${before}" → "${newMessage}"`);
             }
           }
-          if (shouldFilter(newMessage, filterConfig)) {
-            logInfo(`フィルタ除外: "${newMessage}"`);
+          const filterReason1 = shouldFilter(newMessage, filterConfig);
+          if (filterReason1) {
+            logInfo(`フィルタ除外(${filterReason1}): "${newMessage}"`);
           } else {
             pushComment({
               apiKeyVOICEVOX: config.apiKeyVOICEVOX,
@@ -201,8 +203,9 @@ export function startPolling(config: {
                   logInfo(`NGワード除去: "${before}" → "${newMessage}"`);
                 }
               }
-              if (shouldFilter(newMessage, filterConfig)) {
-                logInfo(`フィルタ除外: "${newMessage}"`);
+              const filterReason2 = shouldFilter(newMessage, filterConfig);
+              if (filterReason2) {
+                logInfo(`フィルタ除外(${filterReason2}): "${newMessage}"`);
               } else {
                 pushComment({
                   apiKeyVOICEVOX: config.apiKeyVOICEVOX,

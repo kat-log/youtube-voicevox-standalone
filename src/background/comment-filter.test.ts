@@ -21,7 +21,7 @@ describe('shouldFilter', () => {
   describe('minLength', () => {
     it('文字数が minLength 未満ならフィルタ', () => {
       const config: FilterConfig = { ...baseConfig, minLength: 3 };
-      expect(shouldFilter('ab', config)).toBe(true);
+      expect(shouldFilter('ab', config)).toBeTruthy();
     });
 
     it('文字数が minLength と等しければ通過', () => {
@@ -38,7 +38,7 @@ describe('shouldFilter', () => {
   describe('maxLength', () => {
     it('文字数が maxLength を超えたらフィルタ', () => {
       const config: FilterConfig = { ...baseConfig, maxLength: 5 };
-      expect(shouldFilter('abcdef', config)).toBe(true);
+      expect(shouldFilter('abcdef', config)).toBeTruthy();
     });
 
     it('文字数が maxLength と等しければ通過', () => {
@@ -55,7 +55,7 @@ describe('shouldFilter', () => {
   describe('skipEmojiOnly', () => {
     it('絵文字のみメッセージはフィルタ', () => {
       const config: FilterConfig = { ...baseConfig, skipEmojiOnly: true };
-      expect(shouldFilter('😀🎉', config)).toBe(true);
+      expect(shouldFilter('😀🎉', config)).toBeTruthy();
     });
 
     it('テキスト混在メッセージは通過', () => {
@@ -70,19 +70,19 @@ describe('shouldFilter', () => {
 
     it('ショートコードのみメッセージはフィルタ', () => {
       const config: FilterConfig = { ...baseConfig, skipEmojiOnly: true };
-      expect(shouldFilter(':koroneMimidokan::koroneMimidokan:', config)).toBe(true);
+      expect(shouldFilter(':koroneMimidokan::koroneMimidokan:', config)).toBeTruthy();
     });
 
     it('日本語ショートコードのみメッセージはフィルタ', () => {
       const config: FilterConfig = { ...baseConfig, skipEmojiOnly: true };
-      expect(shouldFilter(':_だいそうげん::_だいそうげん:', config)).toBe(true);
+      expect(shouldFilter(':_だいそうげん::_だいそうげん:', config)).toBeTruthy();
     });
   });
 
   describe('ngWords', () => {
     it('NGワードを含むメッセージはフィルタ', () => {
       const config: FilterConfig = { ...baseConfig, ngWords: ['spam'] };
-      expect(shouldFilter('this is spam message', config)).toBe(true);
+      expect(shouldFilter('this is spam message', config)).toBeTruthy();
     });
 
     it('NGワードを含まないメッセージは通過', () => {
@@ -92,17 +92,17 @@ describe('shouldFilter', () => {
 
     it('大文字小文字を無視してマッチ', () => {
       const config: FilterConfig = { ...baseConfig, ngWords: ['SPAM'] };
-      expect(shouldFilter('this is spam', config)).toBe(true);
+      expect(shouldFilter('this is spam', config)).toBeTruthy();
     });
 
     it('全角NGワードで半角テキストをフィルタ', () => {
       const config: FilterConfig = { ...baseConfig, ngWords: ['ＮＧ'] };
-      expect(shouldFilter('これはNGです', config)).toBe(true);
+      expect(shouldFilter('これはNGです', config)).toBeTruthy();
     });
 
     it('半角NGワードで全角テキストをフィルタ', () => {
       const config: FilterConfig = { ...baseConfig, ngWords: ['NG'] };
-      expect(shouldFilter('これはＮＧです', config)).toBe(true);
+      expect(shouldFilter('これはＮＧです', config)).toBeTruthy();
     });
   });
 });
