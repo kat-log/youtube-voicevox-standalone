@@ -23,12 +23,14 @@ export function setVolume(v: number): void {
 export function initPlaybackControls(): void {
   // chatMode セレクトの変更リスナー
   document.getElementById('chatMode')?.addEventListener('change', (event) => {
-    const mode = (event.target as HTMLSelectElement).value as 'official' | 'standalone';
+    const mode = (event.target as HTMLSelectElement).value as 'official' | 'standalone' | 'dom';
     chrome.storage.sync.set({ chatMode: mode });
     const ytSection = document.getElementById('youtube-api-key-section');
     const saInfo = document.getElementById('standalone-mode-info');
-    if (ytSection) ytSection.style.display = mode === 'standalone' ? 'none' : 'block';
+    const domInfo = document.getElementById('dom-mode-info');
+    if (ytSection) ytSection.style.display = mode === 'official' ? 'block' : 'none';
     if (saInfo) saInfo.style.display = mode === 'standalone' ? 'block' : 'none';
+    if (domInfo) domInfo.style.display = mode === 'dom' ? 'block' : 'none';
     validateInputs();
   });
 
@@ -44,7 +46,7 @@ export function initPlaybackControls(): void {
     const speakerId = engine === 'local-voicevox'
       ? (document.getElementById('localSpeaker') as HTMLSelectElement).value
       : (document.getElementById('speaker') as HTMLSelectElement).value;
-    const chatMode = ((document.getElementById('chatMode') as HTMLSelectElement)?.value ?? 'standalone') as 'official' | 'standalone';
+    const chatMode = ((document.getElementById('chatMode') as HTMLSelectElement)?.value ?? 'standalone') as 'official' | 'standalone' | 'dom';
 
     if (chatMode === 'official' && !apiKeyYoutube) {
       document.getElementById('error')!.textContent = 'YouTube APIキーが設定されていません。';

@@ -21,7 +21,7 @@ export interface StartMessage {
   latestOnlyMode: boolean;
   latestOnlyCount: number;
   speakerId?: string;
-  chatMode?: 'official' | 'standalone';
+  chatMode?: 'official' | 'standalone' | 'dom';
 }
 
 export interface StopMessage {
@@ -141,6 +141,22 @@ export interface StopStandalonePollingMessage {
   action: 'stopStandalonePolling';
 }
 
+// Content Script → Background メッセージ（DOMモード）
+export interface DomChatMessagesMessage {
+  action: 'domChatMessages';
+  messages: Array<{ text: string; timestampMs: number }>;
+}
+
+export interface DomChatErrorMessage {
+  action: 'domChatError';
+  message: string;
+}
+
+export interface DomChatLogMessage {
+  action: 'domChatLog';
+  message: string;
+}
+
 // Content Script → Background メッセージ（スタンドアロンモード）
 export interface StandaloneChatMessagesMessage {
   action: 'standaloneChatMessages';
@@ -245,7 +261,10 @@ export type IncomingMessage =
   | GetStatsMessage
   | StandaloneChatMessagesMessage
   | StandaloneEndedMessage
-  | StandaloneErrorMessage;
+  | StandaloneErrorMessage
+  | DomChatMessagesMessage
+  | DomChatErrorMessage
+  | DomChatLogMessage;
 
 // メッセージレスポンス
 export interface MessageResponse {

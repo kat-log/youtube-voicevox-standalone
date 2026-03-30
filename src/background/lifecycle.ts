@@ -314,6 +314,9 @@ export function stopAll(): void {
     chrome.tabs.sendMessage(state.activeTabId, { action: 'stopStandalonePolling' }).catch(() => {});
   }
 
+  // DOMモードの MutationObserver を停止
+  chrome.storage.session.set({ domModeActive: false }).catch(() => {});
+
   // 状態リセット
   resetState();
   sendStatus('idle');
