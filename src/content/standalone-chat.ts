@@ -92,7 +92,12 @@ function startPolling(_videoId: string, initial: ExtractedContinuation): void {
   let stopped = false;
   let currentContinuation = initial.continuation;
   let currentTimeoutMs = initial.timeoutMs;
-  let needsPlayerState = initial.needsPlayerState ?? false;
+  // リプレイモードでは現在の動画再生位置から開始する
+  let sendPlayerState = initial.isReplay || (initial.needsPlayerState ?? false);
+  const video = document.querySelector('video');
+  const initialPlayerOffsetMs = (initial.isReplay && video)
+    ? String(Math.floor(video.currentTime * 1000))
+    : '0';
   let consecutiveErrors = 0;
   const MAX_RETRIES = 5;
   const endpoint = initial.isReplay
@@ -115,7 +120,7 @@ function startPolling(_videoId: string, initial: ExtractedContinuation): void {
             },
           },
           continuation: currentContinuation,
-          ...(needsPlayerState ? { currentPlayerState: { playerOffsetMs: '0' } } : {}),
+          ...(sendPlayerState ? { currentPlayerState: { playerOffsetMs: initialPlayerOffsetMs } } : {}),
         }),
       });
 
@@ -142,7 +147,7 @@ function startPolling(_videoId: string, initial: ExtractedContinuation): void {
       }
 
       consecutiveErrors = 0;
-      needsPlayerState = false;
+      sendPlayerState = false;
       currentContinuation = next.continuation;
       currentTimeoutMs = next.timeoutMs;
     } catch (err) {
