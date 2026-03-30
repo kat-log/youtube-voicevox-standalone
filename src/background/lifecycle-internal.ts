@@ -249,7 +249,7 @@ async function fetchInitialContinuation(videoId: string): Promise<ExtractedConti
 
   // Step 3c: reloadContinuationData をそのままコンテントスクリプトに渡す。
   // コンテントスクリプトは youtube.com 上で動くためクッキー付きで API を叩ける。
-  // needsPlayerState=true により最初のリクエストに currentPlayerState: { playerOffsetMs: "0" } を付与する。
+  // needsPlayerState=true により最初のリクエストに currentPlayerState: { playerOffsetMs: "..." } を付与する。
   return {
     continuation: reloadInfo.reloadToken,
     timeoutMs: 5000,
