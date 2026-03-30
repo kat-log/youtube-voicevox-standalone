@@ -30,6 +30,19 @@ interface ExtractedContinuation {
 interface LiveChatContinuation {
   continuations?: ContinuationItem[];
   actions?: Array<{
+    replayChatItemAction?: {
+      videoOffsetTimeMsec?: string;
+      actions?: Array<{
+        addChatItemAction?: {
+          item?: {
+            liveChatTextMessageRenderer?: {
+              message?: { runs?: Array<{ text?: string; emoji?: unknown }> };
+              timestampUsec?: string;
+            };
+          };
+        };
+      }>;
+    };
     addChatItemAction?: {
       item?: {
         liveChatTextMessageRenderer?: {
@@ -57,15 +70,17 @@ function extractNextContinuation(lcc: LiveChatContinuation): { continuation: str
   };
 }
 
-function extractMessages(lcc: LiveChatContinuation): Array<{ text: string; timestampMs: number }> {
-  const results: Array<{ text: string; timestampMs: number }> = [];
+function extractMessages(lcc: LiveChatContinuation): Array<{ text: string; timestampMs: number; videoOffsetMs?: number }> {
+  const results: Array<{ text: string; timestampMs: number; videoOffsetMs?: number }> = [];
 
   for (const action of lcc.actions ?? []) {
     // ライブ配信: action.addChatItemAction
     // アーカイブ: action.replayChatItemAction.actions[].addChatItemAction
-    const innerActions: typeof lcc.actions =
-      (action as { replayChatItemAction?: { actions?: typeof lcc.actions } }).replayChatItemAction?.actions
-      ?? [action];
+    const replayAction = action.replayChatItemAction;
+    const videoOffsetMs = replayAction?.videoOffsetTimeMsec
+      ? parseInt(replayAction.videoOffsetTimeMsec, 10)
+      : undefined;
+    const innerActions = replayAction?.actions ?? [action];
 
     for (const inner of innerActions ?? []) {
       const renderer = inner.addChatItemAction?.item?.liveChatTextMessageRenderer;
@@ -82,7 +97,7 @@ function extractMessages(lcc: LiveChatContinuation): Array<{ text: string; times
         ? Math.floor(parseInt(renderer.timestampUsec, 10) / 1000)
         : Date.now();
 
-      results.push({ text, timestampMs });
+      results.push({ text, timestampMs, videoOffsetMs });
     }
   }
   return results;
@@ -98,6 +113,9 @@ function startPolling(_videoId: string, initial: ExtractedContinuation): void {
   const initialPlayerOffsetMs = (initial.isReplay && video)
     ? String(Math.floor(video.currentTime * 1000))
     : '0';
+  // アーカイブ配信: 動画の現在位置（ms）。この値未満の videoOffsetTimeMsec を持つチャンクはスキップする
+  const catchUpTargetMs = initial.isReplay && video ? Math.floor(video.currentTime * 1000) : 0;
+  let caughtUp = catchUpTargetMs === 0;
   let consecutiveErrors = 0;
   const MAX_RETRIES = 5;
   const endpoint = initial.isReplay
@@ -136,8 +154,24 @@ function startPolling(_videoId: string, initial: ExtractedContinuation): void {
       }
 
       const messages = extractMessages(lcc);
-      if (messages.length > 0) {
-        chrome.runtime.sendMessage({ action: 'standaloneChatMessages', messages }).catch(() => {});
+
+      // アーカイブ配信: videoOffsetTimeMsec が catchUpTargetMs に達するまでスキップ
+      if (!caughtUp) {
+        const lastMsg = messages[messages.length - 1];
+        if (lastMsg?.videoOffsetMs !== undefined && lastMsg.videoOffsetMs >= catchUpTargetMs) {
+          caughtUp = true;
+        }
+        // まだ追いついていない場合は messages を送信しない（即座に次チャンクへ）
+        if (!caughtUp) {
+          currentTimeoutMs = 0;
+        }
+      }
+
+      if (caughtUp && messages.length > 0) {
+        const sendable = messages.filter(m => m.videoOffsetMs === undefined || m.videoOffsetMs >= catchUpTargetMs);
+        if (sendable.length > 0) {
+          chrome.runtime.sendMessage({ action: 'standaloneChatMessages', messages: sendable }).catch(() => {});
+        }
       }
 
       const next = extractNextContinuation(lcc);
