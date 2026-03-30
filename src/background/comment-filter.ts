@@ -24,8 +24,8 @@ const EMOJI_ONLY_REGEX = /^[\p{Emoji_Presentation}\p{Extended_Pictographic}\uFE0
 const UNICODE_EMOJI_REGEX =
   /[\p{Emoji_Presentation}\p{Extended_Pictographic}][\uFE0F\u200D\p{Emoji_Presentation}\p{Extended_Pictographic}\u{1F3FB}-\u{1F3FF}]*/gu;
 
-// YouTube絵文字ショートコード: :_2BROOtojya: や :thumbsup: 等
-const EMOJI_SHORTCODE_REGEX = /:[a-zA-Z_][a-zA-Z0-9_-]*:/g;
+// YouTube絵文字ショートコード: :_2BROOtojya: や :thumbsup: や :_だいそうげん: 等（Unicode対応）
+const EMOJI_SHORTCODE_REGEX = /:[^\s:]+:/g;
 
 /** 全角ASCII文字（！〜～）を半角に正規化する */
 function normalizeWidth(str: string): string {
@@ -53,7 +53,7 @@ export async function loadFilterConfigFromStorage(): Promise<void> {
 }
 
 function isEmojiOnly(text: string): boolean {
-  const stripped = text.replace(/\s/g, '');
+  const stripped = text.replace(EMOJI_SHORTCODE_REGEX, '').replace(/\s/g, '');
   if (stripped.length === 0) return true;
   return EMOJI_ONLY_REGEX.test(stripped);
 }

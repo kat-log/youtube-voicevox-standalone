@@ -32,7 +32,10 @@ if (_win.__domChatInitialized) {
       } else if (node.nodeType === Node.ELEMENT_NODE) {
         const el = node as Element;
         if (el.tagName === 'IMG') {
-          text += (el as HTMLImageElement).alt ?? '';
+          const alt = (el as HTMLImageElement).alt?.trim() ?? '';
+          if (alt) {
+            text += (alt.startsWith(':') && alt.endsWith(':')) ? alt : `:${alt}:`;
+          }
         } else {
           text += el.textContent ?? '';
         }

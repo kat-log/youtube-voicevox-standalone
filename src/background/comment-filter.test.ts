@@ -67,6 +67,16 @@ describe('shouldFilter', () => {
       const config: FilterConfig = { ...baseConfig, skipEmojiOnly: false };
       expect(shouldFilter('😀🎉', config)).toBe(false);
     });
+
+    it('ショートコードのみメッセージはフィルタ', () => {
+      const config: FilterConfig = { ...baseConfig, skipEmojiOnly: true };
+      expect(shouldFilter(':koroneMimidokan::koroneMimidokan:', config)).toBe(true);
+    });
+
+    it('日本語ショートコードのみメッセージはフィルタ', () => {
+      const config: FilterConfig = { ...baseConfig, skipEmojiOnly: true };
+      expect(shouldFilter(':_だいそうげん::_だいそうげん:', config)).toBe(true);
+    });
   });
 
   describe('ngWords', () => {
@@ -128,6 +138,22 @@ describe('stripEmojis', () => {
 
   it('絵文字のみなら空文字列', () => {
     expect(stripEmojis('😀🎉👍')).toBe('');
+  });
+
+  it('日本語含むカスタム絵文字コードを除去', () => {
+    expect(stripEmojis(':_だいそうげん::_だいそうげん::_だいそうげん:')).toBe('');
+  });
+
+  it('日本語含むカスタム絵文字コードをテキスト混在から除去', () => {
+    expect(stripEmojis('こんにちは:_だいそうげん:世界')).toBe('こんにちは世界');
+  });
+
+  it('コロンなしテキストはそのまま（DOM側でコロン付与を期待）', () => {
+    expect(stripEmojis('koroneMimidokan')).toBe('koroneMimidokan');
+  });
+
+  it('コロン付きカスタム絵文字コードを除去', () => {
+    expect(stripEmojis(':koroneMimidokan::koroneMimidokan:')).toBe('');
   });
 });
 
