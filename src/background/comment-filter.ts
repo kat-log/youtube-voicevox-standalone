@@ -58,29 +58,29 @@ function isEmojiOnly(text: string): boolean {
   return EMOJI_ONLY_REGEX.test(stripped);
 }
 
-export function shouldFilter(message: string, config: FilterConfig): boolean {
+export function shouldFilter(message: string, config: FilterConfig): string | false {
   if (!config.enabled) return false;
 
   // 最小文字数チェック
   if (config.minLength > 1 && message.length < config.minLength) {
-    return true;
+    return `文字数不足(${message.length}文字)`;
   }
 
   // 最大文字数チェック (0 = 無制限)
   if (config.maxLength > 0 && message.length > config.maxLength) {
-    return true;
+    return `文字数超過(${message.length}文字)`;
   }
 
   // 絵文字のみチェック
   if (config.skipEmojiOnly && isEmojiOnly(message)) {
-    return true;
+    return '絵文字のみ';
   }
 
   // NGワードチェック
   if (config.ngWords.length > 0) {
     const normalized = normalizeWidth(message.toLowerCase());
     if (config.ngWords.some((word) => normalized.includes(normalizeWidth(word.toLowerCase())))) {
-      return true;
+      return 'NGワード';
     }
   }
 

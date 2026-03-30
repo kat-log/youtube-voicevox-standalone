@@ -1,7 +1,7 @@
 import { getState, updateState, pushComment } from './state';
 import { getFilterConfig, shouldFilter, stripEmojis, removeNgWords } from './comment-filter';
 import { isRandomSpeakerEnabled, getRandomSpeakerId } from './random-speaker';
-import { logInfo, logWarn } from './messaging';
+import { logDebug, logInfo, logWarn } from './messaging';
 import { updateBadge } from './audio-player';
 import { evaluateAutoCatchUp, getAutoCatchUpConfig } from './auto-catchup';
 import { evaluateRushMode } from './rush-mode';
@@ -316,6 +316,7 @@ export function processStandaloneMessages(
 
     for (const item of latestItems) {
       if (state.latestTimestamp && item.timestampMs <= state.latestTimestamp) {
+        logDebug(`重複スキップ: "${item.text}"`);
         continue;
       }
 
@@ -343,8 +344,9 @@ export function processStandaloneMessages(
         }
       }
 
-      if (shouldFilter(newMessage, filterConfig)) {
-        logInfo(`フィルタ除外: "${newMessage}"`);
+      const filterReason1 = shouldFilter(newMessage, filterConfig);
+      if (filterReason1) {
+        logInfo(`フィルタ除外(${filterReason1}): "${newMessage}"`);
       } else {
         pushComment({
           apiKeyVOICEVOX: config.apiKeyVOICEVOX,
@@ -377,6 +379,7 @@ export function processStandaloneMessages(
       if (!currentState.latestTimestamp || item.timestampMs > currentState.latestTimestamp) {
         updateState({ latestTimestamp: item.timestampMs });
 
+
         let newMessage =
           filterConfig.enabled && filterConfig.stripEmoji
             ? stripEmojis(item.text)
@@ -399,8 +402,9 @@ export function processStandaloneMessages(
           }
         }
 
-        if (shouldFilter(newMessage, filterConfig)) {
-          logInfo(`フィルタ除外: "${newMessage}"`);
+        const filterReason2 = shouldFilter(newMessage, filterConfig);
+        if (filterReason2) {
+          logInfo(`フィルタ除外(${filterReason2}): "${newMessage}"`);
         } else {
           pushComment({
             apiKeyVOICEVOX: config.apiKeyVOICEVOX,
@@ -410,6 +414,8 @@ export function processStandaloneMessages(
             speakerId: getEffectiveSpeakerId(),
           });
         }
+      } else {
+        logDebug(`重複スキップ: "${item.text}"`);
       }
     }
 
