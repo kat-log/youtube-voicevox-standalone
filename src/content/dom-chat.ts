@@ -4,21 +4,18 @@
 // テキストを background に送信する。
 
 // 多重実行防止（executeScript + manifest 両方から注入された場合）
-const _win = window as Window & { __domChatInitialized?: boolean };
-if (_win.__domChatInitialized) {
+// const _win は再注入時に SyntaxError になるため window を直接キャストして使用する
+type WindowWithInit = Window & { __domChatInitialized?: boolean };
+if ((window as WindowWithInit).__domChatInitialized) {
   // すでに実行中なので何もしない
 } else {
-  _win.__domChatInitialized = true;
+  (window as WindowWithInit).__domChatInitialized = true;
 
   let observer: MutationObserver | null = null;
   let active = false;
 
   const sendLog = (message: string): void => {
     chrome.runtime.sendMessage({ action: 'domChatLog', message }).catch(() => {});
-  };
-
-  const sendError = (message: string): void => {
-    chrome.runtime.sendMessage({ action: 'domChatError', message }).catch(() => {});
   };
 
   const extractText = (renderer: Element): string => {
@@ -59,8 +56,10 @@ if (_win.__domChatInitialized) {
       if (!items) {
         retryCount++;
         if (retryCount >= MAX_RETRIES) {
-          sendError(`チャットDOM (#items) が ${MAX_RETRIES * 0.5}秒待っても見つかりません。チャット欄が表示されているか確認してください。`);
-          active = false;
+          if (retryCount === MAX_RETRIES) {
+            sendLog(`チャットDOM (#items) が ${MAX_RETRIES * 0.5}秒待っても見つかりません。チャット欄が表示されているか確認してください。低速リトライへ切り替えます。`);
+          }
+          setTimeout(tryAttach, 5000);
           return;
         }
         if (retryCount === 1) {

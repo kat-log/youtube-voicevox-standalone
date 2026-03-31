@@ -512,7 +512,6 @@ chrome.runtime.onMessage.addListener(
 
       case 'domChatError': {
         logWarn(`DOMチャット取得エラー: ${request.message}`);
-        sendStatus('error', request.message);
         sendResponse({ status: 'success' });
         return true;
       }
