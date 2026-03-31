@@ -339,17 +339,28 @@ async function applyArchiveRestrictions(): Promise<void> {
   const standaloneOption = select.querySelector(
     'option[value="standalone"]'
   ) as HTMLOptionElement | null;
-  if (!standaloneOption) return;
+  const officialOption = select.querySelector(
+    'option[value="official"]'
+  ) as HTMLOptionElement | null;
 
-  standaloneOption.disabled = true;
-  standaloneOption.title = 'アーカイブ配信では使用できません';
+  if (standaloneOption) {
+    standaloneOption.disabled = true;
+    standaloneOption.title = 'アーカイブ配信では使用できません';
+  }
 
-  // standalone が選択済みだった場合は dom に切り替え
-  if (select.value === 'standalone') {
+  if (officialOption) {
+    officialOption.disabled = true;
+    officialOption.title = 'アーカイブ配信では使用できません';
+  }
+
+  // standalone または official が選択済みだった場合は dom に切り替え
+  if (select.value === 'standalone' || select.value === 'official') {
     select.value = 'dom';
     chrome.storage.sync.set({ chatMode: 'dom' });
+    const ytSection = document.getElementById('youtube-api-key-section');
     const saInfo = document.getElementById('standalone-mode-info');
     const domInfo = document.getElementById('dom-mode-info');
+    if (ytSection) ytSection.style.display = 'none';
     if (saInfo) saInfo.style.display = 'none';
     if (domInfo) domInfo.style.display = 'block';
   }
