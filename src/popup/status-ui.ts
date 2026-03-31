@@ -83,13 +83,16 @@ export function updateStatusUI(status: string, message: string, count: number, q
   }
 
   // ステータスに応じたボタンの活性/非活性制御
+  const chatModeSelect = document.getElementById('chatMode') as HTMLSelectElement | null;
   if (status === 'idle' || status === 'error') {
     stopBtn.disabled = true;
+    if (chatModeSelect) chatModeSelect.disabled = false;
     validateInputs(); // APIキー入力があればplayBtnを有効化
   } else {
     // 実行中（connecting, fetching, generating, listening）
     playBtn.disabled = true;
     stopBtn.disabled = false;
+    if (chatModeSelect) chatModeSelect.disabled = true;
   }
 
   // ラッシュモードインジケーター
