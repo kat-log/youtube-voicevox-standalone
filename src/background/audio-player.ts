@@ -262,7 +262,7 @@ export function updateBadge(): void {
   const state = getState();
   const queueLen = state.commentQueue.length + state.audioQueue.length;
 
-  if (queueLen > 0 && state.intervalId !== null) {
+  if (queueLen > 0 && state.liveChatId !== null) {
     chrome.action.setBadgeText({ text: String(queueLen) });
     chrome.action.setBadgeBackgroundColor({ color: '#4caf50' });
   } else {

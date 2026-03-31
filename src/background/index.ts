@@ -127,7 +127,7 @@ async function handleStart(config: {
       logWarn(`DOMモード: スクリプト注入エラー: ${msg} (storage onChanged にフォールバック)`);
       logInfo(`DOMモード開始: tabId=${tabs[0].id}, videoId=${videoId}`);
     }
-    sendStatus('listening');
+    sendStatus('waiting');
     return { status: 'success' };
   }
 
@@ -142,7 +142,7 @@ async function handleStart(config: {
         speakerId: config.speakerId,
         videoId,
       });
-      sendStatus('listening');
+      sendStatus('waiting');
       return { status: 'success' };
     } catch (error) {
       const err = error as Error;
