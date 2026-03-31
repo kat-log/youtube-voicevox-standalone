@@ -265,14 +265,16 @@ export function loadSettings(): void {
           updateParallelSpeakersToggleState();
         });
 
-      // chatMode 設定を復元
-      const chatMode = (data.chatMode as 'official' | 'standalone' | 'dom') ?? 'dom';
+      // chatMode 設定を復元（旧 'standalone' は 'dom' へ移行）
+      let chatMode = (data.chatMode as 'official' | 'standalone' | 'dom') ?? 'dom';
+      if (chatMode === 'standalone') {
+        chatMode = 'dom';
+        chrome.storage.sync.set({ chatMode: 'dom' });
+      }
       (document.getElementById('chatMode') as HTMLSelectElement).value = chatMode;
       const ytSection = document.getElementById('youtube-api-key-section');
-      const saInfo = document.getElementById('standalone-mode-info');
       const domInfo = document.getElementById('dom-mode-info');
       if (ytSection) ytSection.style.display = chatMode === 'official' ? 'block' : 'none';
-      if (saInfo) saInfo.style.display = chatMode === 'standalone' ? 'block' : 'none';
       if (domInfo) domInfo.style.display = chatMode === 'dom' ? 'block' : 'none';
 
       // OSに応じてツールチップのテキストを更新
@@ -336,32 +338,22 @@ async function applyArchiveRestrictions(): Promise<void> {
   if (!archiveStatus || archiveStatus.videoId !== videoId || !archiveStatus.isReplay) return;
 
   const select = document.getElementById('chatMode') as HTMLSelectElement;
-  const standaloneOption = select.querySelector(
-    'option[value="standalone"]'
-  ) as HTMLOptionElement | null;
   const officialOption = select.querySelector(
     'option[value="official"]'
   ) as HTMLOptionElement | null;
-
-  if (standaloneOption) {
-    standaloneOption.disabled = true;
-    standaloneOption.title = 'アーカイブ配信では使用できません';
-  }
 
   if (officialOption) {
     officialOption.disabled = true;
     officialOption.title = 'アーカイブ配信では使用できません';
   }
 
-  // standalone または official が選択済みだった場合は dom に切り替え
-  if (select.value === 'standalone' || select.value === 'official') {
+  // official が選択済みだった場合は dom に切り替え
+  if (select.value === 'official') {
     select.value = 'dom';
     chrome.storage.sync.set({ chatMode: 'dom' });
     const ytSection = document.getElementById('youtube-api-key-section');
-    const saInfo = document.getElementById('standalone-mode-info');
     const domInfo = document.getElementById('dom-mode-info');
     if (ytSection) ytSection.style.display = 'none';
-    if (saInfo) saInfo.style.display = 'none';
     if (domInfo) domInfo.style.display = 'block';
   }
 }
