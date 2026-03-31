@@ -21,7 +21,7 @@ export interface StartMessage {
   latestOnlyMode: boolean;
   latestOnlyCount: number;
   speakerId?: string;
-  chatMode?: 'official' | 'standalone' | 'dom';
+  chatMode?: 'official' | 'dom';
 }
 
 export interface StopMessage {
@@ -130,17 +130,6 @@ export interface UpdateParallelSynthesisMessage {
   count: number;
 }
 
-// Background → Content Script メッセージ（スタンドアロンモード）
-export interface StartStandalonePollingMessage {
-  action: 'startStandalonePolling';
-  videoId: string;
-  initialContinuation: { continuation: string; timeoutMs: number; isReplay: boolean; needsPlayerState?: boolean };
-}
-
-export interface StopStandalonePollingMessage {
-  action: 'stopStandalonePolling';
-}
-
 // Content Script → Background メッセージ（DOMモード）
 export interface DomChatMessagesMessage {
   action: 'domChatMessages';
@@ -154,21 +143,6 @@ export interface DomChatErrorMessage {
 
 export interface DomChatLogMessage {
   action: 'domChatLog';
-  message: string;
-}
-
-// Content Script → Background メッセージ（スタンドアロンモード）
-export interface StandaloneChatMessagesMessage {
-  action: 'standaloneChatMessages';
-  messages: Array<{ text: string; timestampMs: number }>;
-}
-
-export interface StandaloneEndedMessage {
-  action: 'standaloneEnded';
-}
-
-export interface StandaloneErrorMessage {
-  action: 'standaloneError';
   message: string;
 }
 
@@ -259,9 +233,6 @@ export type IncomingMessage =
   | GetLocalSpeakersMessage
   | TestSpeakMessage
   | GetStatsMessage
-  | StandaloneChatMessagesMessage
-  | StandaloneEndedMessage
-  | StandaloneErrorMessage
   | DomChatMessagesMessage
   | DomChatErrorMessage
   | DomChatLogMessage;

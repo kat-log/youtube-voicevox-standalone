@@ -3,7 +3,7 @@ import { extractVideoId, fetchLiveChatId } from './youtube-api';
 import { handleAudioEnded, handleAudioEndedById, initPlaybackSettings, updateCachedVolume, updateCachedSpeed } from './audio-player';
 import { initTabListeners } from './tab-manager';
 import { startPolling, stopAll } from './lifecycle';
-import { startPollingInternal, processStandaloneMessages, getStandaloneConfig, setStandaloneConfig } from './lifecycle-internal';
+import { processChatMessages, getStandaloneConfig, setStandaloneConfig } from './lifecycle-internal';
 import { sendStatus, logInfo, logWarn, updateErrorMessage } from './messaging';
 import { loadFilterConfigFromStorage, setFilterConfig } from './comment-filter';
 import { setTtsEngine, setBrowserVoice, setLocalVoicevoxHost, setMaxParallelSynthesis, cancelScheduledProcessing } from './tts-api';
@@ -74,7 +74,7 @@ async function handleStart(config: {
   latestOnlyMode: boolean;
   latestOnlyCount: number;
   speakerId?: string;
-  chatMode?: 'official' | 'standalone' | 'dom';
+  chatMode?: 'official' | 'dom';
 }): Promise<{ status: string; message?: string; details?: string }> {
   if ((config.chatMode ?? 'dom') === 'official' && !config.apiKeyYoutube) {
     return { status: 'error', message: 'YouTube APIキーが入力されていません。' };
@@ -129,26 +129,6 @@ async function handleStart(config: {
     }
     sendStatus('waiting');
     return { status: 'success' };
-  }
-
-  // スタンドアロンモード: 内部 API を使用（fetchLiveChatId 不要）
-  if ((config.chatMode ?? 'dom') === 'standalone') {
-    try {
-      updateState({ liveChatId: 'standalone' });
-      await startPollingInternal({
-        apiKeyVOICEVOX: config.apiKeyVOICEVOX,
-        speed: config.speed,
-        tabId: tabs[0].id!,
-        speakerId: config.speakerId,
-        videoId,
-      });
-      sendStatus('waiting');
-      return { status: 'success' };
-    } catch (error) {
-      const err = error as Error;
-      sendStatus('error', err.message);
-      return { status: 'error', message: err.message };
-    }
   }
 
   sendStatus('connecting');
@@ -481,31 +461,9 @@ chrome.runtime.onMessage.addListener(
         return true;
       }
 
-      case 'standaloneChatMessages': {
-        const config = getStandaloneConfig();
-        if (config) processStandaloneMessages(request.messages, config);
-        sendResponse({ status: 'success' });
-        return true;
-      }
-
-      case 'standaloneEnded': {
-        logInfo('スタンドアロンモード: チャットストリームが終了しました');
-        sendStatus('idle', 'ライブ配信が終了しました');
-        stopAll();
-        sendResponse({ status: 'success' });
-        return true;
-      }
-
-      case 'standaloneError': {
-        logWarn(`スタンドアロンAPIエラー: ${request.message}`);
-        sendStatus('error', request.message);
-        sendResponse({ status: 'success' });
-        return true;
-      }
-
       case 'domChatMessages': {
         const config = getStandaloneConfig();
-        if (config) processStandaloneMessages(request.messages, config);
+        if (config) processChatMessages(request.messages, config);
         sendResponse({ status: 'success' });
         return true;
       }
@@ -552,7 +510,7 @@ chrome.commands.onCommand.addListener(async (command) => {
       'chatMode',
     ]);
 
-    const mode = (data.chatMode ?? 'dom') as 'official' | 'standalone' | 'dom';
+    const mode = (data.chatMode ?? 'dom') as 'official' | 'dom';
 
     if (mode === 'official' && !data.apiKeyYoutube) {
       // eslint-disable-next-line no-console

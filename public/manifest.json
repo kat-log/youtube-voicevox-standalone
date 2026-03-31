@@ -6,11 +6,6 @@
   "host_permissions": ["https://www.youtube.com/*", "https://*.tts.quest/*", "http://localhost/*"],
   "content_scripts": [
     {
-      "matches": ["https://www.youtube.com/*"],
-      "js": ["standaloneChat.js"],
-      "run_at": "document_idle"
-    },
-    {
       "matches": ["https://www.youtube.com/live_chat*"],
       "js": ["domChat.js"],
       "run_at": "document_idle",
