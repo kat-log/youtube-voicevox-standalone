@@ -319,6 +319,7 @@ export function stopAll(): void {
 
   // DOMモードの MutationObserver を停止
   chrome.storage.session.set({ domModeActive: false }).catch(() => {});
+  chrome.storage.session.remove('domRecoveryConfig').catch(() => {});
 
   // 状態リセット
   resetState();
