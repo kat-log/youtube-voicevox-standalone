@@ -114,7 +114,19 @@ async function handleStart(config: {
       speakerId: config.speakerId,
     });
     // storage にモードをセット（content script の onChanged で検知）
-    await chrome.storage.session.set({ chatMode: 'dom', domModeActive: true });
+    // domRecoveryConfig: SW がサスペンド→再起動した際に standaloneConfig を復元するための情報
+    await chrome.storage.session.set({
+      chatMode: 'dom',
+      domModeActive: true,
+      domRecoveryConfig: {
+        apiKeyVOICEVOX: config.apiKeyVOICEVOX,
+        speed: config.speed,
+        tabId: tabs[0].id!,
+        speakerId: config.speakerId,
+        latestOnlyMode: config.latestOnlyMode,
+        latestOnlyCount: config.latestOnlyCount,
+      },
+    });
     // live_chat iframe を含む全フレームに domChat.js を注入（既存タブ対応）
     try {
       await chrome.scripting.executeScript({
@@ -462,9 +474,25 @@ chrome.runtime.onMessage.addListener(
       }
 
       case 'domChatMessages': {
-        const config = getStandaloneConfig();
-        if (config) processChatMessages(request.messages, config);
-        sendResponse({ status: 'success' });
+        (async () => {
+          let config = getStandaloneConfig();
+          if (!config) {
+            // SW がサスペンド→再起動して standaloneConfig が失われた可能性
+            const sessionData = await chrome.storage.session.get(['domModeActive', 'domRecoveryConfig']);
+            if (sessionData.domModeActive && sessionData.domRecoveryConfig) {
+              const r = sessionData.domRecoveryConfig as {
+                apiKeyVOICEVOX: string; speed: number; tabId: number;
+                speakerId?: string; latestOnlyMode: boolean; latestOnlyCount: number;
+              };
+              setStandaloneConfig({ apiKeyVOICEVOX: r.apiKeyVOICEVOX, speed: r.speed, tabId: r.tabId, speakerId: r.speakerId });
+              updateState({ liveChatId: 'dom', activeTabId: r.tabId, latestOnlyMode: r.latestOnlyMode, latestOnlyCount: r.latestOnlyCount });
+              logInfo('[SW復旧] Service Workerが再起動しました。設定を復元して読み上げを再開します。');
+              config = getStandaloneConfig();
+            }
+          }
+          if (config) processChatMessages(request.messages, config);
+          sendResponse({ status: 'success' });
+        })();
         return true;
       }
 
