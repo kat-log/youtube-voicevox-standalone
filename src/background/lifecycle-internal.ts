@@ -1,4 +1,4 @@
-import { getState, updateState, pushComment } from './state';
+import { getState, updateState, pushComment, clearAudioQueue } from './state';
 import { getFilterConfig, shouldFilter, stripEmojis, removeNgWords } from './comment-filter';
 import { isRandomSpeakerEnabled, getRandomSpeakerId } from './random-speaker';
 import { logDebug, logInfo } from './messaging';
@@ -46,7 +46,7 @@ export function processChatMessages(
     let addedCount = 0;
 
     for (const item of latestItems) {
-      if (state.latestTimestamp && item.timestampMs <= state.latestTimestamp) {
+      if (state.latestTimestamp !== null && item.timestampMs < state.latestTimestamp) {
         logDebug(`重複スキップ: "${item.text}"`);
         continue;
       }
@@ -90,13 +90,15 @@ export function processChatMessages(
       }
     }
 
-    // 最新N件モードではキューをN件にキャップ
+    // 最新N件モードではcommentQueue+audioQueueの合計をN件にキャップ
     if (state.latestOnlyMode && !autoCatchUpEnabled) {
       const queue = getState().commentQueue;
-      if (queue.length > N) {
-        const discarded = queue.length - N;
-        updateState({ commentQueue: queue.slice(-N) });
-        logInfo(`🗑️ キューキャップ: ${discarded}件破棄, ${N}件保持`);
+      const totalPending = queue.length + getState().audioQueue.length;
+      if (totalPending > N) {
+        const keptComments = queue.slice(-N);
+        clearAudioQueue();
+        updateState({ commentQueue: keptComments });
+        logInfo(`🗑️ キューキャップ: ${totalPending - keptComments.length}件破棄, ${keptComments.length}件保持`);
       }
     }
 
@@ -107,7 +109,7 @@ export function processChatMessages(
     const beforeQueueSize = currentState.commentQueue.length;
 
     for (const item of messages) {
-      if (!currentState.latestTimestamp || item.timestampMs > currentState.latestTimestamp) {
+      if (currentState.latestTimestamp === null || item.timestampMs >= currentState.latestTimestamp) {
         updateState({ latestTimestamp: item.timestampMs });
 
 
