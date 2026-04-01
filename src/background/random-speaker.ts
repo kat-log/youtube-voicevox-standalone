@@ -7,7 +7,7 @@ let allSpeakerIds: string[] = [];
 let cachedSpeakerIds: string[] = [];
 let allowedSpeakerIds: Set<string> | null = null;
 let isFetching = false;
-let currentEngine: TtsEngine = 'voicevox';
+let currentEngine: TtsEngine = 'local-voicevox';
 let localHost: string = 'http://localhost:50021';
 
 /** エンジンに応じたランダム話者の許可リスト用ストレージキーを返す */
