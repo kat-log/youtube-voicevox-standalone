@@ -168,6 +168,7 @@ function render(): void {
         updateCheckedId(cb.dataset.id!, cb.checked);
       }
       checkbox.indeterminate = false;
+      updateCharCount(group, speakers);
       autoSave();
     });
 
