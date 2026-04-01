@@ -79,6 +79,7 @@ if ((window as WindowWithInit).__domChatInitialized) {
       observer = new MutationObserver((mutations) => {
         if (!active) return;
 
+        const batchBaseTime = Date.now();
         const newMessages: Array<{ text: string; timestampMs: number }> = [];
 
         for (const mutation of mutations) {
@@ -90,7 +91,7 @@ if ((window as WindowWithInit).__domChatInitialized) {
               existing.add(el);
               const text = extractText(el);
               if (text) {
-                newMessages.push({ text, timestampMs: Date.now() });
+                newMessages.push({ text, timestampMs: batchBaseTime + newMessages.length });
               }
             };
 
