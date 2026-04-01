@@ -4,7 +4,8 @@
 # stdin を消費（PostToolUse はツール情報を stdin に送る）
 INPUT=$(cat)
 
-cd "$CLAUDE_PROJECT_DIR" || exit 0
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
+cd "$PROJECT_DIR" || exit 0
 
 # 編集されたファイルパスを取得し、src/ 配下でなければスキップ
 FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
