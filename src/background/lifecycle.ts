@@ -312,7 +312,7 @@ export function stopAll(): void {
     // ドキュメントが存在しない場合は無視
   });
 
-  // Content Script のポーリングを停止（スタンドアロンモード用）
+  // Content Script のポーリングを停止（DOMモード用）
   if (state.activeTabId) {
     chrome.tabs.sendMessage(state.activeTabId, { action: 'stopStandalonePolling' }).catch(() => {});
   }
