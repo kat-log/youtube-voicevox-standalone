@@ -280,7 +280,7 @@ export function loadSettings(): void {
       // OSに応じてツールチップのテキストを更新
       updateShortcutTooltips();
 
-      // アーカイブ配信時はスタンドアロンモードを無効化
+      // アーカイブ配信時はDOMモードを無効化
       applyArchiveRestrictions();
 
       // 現在のステータスを取得
