@@ -62,7 +62,11 @@
       "Bash(rsvg-convert -w 128 -h 128 public/icon/youtube-live-comment-icon.svg -o public/icon/youtube-live-comment-icon.png)",
       "Skill(update-config)",
       "Skill(update-config:*)",
-      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({k:d[k] for k in [''''scripts'''',''''dependencies'''',''''devDependencies''''] if k in d}, indent=2\\)\\)\")"
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({k:d[k] for k in [''''scripts'''',''''dependencies'''',''''devDependencies''''] if k in d}, indent=2\\)\\)\")",
+      "Bash(rsvg-convert -w 128 -h 128 youtube-live-comment-icon.svg -o youtube-live-comment-icon128.png)",
+      "Bash(rsvg-convert -w 48 -h 48 youtube-live-comment-icon.svg -o youtube-live-comment-icon48.png)",
+      "Bash(rsvg-convert -w 16 -h 16 youtube-live-comment-icon.svg -o youtube-live-comment-icon16.png)",
+      "Bash(rsvg-convert -w 128 -h 128 youtube-live-comment-icon.svg -o youtube-live-comment-icon.png)"
     ],
     "deny": []
   }
