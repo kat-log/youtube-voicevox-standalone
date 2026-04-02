@@ -2,36 +2,79 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <title>ずんだもんボイス読み上げ（APIキー不要版） - 使い方ガイド</title>
+    <title>YouTubeライブチャットずんだもんボイス読み上げ - 使い方ガイド</title>
   </head>
   <body>
     <div class="container">
       <header>
-        <h1>ずんだもんボイス読み上げ（APIキー不要版）<br />使い方ガイド</h1>
-        <p>まずは↓のセットアップをお願いします！🙇</p>
+        <h1>YouTubeライブチャットずんだもんボイス読み上げ<br />使い方ガイド</h1>
       </header>
 
       <nav class="toc">
         <h2>目次</h2>
         <ul>
-          <li><a href="#youtube-api">1. YouTube APIキーの取得と設定（必須）</a></li>
+          <li><a href="#how-to-use">1. 基本的な使い方</a></li>
           <li>
-            <a href="#voicevox-api">2. VOICEVOXとの連携（任意）</a>
+            <a href="#comment-mode">2. コメント取得方式について</a>
             <ul>
-              <li><a href="#local-voicevox">2a. ローカルVOICEVOXの導入（推奨）</a></li>
-              <li><a href="#web-voicevox-api">2b. WEB版VOICEVOX API（代替）</a></li>
+              <li><a href="#dom-mode">2a. DOMモード（おすすめ）</a></li>
+              <li><a href="#youtube-api">2b. YouTube APIキーモード</a></li>
             </ul>
           </li>
-          <li><a href="#how-to-use">3. 基本的な使い方</a></li>
+          <li>
+            <a href="#voicevox-api">3. 読み上げエンジンの選択</a>
+            <ul>
+              <li><a href="#local-voicevox">3a. ローカルVOICEVOXの導入（推奨）</a></li>
+              <li><a href="#browser-voice">3b. ブラウザ内蔵音声（設定不要）</a></li>
+              <li><a href="#web-voicevox-api">3c. WEB版VOICEVOX API（代替）</a></li>
+            </ul>
+          </li>
         </ul>
       </nav>
 
       <main>
-        <section id="youtube-api" class="guide-section">
-          <h2>1. YouTube APIキーの取得と設定（必須）</h2>
+        <section id="how-to-use" class="guide-section">
+          <h2>1. 基本的な使い方</h2>
+          <ol>
+            <li>YouTubeライブの配信ページを開きます。</li>
+            <li>拡張機能のアイコンをクリックしてパネルを開きます。</li>
+            <li>
+              「読み上げ開始」ボタンを押します（ショートカット: Alt+Shift+S / ⌥⇧S）。
+            </li>
+            <li>
+              コメントの取得と読み上げが開始されます！停止したい時は「停止」ボタンを押してください（ショートカット: Alt+Shift+Q / ⌥⇧Q）。
+            </li>
+          </ol>
           <p>
-            コメントを取得するためには、無料のYouTube Data API v3のキーが必要です。
-            以下の手順で取得してください。
+            ※
+            読み上げ設定（速度・音量・話者など）やフィルター機能は、配信中・停止中いつでも変更可能です。
+          </p>
+        </section>
+
+        <section id="comment-mode" class="guide-section">
+          <h2>2. コメント取得方式について</h2>
+          <p>
+            コメントの取得方式は2種類あります。DOMモードがおすすめです！
+          </p>
+
+          <h3 id="dom-mode">2a. DOMモード（おすすめ）</h3>
+          <p>
+            YouTubeページのチャット欄を直接読み取る方式です。APIキーが不要で、設定なしですぐに使えます。
+          </p>
+          <ul>
+            <li>APIキー不要・即利用可能</li>
+            <li>コメント取得が高速</li>
+            <li>アーカイブ配信にも対応！</li>
+            <li>APIクレジットを消費しない</li>
+          </ul>
+          <div class="note">
+            ※ YouTubeのサイト更新によってページ構造が変わった場合、一時的に動作しなくなる可能性があります。
+          </div>
+
+          <h3 id="youtube-api">2b. YouTube APIキーモード</h3>
+          <p>
+            YouTube Data API v3を使ってコメントを取得する方式です。
+            YouTubeのDOM構造変更の影響を受けにくいため、安定性が期待できます。
           </p>
           <ol>
             <li>
@@ -59,13 +102,13 @@
         </section>
 
         <section id="voicevox-api" class="guide-section">
-          <h2>2. VOICEVOXとの連携（任意）</h2>
+          <h2>3. 読み上げエンジンの選択</h2>
           <p>
-            標準のブラウザ音声以外に、高品質な「VOICEVOX」の音声を利用できます。<br />
-            ローカルVOICEVOXの導入を推奨しますが、WEB版APIも利用可能です。
+            読み上げエンジンは拡張機能のプルダウンから選択できます。<br />
+            手軽に始めるなら「ブラウザ内蔵音声」、高品質な音声を使いたい場合は「ローカルVOICEVOX」がおすすめです。
           </p>
 
-          <h3 id="local-voicevox">2a. ローカルVOICEVOXの導入（推奨）</h3>
+          <h3 id="local-voicevox">3a. ローカルVOICEVOXの導入（推奨）</h3>
           <p>
             お使いのPCにVOICEVOXをインストールすることで、レート制限なし・高速で利用できます。
           </p>
@@ -82,7 +125,16 @@
             ※ 読み上げ中はVOICEVOXアプリを起動したままにしてください。
           </div>
 
-          <h3 id="web-voicevox-api">2b. WEB版VOICEVOX API（代替）</h3>
+          <h3 id="browser-voice">3b. ブラウザ内蔵音声（設定不要）</h3>
+          <p>
+            VOICEVOXのダウンロードもAPIキーも不要で、すぐに使い始められます。<br />
+            拡張機能の「読み上げエンジン」プルダウンで「ブラウザ内蔵音声」を選択するだけです。
+          </p>
+          <div class="note">
+            ※ ブラウザ標準のTTS音声を使用します。音声の種類はOSやブラウザの環境によって異なります。
+          </div>
+
+          <h3 id="web-voicevox-api">3c. WEB版VOICEVOX API（代替）</h3>
           <p>
             ローカルインストールが難しい場合は、WEB版APIも利用できます。<br />
             APIキーの有無で2つのモードがあります。いずれも無料ですが、レート制限があり
@@ -111,28 +163,10 @@
             <li>特別な設定は不要です。読み上げエンジンで「WEB版VOICEVOX API」を選択するだけで利用できます。</li>
           </ol>
         </section>
-
-        <section id="how-to-use" class="guide-section">
-          <h2>3. 基本的な使い方</h2>
-          <ol>
-            <li>YouTube Liveの配信ページを開きます。</li>
-            <li>拡張機能のアイコンをクリックしてパネルを開きます。</li>
-            <li>
-              「読み上げ開始」ボタンを押すか、ショートカット（Alt+Shift+S / ⌥⇧S）を使用します。
-            </li>
-            <li>
-              コメントの取得と読み上げが開始されます！停止したい時は「停止」ボタンを押してください。
-            </li>
-          </ol>
-          <p>
-            ※
-            読み上げ設定（速度・音量・話者など）やフィルター機能は、配信中・停止中いつでも変更可能です。
-          </p>
-        </section>
       </main>
 
       <footer>
-        <p>&copy; 2024 ずんだもんボイス読み上げ（APIキー不要版）</p>
+        <p>&copy; 2024 YouTubeライブチャットずんだもんボイス読み上げ</p>
       </footer>
     </div>
     <script type="module" src="./onboarding.ts"></script>
