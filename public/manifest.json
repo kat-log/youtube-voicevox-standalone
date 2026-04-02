@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "ずんだもんボイス読み上げ（APIキー不要モード搭載版）",
-  "version": "1.0.0",
+  "name": "YouTubeライブチャットずんだもんボイス読み上げ",
+  "version": "9.0.0",
   "permissions": ["activeTab", "scripting", "storage", "offscreen", "tts"],
   "host_permissions": ["https://www.youtube.com/*", "https://*.tts.quest/*", "http://localhost/*"],
   "content_scripts": [
