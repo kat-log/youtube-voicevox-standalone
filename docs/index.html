@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YouTubeライブチャット ずんだもんボイス読み上げ – Chrome拡張機能</title>
+  <meta name="description" content="YouTubeライブのコメントをVOICEVOXで自動読み上げ。APIキー不要ですぐ使える無料Chrome拡張機能。ずんだもんをはじめ多彩な声に対応。" />
+  <meta property="og:title" content="YouTubeライブチャット ずんだもんボイス読み上げ" />
+  <meta property="og:description" content="APIキー不要で今すぐ使える。VOICEVOXでYouTubeライブコメントを自動読み上げ。" />
+  <meta property="og:image" content="img/banner.png" />
+  <meta property="og:type" content="website" />
+  <link rel="icon" type="image/png" href="img/icon128.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ============================================================
+  NAV
+============================================================ -->
+<header class="nav">
+  <div class="container nav__inner">
+    <a href="#" class="nav__logo">
+      <img src="img/icon128.png" alt="拡張機能アイコン" />
+      <span class="nav__logo-text">YouTubeライブ<br>ずんだもんボイス</span>
+    </a>
+    <nav aria-label="メインナビゲーション">
+      <ul class="nav__links">
+        <li><a href="#features">機能</a></li>
+        <li><a href="#detail">詳細</a></li>
+        <li><a href="#steps">使い方</a></li>
+      </ul>
+    </nav>
+    <a
+      href="https://chromewebstore.google.com/detail/youtube%E3%83%A9%E3%82%A4%E3%83%96%E3%83%81%E3%83%A3%E3%83%83%E3%83%88%E3%81%9A%E3%82%93%E3%81%A0%E3%82%82%E3%82%93%E3%83%9C%E3%82%A4%E3%82%B9%E8%AA%AD%E3%81%BF%E4%B8%8A/gdakacmdogbakjhalfjkclkagdojhooi?authuser=0&hl=ja"
+      target="_blank" rel="noopener"
+      class="btn btn-primary btn-sm nav__cta"
+    >インストール</a>
+  </div>
+</header>
+
+<!-- ============================================================
+  HERO
+============================================================ -->
+<section class="hero" aria-label="ヒーローセクション">
+
+  <!-- Animated wave bars -->
+  <div class="hero__waves" aria-hidden="true" id="waveContainer"></div>
+
+  <div class="container">
+    <div class="hero__inner">
+      <div class="hero__content">
+        <div class="hero__eyebrow">
+          <span>🎙</span> VOICEVOX × YouTube Live
+        </div>
+
+        <h1 class="hero__title">
+          YouTubeライブを、<br>
+          <span>声で楽しもう。</span>
+        </h1>
+
+        <p class="hero__sub">
+          ずんだもんをはじめ多彩な声で、ライブコメントを自動読み上げ。<br>
+          APIキー不要ですぐに使える無料のChrome拡張機能。
+        </p>
+
+        <div class="hero__cta-row">
+          <a
+            href="https://chromewebstore.google.com/detail/youtube%E3%83%A9%E3%82%A4%E3%83%96%E3%83%81%E3%83%A3%E3%83%83%E3%83%88%E3%81%9A%E3%82%93%E3%81%A0%E3%82%82%E3%82%93%E3%83%9C%E3%82%A4%E3%82%B9%E8%AA%AD%E3%81%BF%E4%B8%8A/gdakacmdogbakjhalfjkclkagdojhooi?authuser=0&hl=ja"
+            target="_blank" rel="noopener"
+            class="btn btn-primary"
+          >
+            ▶ Chrome Web Storeで無料インストール
+          </a>
+        </div>
+
+        <div class="hero__badges">
+          <span class="hero__badge">🏷 v9.0.0</span>
+          <span class="hero__badge">🔑 APIキー不要</span>
+          <span class="hero__badge">💚 完全無料</span>
+          <span class="hero__badge">🌙 ダークモード対応</span>
+        </div>
+      </div>
+
+      <div class="hero__visual">
+        <img
+          src="img/screenshot-popup.png"
+          alt="拡張機能のポップアップUI スクリーンショット"
+          class="hero__screenshot"
+        />
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+  FEATURES
+============================================================ -->
+<section class="features" id="features">
+  <div class="container">
+    <p class="section-label reveal">特徴</p>
+    <h2 class="section-title reveal">シンプルに、<br>でも本格的に。</h2>
+    <p class="section-body reveal">3つのエンジンと豊富な設定で、あなたのYouTubeライブ視聴をより楽しく。</p>
+
+    <div class="features__grid">
+      <div class="feature-card reveal">
+        <div class="feature-card__icon">🎙️</div>
+        <h3 class="feature-card__title">APIキー不要で即使える</h3>
+        <p class="feature-card__desc">
+          DOMモードで設定ゼロ。YouTubeライブを開いて「読み上げ開始」を押すだけ。
+          インストール直後からすぐ使えます。
+        </p>
+      </div>
+
+      <div class="feature-card reveal">
+        <div class="feature-card__icon">🔊</div>
+        <h3 class="feature-card__title">3つの読み上げエンジン</h3>
+        <p class="feature-card__desc">
+          ローカルVOICEVOX・WEB版API・ブラウザ内蔵音声から用途に合わせて選択。
+          本格的な音声合成から手軽な利用まで対応。
+        </p>
+      </div>
+
+      <div class="feature-card reveal">
+        <div class="feature-card__icon">⚙️</div>
+        <h3 class="feature-card__title">豊富なカスタマイズ</h3>
+        <p class="feature-card__desc">
+          話者・速度・音量・フィルター・並列再生まで細かく設定可能。
+          ランクアップする実績システムも搭載。
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+  DETAIL TABS
+============================================================ -->
+<section class="detail" id="detail">
+  <div class="container">
+    <div class="detail__header">
+      <p class="section-label reveal">機能詳細</p>
+      <h2 class="section-title reveal">かゆいところに<br>手が届く機能。</h2>
+    </div>
+
+    <div class="tabs" role="tablist" aria-label="機能タブ">
+      <button class="tab-btn active" role="tab" aria-selected="true"  data-tab="engine">読み上げエンジン</button>
+      <button class="tab-btn"        role="tab" aria-selected="false" data-tab="playback">高度な再生機能</button>
+      <button class="tab-btn"        role="tab" aria-selected="false" data-tab="filter">フィルター & UI</button>
+    </div>
+
+    <!-- Tab: engine -->
+    <div class="tab-panel active" id="tab-engine" role="tabpanel">
+      <div class="tab-content">
+        <ul class="tab-content__list">
+          <li class="tab-content__item">
+            <div class="tab-content__icon">💻</div>
+            <div class="tab-content__text">
+              <strong>ローカルVOICEVOX（推奨）</strong>
+              <span>PCにVOICEVOXアプリをインストールして使用。回数無制限・最大5並列リクエスト対応。最高品質の音声。</span>
+            </div>
+          </li>
+          <li class="tab-content__item">
+            <div class="tab-content__icon">☁️</div>
+            <div class="tab-content__text">
+              <strong>WEB版VOICEVOX API</strong>
+              <span>クラウドAPIを利用。インストール不要でずんだもんをはじめ多キャラクター対応。APIキーで高速化可能。</span>
+            </div>
+          </li>
+          <li class="tab-content__item">
+            <div class="tab-content__icon">🌐</div>
+            <div class="tab-content__text">
+              <strong>ブラウザ内蔵音声</strong>
+              <span>追加設定ゼロ。Chromeに搭載されたTTSエンジンを使用。手軽に始めたい方に。</span>
+            </div>
+          </li>
+        </ul>
+        <div class="tab-content__img">
+          <img src="img/screenshot-popup.png" alt="エンジン選択画面のスクリーンショット" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: playback -->
+    <div class="tab-panel" id="tab-playback" role="tabpanel">
+      <div class="tab-content">
+        <ul class="tab-content__list">
+          <li class="tab-content__item">
+            <div class="tab-content__icon">🎲</div>
+            <div class="tab-content__text">
+              <strong>ランダム話者モード</strong>
+              <span>コメントごとに異なる声で読み上げ。専用ページで話者を検索・選択。持ち回り制も対応（2〜10人）。</span>
+            </div>
+          </li>
+          <li class="tab-content__item">
+            <div class="tab-content__icon">⏩</div>
+            <div class="tab-content__text">
+              <strong>ラッシュモード（自動倍速）</strong>
+              <span>コメントが溜まったとき自動で読み上げ速度を上げて追いつく。しきい値も調整可能。</span>
+            </div>
+          </li>
+          <li class="tab-content__item">
+            <div class="tab-content__icon">🔀</div>
+            <div class="tab-content__text">
+              <strong>並列同時再生</strong>
+              <span>最大10コメントを同時に読み上げ。ローカルVOICEVOX使用時に特に効果的。</span>
+            </div>
+          </li>
+        </ul>
+        <div class="tab-content__img">
+          <img src="img/screenshot-settings.png" alt="再生設定画面のスクリーンショット" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: filter -->
+    <div class="tab-panel" id="tab-filter" role="tabpanel">
+      <div class="tab-content">
+        <ul class="tab-content__list">
+          <li class="tab-content__item">
+            <div class="tab-content__icon">🚫</div>
+            <div class="tab-content__text">
+              <strong>NGワード / 文字数フィルター</strong>
+              <span>カンマ区切りのNGワードリスト（全角半角同一視）・デュアルスライダーで文字数範囲を設定。</span>
+            </div>
+          </li>
+          <li class="tab-content__item">
+            <div class="tab-content__icon">⌨️</div>
+            <div class="tab-content__text">
+              <strong>キーボードショートカット</strong>
+              <span><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> で開始、<kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>Q</kbd> で停止。マウスを触らず操作可能。</span>
+            </div>
+          </li>
+          <li class="tab-content__item">
+            <div class="tab-content__icon">🏆</div>
+            <div class="tab-content__text">
+              <strong>実績 & ランクシステム</strong>
+              <span>読み上げ件数に応じて10段階でランクアップ。使い続けるほど称号が解放されます。</span>
+            </div>
+          </li>
+        </ul>
+        <div class="tab-content__img">
+          <img src="img/screenshot-settings.png" alt="フィルター設定画面のスクリーンショット" />
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+  SCREENSHOTS
+============================================================ -->
+<section class="screenshots" id="screenshots">
+  <div class="container">
+    <p class="section-label reveal">スクリーンショット</p>
+    <h2 class="section-title reveal">こんな画面で使えます。</h2>
+
+    <div class="screenshots__grid">
+      <div class="screenshot-card reveal">
+        <img src="img/screenshot-archive.png" alt="アーカイブ配信での使用画面" />
+        <p class="screenshot-card__caption">アーカイブ配信にも対応</p>
+      </div>
+      <div class="screenshot-card reveal">
+        <img src="img/screenshot-settings.png" alt="多機能な設定画面" />
+        <p class="screenshot-card__caption">豊富な設定画面</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+  STEPS
+============================================================ -->
+<section class="steps" id="steps">
+  <div class="container">
+    <p class="section-label reveal">使い方</p>
+    <h2 class="section-title reveal">簡単3ステップで開始。</h2>
+
+    <div class="steps__inner">
+      <ol class="steps__list" aria-label="インストール手順">
+        <li class="step-item reveal">
+          <div class="step-num" aria-hidden="true">1</div>
+          <div class="step-text">
+            <strong>Chrome Web Storeからインストール</strong>
+            <span>下のボタンからChrome Web Storeページへ移動し、「Chromeに追加」をクリック。</span>
+          </div>
+        </li>
+        <li class="step-item reveal">
+          <div class="step-num" aria-hidden="true">2</div>
+          <div class="step-text">
+            <strong>YouTubeライブを開く</strong>
+            <span>読み上げたいYouTubeライブ配信のページ、またはアーカイブを開きます。</span>
+          </div>
+        </li>
+        <li class="step-item reveal">
+          <div class="step-num" aria-hidden="true">3</div>
+          <div class="step-text">
+            <strong>「読み上げ開始」をクリック</strong>
+            <span>拡張機能アイコンを押してポップアップを開き、「読み上げ開始」を押すだけ。APIキー不要で即スタート。</span>
+          </div>
+        </li>
+      </ol>
+
+      <div class="steps__img reveal">
+        <img src="img/screenshot-steps.png" alt="簡単3ステップのインストール手順画像" />
+      </div>
+    </div>
+
+    <div style="text-align:center; margin-top:48px;">
+      <a
+        href="https://chromewebstore.google.com/detail/youtube%E3%83%A9%E3%82%A4%E3%83%96%E3%83%81%E3%83%A3%E3%83%83%E3%83%88%E3%81%9A%E3%82%93%E3%81%A0%E3%82%82%E3%82%93%E3%83%9C%E3%82%A4%E3%82%B9%E8%AA%AD%E3%81%BF%E4%B8%8A/gdakacmdogbakjhalfjkclkagdojhooi?authuser=0&hl=ja"
+        target="_blank" rel="noopener"
+        class="btn btn-primary reveal"
+      >
+        ▶ 今すぐ無料インストール
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+  ABOUT / CREDIT
+============================================================ -->
+<section class="about" id="about">
+  <div class="container">
+    <div class="about__box">
+      <h2 class="about__title reveal">このツールについて</h2>
+      <p class="about__body reveal">
+        本拡張機能は個人が趣味で制作した非公式ツールです。<br>
+        VOICEVOX・ずんだもんキャラクターとは公式に提携しておりません。<br>
+        ご利用にあたっては各サービスの利用規約をご確認ください。
+      </p>
+
+      <div class="about__voicevox reveal">
+        🎵 本拡張機能は音声合成エンジン
+        <a href="https://voicevox.hiroshiba.jp/" target="_blank" rel="noopener"><strong>VOICEVOX</strong></a>
+        を使用しています。素晴らしいエンジンを無償で提供してくださる開発者の皆さんに感謝いたします。
+      </div>
+
+      <div class="about__links reveal" style="margin-top:24px;">
+        <!-- TODO: リポジトリ公開後に有効化
+        <a href="https://github.com/kat-log/youtube-voicevox-standalone" target="_blank" rel="noopener" class="about__link">
+          GitHub リポジトリ
+        </a>
+        -->
+        <a href="https://voicevox.hiroshiba.jp/" target="_blank" rel="noopener" class="about__link">
+          VOICEVOX 公式サイト
+        </a>
+        <!-- TODO: プライバシーポリシーページ整備後に有効化
+        <a href="privacy-policy.md" class="about__link">
+          プライバシーポリシー
+        </a>
+        -->
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+  FOOTER
+============================================================ -->
+<footer class="footer">
+  <div class="container footer__inner">
+    <p class="footer__copy">© 2026 kat-log — 個人制作ツール</p>
+    <nav aria-label="フッターナビゲーション">
+      <ul class="footer__links">
+        <!-- TODO: プライバシーポリシーページ整備後に有効化
+        <li>
+          <a href="privacy-policy.md">プライバシーポリシー</a>
+        </li>
+        -->
+        <!-- TODO: リポジトリ公開後に有効化
+        <li>
+          <a href="https://github.com/kat-log/youtube-voicevox-standalone" target="_blank" rel="noopener">GitHub</a>
+        </li>
+        -->
+        <li>
+          <a href="https://chromewebstore.google.com/detail/youtube%E3%83%A9%E3%82%A4%E3%83%96%E3%83%81%E3%83%A3%E3%83%83%E3%83%88%E3%81%9A%E3%82%93%E3%81%A0%E3%82%82%E3%82%93%E3%83%9C%E3%82%A4%E3%82%B9%E8%AA%AD%E3%81%BF%E4%B8%8A/gdakacmdogbakjhalfjkclkagdojhooi?authuser=0&hl=ja" target="_blank" rel="noopener">Chrome Web Store</a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
