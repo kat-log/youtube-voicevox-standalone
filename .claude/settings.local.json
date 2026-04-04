@@ -66,7 +66,8 @@
       "Bash(rsvg-convert -w 128 -h 128 youtube-live-comment-icon.svg -o youtube-live-comment-icon128.png)",
       "Bash(rsvg-convert -w 48 -h 48 youtube-live-comment-icon.svg -o youtube-live-comment-icon48.png)",
       "Bash(rsvg-convert -w 16 -h 16 youtube-live-comment-icon.svg -o youtube-live-comment-icon16.png)",
-      "Bash(rsvg-convert -w 128 -h 128 youtube-live-comment-icon.svg -o youtube-live-comment-icon.png)"
+      "Bash(rsvg-convert -w 128 -h 128 youtube-live-comment-icon.svg -o youtube-live-comment-icon.png)",
+      "WebFetch(domain:docs.github.com)"
     ],
     "deny": []
   }
