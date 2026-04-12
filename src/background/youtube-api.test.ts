@@ -16,8 +16,14 @@ describe('extractVideoId', () => {
     );
   });
 
-  it('/live/ 形式は現在未対応で null を返す', () => {
-    expect(extractVideoId('https://www.youtube.com/live/dQw4w9WgXcQ')).toBeNull();
+  it('/live/ 形式から VIDEO_ID を取得', () => {
+    expect(extractVideoId('https://www.youtube.com/live/dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
+  });
+
+  it('/live/ 形式 + クエリパラメータ付き URL から VIDEO_ID を取得', () => {
+    expect(extractVideoId('https://www.youtube.com/live/dQw4w9WgXcQ?feature=share')).toBe(
+      'dQw4w9WgXcQ'
+    );
   });
 
   it('不正な URL は null を返す', () => {
