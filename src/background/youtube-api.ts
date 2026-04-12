@@ -5,6 +5,10 @@ export function extractVideoId(url: string): string | null {
   try {
     const parsed = new URL(url);
     if (parsed.hostname === 'www.youtube.com') {
+      // /live/VIDEO_ID 形式（ライブ開始前を含む）
+      const liveMatch = parsed.pathname.match(/^\/live\/([^/?#]+)/);
+      if (liveMatch) return liveMatch[1];
+      // 標準形式 /watch?v=VIDEO_ID
       return new URLSearchParams(parsed.search).get('v');
     } else if (parsed.hostname === 'youtu.be') {
       return parsed.pathname.slice(1);
