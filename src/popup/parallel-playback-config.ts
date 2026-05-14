@@ -7,10 +7,20 @@ function sendParallelPlaybackConfig(): void {
   const autoTriggerThreshold = parseInt(
     (document.getElementById('parallelAutoTriggerThreshold') as HTMLInputElement).value, 10
   );
+  const autoExtraEnabled = (document.getElementById('parallelAutoExtraEnabled') as HTMLInputElement).checked;
+  const autoExtraThreshold = parseInt(
+    (document.getElementById('parallelAutoExtraThreshold') as HTMLInputElement).value, 10
+  );
+  const autoExtraConcurrent = parseInt(
+    (document.getElementById('parallelAutoExtraConcurrent') as HTMLInputElement).value, 10
+  );
   const parallelPlaybackConfig = {
     alwaysEnabled,
     autoEnabled,
     autoTriggerThreshold,
+    autoExtraEnabled,
+    autoExtraThreshold,
+    autoExtraConcurrent,
   };
   chrome.runtime.sendMessage({ action: 'updateParallelPlaybackConfig', parallelPlaybackConfig });
 }
@@ -83,9 +93,10 @@ export function initParallelPlaybackConfig(): void {
     const target = event.target as HTMLInputElement;
     target.setAttribute('aria-checked', String(target.checked));
     document.getElementById('parallel-always-options')!.style.display = target.checked ? 'block' : 'none';
-    // 親トグルOFF時、自動発動の詳細も非表示にする
+    // 親トグルOFF時、子の詳細も非表示にする
     if (!target.checked) {
       document.getElementById('parallel-auto-options')!.style.display = 'none';
+      document.getElementById('parallel-auto-extra-options')!.style.display = 'none';
     }
     // NOTE: 並列再生ON時の持ち回り制 auto-ON を廃止 (#133)
     // 同時再生数は専用ページから設定可能なため不要
@@ -97,6 +108,13 @@ export function initParallelPlaybackConfig(): void {
     const target = event.target as HTMLInputElement;
     target.setAttribute('aria-checked', String(target.checked));
     document.getElementById('parallel-auto-options')!.style.display = target.checked ? 'block' : 'none';
+    // 排他制御: ON時に autoExtra を自動OFF
+    if (target.checked) {
+      const autoExtraToggle = document.getElementById('parallelAutoExtraEnabled') as HTMLInputElement;
+      autoExtraToggle.checked = false;
+      autoExtraToggle.setAttribute('aria-checked', 'false');
+      document.getElementById('parallel-auto-extra-options')!.style.display = 'none';
+    }
     sendParallelPlaybackConfig();
   });
 
@@ -117,6 +135,56 @@ export function initParallelPlaybackConfig(): void {
     document.getElementById('current-parallel-auto-threshold')!.textContent = '10件';
     thresholdSlider.setAttribute('aria-valuetext', '10件');
     setRangeFill(thresholdSlider);
+    sendParallelPlaybackConfig();
+  });
+
+  // 別並列数トグル
+  document.getElementById('parallelAutoExtraEnabled')!.addEventListener('change', (event) => {
+    const target = event.target as HTMLInputElement;
+    target.setAttribute('aria-checked', String(target.checked));
+    document.getElementById('parallel-auto-extra-options')!.style.display = target.checked ? 'block' : 'none';
+    // 排他制御: ON時に autoEnabled を自動OFF
+    if (target.checked) {
+      const autoToggle = document.getElementById('parallelAutoEnabled') as HTMLInputElement;
+      autoToggle.checked = false;
+      autoToggle.setAttribute('aria-checked', 'false');
+      document.getElementById('parallel-auto-options')!.style.display = 'none';
+    }
+    sendParallelPlaybackConfig();
+  });
+
+  // 別並列数: 発動しきい値スライダー
+  document.getElementById('parallelAutoExtraThreshold')!.addEventListener('input', (event) => {
+    const target = event.target as HTMLInputElement;
+    const val = parseInt(target.value, 10);
+    document.getElementById('current-parallel-auto-extra-threshold')!.textContent = `${val}件`;
+    target.setAttribute('aria-valuetext', `${val}件`);
+    setRangeFill(target);
+    sendParallelPlaybackConfig();
+  });
+
+  // 別並列数: 同時再生数スライダー
+  document.getElementById('parallelAutoExtraConcurrent')!.addEventListener('input', (event) => {
+    const target = event.target as HTMLInputElement;
+    const val = parseInt(target.value, 10);
+    document.getElementById('current-parallel-auto-extra-concurrent')!.textContent = String(val);
+    target.setAttribute('aria-valuetext', String(val));
+    setRangeFill(target);
+    sendParallelPlaybackConfig();
+  });
+
+  // 別並列数: リセットボタン
+  document.getElementById('reset-parallel-auto-extra')!.addEventListener('click', () => {
+    const thresholdSlider = document.getElementById('parallelAutoExtraThreshold') as HTMLInputElement;
+    thresholdSlider.value = '5';
+    document.getElementById('current-parallel-auto-extra-threshold')!.textContent = '5件';
+    thresholdSlider.setAttribute('aria-valuetext', '5件');
+    setRangeFill(thresholdSlider);
+    const concurrentSlider = document.getElementById('parallelAutoExtraConcurrent') as HTMLInputElement;
+    concurrentSlider.value = '5';
+    document.getElementById('current-parallel-auto-extra-concurrent')!.textContent = '5';
+    concurrentSlider.setAttribute('aria-valuetext', '5');
+    setRangeFill(concurrentSlider);
     sendParallelPlaybackConfig();
   });
 

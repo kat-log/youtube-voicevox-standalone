@@ -383,6 +383,46 @@
           </div>
           <button id="reset-parallel-auto" class="small-btn" aria-label="自動発動の設定をリセット">デフォルトに戻す</button>
         </div>
+
+        <div class="toggle-container" style="margin-top: 8px">
+          <label class="toggle-switch" aria-label="しきい値超過時のみ別の並列再生数を使用">
+            <input type="checkbox" id="parallelAutoExtraEnabled" role="switch" aria-checked="false" />
+            <span class="slider round"></span>
+          </label>
+          <span>しきい値超過時のみ別の並列再生数を使用</span>
+        </div>
+
+        <div id="parallel-auto-extra-options" class="toggle-detail" style="display: none">
+          <label for="parallelAutoExtraThreshold">発動しきい値（待機コメント数）:</label>
+          <div class="slider-group">
+            <input
+              type="range"
+              id="parallelAutoExtraThreshold"
+              min="3"
+              max="50"
+              step="1"
+              value="5"
+              aria-label="別並列数への切替しきい値"
+              aria-valuetext="5件"
+            />
+            <span id="current-parallel-auto-extra-threshold">5件</span>
+          </div>
+          <label for="parallelAutoExtraConcurrent">同時再生数:</label>
+          <div class="slider-group">
+            <input
+              type="range"
+              id="parallelAutoExtraConcurrent"
+              min="2"
+              max="10"
+              step="1"
+              value="5"
+              aria-label="しきい値超過時の同時再生数"
+              aria-valuetext="5"
+            />
+            <span id="current-parallel-auto-extra-concurrent">5</span>
+          </div>
+          <button id="reset-parallel-auto-extra" class="small-btn" aria-label="別並列数設定をリセット">デフォルトに戻す</button>
+        </div>
       </div>
 
       <p id="parallel-unsupported-info" class="info-text" style="display: none">

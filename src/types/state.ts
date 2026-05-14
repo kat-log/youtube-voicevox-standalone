@@ -16,6 +16,9 @@ export interface ParallelPlaybackConfig {
   alwaysEnabled: boolean;
   autoEnabled: boolean;
   autoTriggerThreshold: number;
+  autoExtraEnabled: boolean;
+  autoExtraThreshold: number;
+  autoExtraConcurrent: number;
 }
 
 export interface ParallelSpeakersConfig {

@@ -8,6 +8,9 @@ const DEFAULT_CONFIG: ParallelPlaybackConfig = {
   alwaysEnabled: false,
   autoEnabled: false,
   autoTriggerThreshold: 10,
+  autoExtraEnabled: false,
+  autoExtraThreshold: 5,
+  autoExtraConcurrent: 5,
 };
 
 let config: ParallelPlaybackConfig = { ...DEFAULT_CONFIG };
@@ -41,13 +44,20 @@ export function getEffectiveMaxConcurrent(): number {
 
   if (config.alwaysEnabled) {
     if (config.autoEnabled) {
-      // 自動: 条件付きのみ
       const state = getState();
       const pending = state.commentQueue.length + state.audioQueue.length;
       if (pending >= config.autoTriggerThreshold) {
         return speakersConfig.roundRobinSpeakerCount;
       }
       return 1;
+    }
+    if (config.autoExtraEnabled) {
+      const state = getState();
+      const pending = state.commentQueue.length + state.audioQueue.length;
+      if (pending >= config.autoExtraThreshold) {
+        return config.autoExtraConcurrent;
+      }
+      return speakersConfig.roundRobinSpeakerCount;
     }
     return speakersConfig.roundRobinSpeakerCount;
   }

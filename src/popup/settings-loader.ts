@@ -176,6 +176,9 @@ export function loadSettings(): void {
         alwaysEnabled: false,
         autoEnabled: false,
         autoTriggerThreshold: 10,
+        autoExtraEnabled: false,
+        autoExtraThreshold: 5,
+        autoExtraConcurrent: 5,
       };
       (document.getElementById('parallelAlwaysEnabled') as HTMLInputElement).checked = pp.alwaysEnabled;
       document.getElementById('parallelAlwaysEnabled')!.setAttribute('aria-checked', String(pp.alwaysEnabled));
@@ -190,6 +193,25 @@ export function loadSettings(): void {
       document.getElementById('current-parallel-auto-threshold')!.textContent = `${pp.autoTriggerThreshold}件`;
       parallelAutoThresholdSlider.setAttribute('aria-valuetext', `${pp.autoTriggerThreshold}件`);
       setRangeFill(parallelAutoThresholdSlider);
+
+      const autoExtraEnabled = pp.autoExtraEnabled ?? false;
+      (document.getElementById('parallelAutoExtraEnabled') as HTMLInputElement).checked = autoExtraEnabled;
+      document.getElementById('parallelAutoExtraEnabled')!.setAttribute('aria-checked', String(autoExtraEnabled));
+      document.getElementById('parallel-auto-extra-options')!.style.display = autoExtraEnabled ? 'block' : 'none';
+
+      const autoExtraThreshold = pp.autoExtraThreshold ?? 5;
+      const autoExtraThresholdSlider = document.getElementById('parallelAutoExtraThreshold') as HTMLInputElement;
+      autoExtraThresholdSlider.value = String(autoExtraThreshold);
+      document.getElementById('current-parallel-auto-extra-threshold')!.textContent = `${autoExtraThreshold}件`;
+      autoExtraThresholdSlider.setAttribute('aria-valuetext', `${autoExtraThreshold}件`);
+      setRangeFill(autoExtraThresholdSlider);
+
+      const autoExtraConcurrent = pp.autoExtraConcurrent ?? 5;
+      const autoExtraConcurrentSlider = document.getElementById('parallelAutoExtraConcurrent') as HTMLInputElement;
+      autoExtraConcurrentSlider.value = String(autoExtraConcurrent);
+      document.getElementById('current-parallel-auto-extra-concurrent')!.textContent = String(autoExtraConcurrent);
+      autoExtraConcurrentSlider.setAttribute('aria-valuetext', String(autoExtraConcurrent));
+      setRangeFill(autoExtraConcurrentSlider);
 
       // TTSエンジン設定を復元
       const engine = data.ttsEngine || 'local-voicevox';
