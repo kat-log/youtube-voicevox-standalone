@@ -225,8 +225,8 @@ export function stopCurrentAudio(): void {
 // audioEnded メッセージのハンドラー（audioId指定）
 export function handleAudioEndedById(audioId: string): void {
   clearPlayingTimeout(audioId);
-  trackPlayEnd(audioId);
   decrementPlayingCount();
+  trackPlayEnd(audioId);
 
   const state = getState();
   state.commentCount++;
