@@ -335,6 +335,11 @@ export function stopAll(): void {
   chrome.storage.session.set({ domModeActive: false }).catch(() => {});
   chrome.storage.session.remove('domRecoveryConfig').catch(() => {});
 
+  // 停止時点でキューに残っているコメントを足切り済みとしてマーク
+  for (const item of state.commentQueue) {
+    if (item.lifecycleId) trackDrop(item.lifecycleId);
+  }
+
   // 状態リセット
   resetState();
   sendStatus('idle');
