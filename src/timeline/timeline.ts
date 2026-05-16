@@ -167,12 +167,12 @@ function renderSegments(row: HTMLElement, lc: CommentLifecycle, now: number): vo
 
   const stages: Array<{ cls: string; start: number; end: number | null }> = [];
 
-  // 音声生成待ち: fetchTime → synthStartTime
+  // 音声生成待ち: fetchTime → synthStartTime（足切り済みは droppedTime で止める）
   if (lc.fetchTime) {
     stages.push({
       cls: 'synth-wait',
       start: lc.fetchTime,
-      end: lc.synthStartTime ?? null,
+      end: lc.synthStartTime ?? lc.droppedTime ?? null,
     });
   }
 
@@ -247,8 +247,9 @@ function startRafLoop(): void {
   function loop() {
     const now = Date.now();
     for (const [, lc] of lifecycles) {
-      // 完了していないものだけ更新
+      // 完了済みおよび足切り済みは再描画不要
       if (lc.playEndTime) continue;
+      if (lc.droppedTime && !lc.synthStartTime) continue;
       const ganttInner = document.getElementById('gantt-inner');
       const row = ganttInner?.querySelector<HTMLElement>(`[data-id="${CSS.escape(lc.id)}"]`);
       if (row) renderSegments(row, lc, now);
@@ -268,8 +269,11 @@ function showTooltip(e: MouseEvent, lc: CommentLifecycle): void {
 
   const synthWait = lc.synthStartTime
     ? lc.synthStartTime - lc.fetchTime
-    : now - lc.fetchTime;
+    : (lc.droppedTime ?? now) - lc.fetchTime;
   lines.push(`音声生成待ち: ${synthWait}ms`);
+  if (lc.droppedTime && !lc.synthStartTime) {
+    lines.push(`⚠️ 足切り済み（キュー上限により破棄）`);
+  }
 
   if (lc.synthStartTime) {
     const synthActive = lc.synthEndTime
