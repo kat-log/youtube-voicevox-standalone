@@ -2,7 +2,7 @@ import type { ExtensionState, CommentQueueItem, AudioQueueItem } from '@/types/s
 
 export const ERROR_THRESHOLD_FOR_STATUS = 3;
 export const MAX_COMMENT_QUEUE = 200;
-export const MAX_AUDIO_QUEUE = 200;
+export const MAX_AUDIO_QUEUE = 100;
 
 const state: ExtensionState = {
   audioQueue: [],
