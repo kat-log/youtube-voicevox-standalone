@@ -10,7 +10,7 @@ const RULER_INTERVAL_MS = 5000;
 // 目盛りの横幅（px）= 5s * 10px/s = 50px
 const RULER_INTERVAL_PX = RULER_INTERVAL_MS * SCALE;
 // タイムラインに保持するコメント行の上限
-const MAX_TIMELINE_ROWS = 1000;
+const MAX_TIMELINE_ROWS = 500;
 
 let originTime: number = Date.now();
 const lifecycles = new Map<string, CommentLifecycle>();
