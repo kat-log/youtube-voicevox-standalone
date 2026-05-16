@@ -27,7 +27,7 @@ let ttsProcessingCount = 0;
 let processingTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
 // ローカルVOICEVOX 並列合成
-let maxParallelSynthesis = 1;   // デフォルト: シリアル（後方互換）
+let maxParallelSynthesis = 3;   // デフォルト: UIデフォルト(3)に統一
 let nextSynthesisSeq = 0;       // コメント取り出し時に付番
 let nextAudioInsertSeq = 0;     // audioQueue に挿入すべき次の番号
 const pendingResults = new Map<number, AudioQueueItem | null>();
