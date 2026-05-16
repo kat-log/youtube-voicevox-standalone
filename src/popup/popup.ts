@@ -1,3 +1,4 @@
+import '../styles/popup-layout.scss';
 import '../styles/styles.scss';
 import { loadSettings } from './settings-loader';
 import { initMessageHandler } from './message-handler';
