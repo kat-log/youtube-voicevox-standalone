@@ -8,6 +8,7 @@ export interface CommentLifecycle {
   synthEndTime?: number;
   playStartTime?: number;
   playEndTime?: number;
+  droppedTime?: number;
 }
 
 export interface TimelineStatus {
@@ -61,6 +62,13 @@ export function trackPlayStart(id: string | undefined, audioId: string): void {
   audioIdToLifecycleId.set(audioId, id);
   broadcastUpdate(id);
   broadcastStatus();
+}
+
+export function trackDrop(id: string): void {
+  const lc = lifecycles.get(id);
+  if (!lc || lc.synthStartTime) return;
+  lc.droppedTime = Date.now();
+  broadcastUpdate(id);
 }
 
 export function trackPlayEnd(audioId: string): void {

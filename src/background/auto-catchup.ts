@@ -1,5 +1,6 @@
 import type { AutoCatchUpConfig } from '@/types/state';
 import { getState, clearCommentQueue, clearAudioQueue, pushComment } from './state';
+import { trackDrop } from './lifecycle-tracker';
 import { logInfo, formatQueueState } from './messaging';
 
 const DEFAULT_AUTO_CATCHUP_CONFIG: AutoCatchUpConfig = {
@@ -44,8 +45,11 @@ export function evaluateAutoCatchUp(): boolean {
 
   // フラッシュ実行: 最新コメント数件を保持し残りを破棄
   const keepCount = getState().latestOnlyCount || 3;
+  const queue = getState().commentQueue;
+  const toDropItems = queue.slice(0, Math.max(0, queue.length - keepCount));
   const keptComments = clearCommentQueue(keepCount);
   clearAudioQueue();
+  for (const d of toDropItems) { if (d.lifecycleId) trackDrop(d.lifecycleId); }
 
   // 保持したコメントをキューに戻す
   for (const comment of keptComments) {

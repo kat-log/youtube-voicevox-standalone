@@ -57,16 +57,18 @@ export function incrementSessionId(): number {
 }
 
 // キュー操作
-export function pushComment(item: CommentQueueItem): void {
+export function pushComment(item: CommentQueueItem): CommentQueueItem[] {
+  let dropped: CommentQueueItem[] = [];
   if (state.commentQueue.length >= MAX_COMMENT_QUEUE) {
     const discardCount = state.commentQueue.length - MAX_COMMENT_QUEUE + 1;
-    state.commentQueue.splice(0, discardCount);
+    dropped = state.commentQueue.splice(0, discardCount);
     // eslint-disable-next-line no-console
     console.warn(
       `commentQueue安全上限到達: ${discardCount}件の古いコメントを破棄 (上限: ${MAX_COMMENT_QUEUE})`
     );
   }
   state.commentQueue.push(item);
+  return dropped;
 }
 
 export function shiftComment(): CommentQueueItem | undefined {

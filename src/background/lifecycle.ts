@@ -1,5 +1,5 @@
 import { getState, updateState, resetState, incrementSessionId, pushComment, clearAllPlayingTimeouts } from './state';
-import { trackFetch } from './lifecycle-tracker';
+import { trackFetch, trackDrop } from './lifecycle-tracker';
 import { LiveChatEndedError } from './youtube-api';
 import { scheduleNextProcessing, cancelScheduledProcessing } from './tts-api';
 import { stopCurrentAudio, updateBadge, clearBadge } from './audio-player';
@@ -155,7 +155,7 @@ export function startPolling(config: {
             const lcId1 = crypto.randomUUID();
             const ft1 = Date.now();
             trackFetch(lcId1, newMessage, ft1);
-            pushComment({
+            const dropped1 = pushComment({
               apiKeyVOICEVOX: config.apiKeyVOICEVOX,
               newMessage,
               speed: config.speed,
@@ -164,6 +164,7 @@ export function startPolling(config: {
               lifecycleId: lcId1,
               fetchTime: ft1,
             });
+            for (const d of dropped1) { if (d.lifecycleId) trackDrop(d.lifecycleId); }
             addedCount++;
           }
         }
@@ -173,9 +174,10 @@ export function startPolling(config: {
         if (currentState.latestOnlyMode && !autoCatchUpEnabled) {
           const queue = getState().commentQueue;
           if (queue.length > N) {
-            const discarded = queue.length - N;
+            const toDropItems = queue.slice(0, queue.length - N);
             updateState({ commentQueue: queue.slice(-N) });
-            logInfo(`🗑️ キューキャップ: ${discarded}件破棄, ${N}件保持`);
+            for (const d of toDropItems) { if (d.lifecycleId) trackDrop(d.lifecycleId); }
+            logInfo(`🗑️ キューキャップ: ${toDropItems.length}件破棄, ${N}件保持`);
           }
         }
 
@@ -216,7 +218,7 @@ export function startPolling(config: {
                 const lcId2 = crypto.randomUUID();
                 const ft2 = Date.now();
                 trackFetch(lcId2, newMessage, ft2);
-                pushComment({
+                const dropped2 = pushComment({
                   apiKeyVOICEVOX: config.apiKeyVOICEVOX,
                   newMessage,
                   speed: config.speed,
@@ -225,6 +227,7 @@ export function startPolling(config: {
                   lifecycleId: lcId2,
                   fetchTime: ft2,
                 });
+                for (const d of dropped2) { if (d.lifecycleId) trackDrop(d.lifecycleId); }
               }
             }
           }

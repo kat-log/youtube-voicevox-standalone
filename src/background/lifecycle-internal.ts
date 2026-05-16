@@ -1,5 +1,5 @@
 import { getState, updateState, pushComment, clearAudioQueue } from './state';
-import { trackFetch } from './lifecycle-tracker';
+import { trackFetch, trackDrop } from './lifecycle-tracker';
 import { getFilterConfig, shouldFilter, stripEmojis, removeNgWords } from './comment-filter';
 import { isRandomSpeakerEnabled, getRandomSpeakerId } from './random-speaker';
 import { logDebug, logInfo } from './messaging';
@@ -83,7 +83,7 @@ export function processChatMessages(
         const lcId1 = crypto.randomUUID();
         const ft1 = Date.now();
         trackFetch(lcId1, newMessage, ft1);
-        pushComment({
+        const dropped1 = pushComment({
           apiKeyVOICEVOX: config.apiKeyVOICEVOX,
           newMessage,
           speed: config.speed,
@@ -92,6 +92,7 @@ export function processChatMessages(
           lifecycleId: lcId1,
           fetchTime: ft1,
         });
+        for (const d of dropped1) { if (d.lifecycleId) trackDrop(d.lifecycleId); }
         addedCount++;
       }
     }
@@ -101,9 +102,11 @@ export function processChatMessages(
       const queue = getState().commentQueue;
       const totalPending = queue.length + getState().audioQueue.length;
       if (totalPending > N) {
+        const toDropItems = queue.slice(0, Math.max(0, queue.length - N));
         const keptComments = queue.slice(-N);
         clearAudioQueue();
         updateState({ commentQueue: keptComments });
+        for (const d of toDropItems) { if (d.lifecycleId) trackDrop(d.lifecycleId); }
         logInfo(`🗑️ キューキャップ: ${totalPending - keptComments.length}件破棄, ${keptComments.length}件保持`);
       }
     }
@@ -148,7 +151,7 @@ export function processChatMessages(
           const lcId2 = crypto.randomUUID();
           const ft2 = Date.now();
           trackFetch(lcId2, newMessage, ft2);
-          pushComment({
+          const dropped2 = pushComment({
             apiKeyVOICEVOX: config.apiKeyVOICEVOX,
             newMessage,
             speed: config.speed,
@@ -157,6 +160,7 @@ export function processChatMessages(
             lifecycleId: lcId2,
             fetchTime: ft2,
           });
+          for (const d of dropped2) { if (d.lifecycleId) trackDrop(d.lifecycleId); }
         }
       } else {
         logDebug(`重複スキップ: "${item.text}"`);
