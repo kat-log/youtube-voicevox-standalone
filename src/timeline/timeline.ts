@@ -14,6 +14,17 @@ let originTime: number = Date.now();
 const lifecycles = new Map<string, CommentLifecycle>();
 let rafId: number | null = null;
 
+// ===== ルーラーとガントのスクロール同期 =====
+{
+  const ganttScrollEl = document.getElementById('gantt-scroll');
+  const rulerAxisScroll = document.getElementById('ruler-axis-scroll');
+  if (ganttScrollEl && rulerAxisScroll) {
+    ganttScrollEl.addEventListener('scroll', () => {
+      rulerAxisScroll.scrollLeft = ganttScrollEl.scrollLeft;
+    });
+  }
+}
+
 // ===== ダークモード =====
 chrome.storage.sync.get(['darkMode'], (data) => {
   const isDark: boolean =
@@ -83,13 +94,19 @@ function updateRuler(): void {
   ruler.innerHTML = '';
 
   const ganttScroll = document.getElementById('gantt-scroll');
-  const visibleWidth = ganttScroll ? ganttScroll.clientWidth : window.innerWidth - LABEL_WIDTH;
-  const totalWidth = getGanttWidth();
-  const width = Math.max(visibleWidth, totalWidth);
+  const ganttInner = document.getElementById('gantt-inner');
 
-  const tickCount = Math.ceil(width / RULER_INTERVAL_PX) + 1;
+  const visibleAxisWidth = ganttScroll ? ganttScroll.clientWidth : window.innerWidth - LABEL_WIDTH;
+  const contentAxisWidth = ganttInner
+    ? Math.max(parseInt(ganttInner.style.minWidth || '0', 10) - LABEL_WIDTH, 0)
+    : 0;
+  const axisWidth = Math.max(visibleAxisWidth, contentAxisWidth, getGanttWidth() - LABEL_WIDTH);
+
+  ruler.style.width = `${axisWidth}px`;
+
+  const tickCount = Math.ceil(axisWidth / RULER_INTERVAL_PX) + 1;
   for (let i = 0; i < tickCount; i++) {
-    const leftPx = LABEL_WIDTH + i * RULER_INTERVAL_PX;
+    const leftPx = i * RULER_INTERVAL_PX;
     const tick = document.createElement('div');
     tick.className = 'ruler-tick';
     tick.style.left = `${leftPx}px`;

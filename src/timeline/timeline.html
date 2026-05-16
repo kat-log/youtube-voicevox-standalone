@@ -194,11 +194,29 @@
       /* 目盛りヘッダー */
       .ruler-row {
         height: 28px;
-        position: relative;
+        display: flex;
         background: var(--ruler-bg);
         border-bottom: 1px solid var(--border-color);
-        overflow: hidden;
         flex-shrink: 0;
+        overflow: hidden;
+      }
+
+      .ruler-label-stub {
+        width: 160px;
+        min-width: 160px;
+        flex-shrink: 0;
+        border-right: 1px solid var(--border-color);
+      }
+
+      .ruler-axis-scroll {
+        flex: 1;
+        overflow: hidden;
+        position: relative;
+      }
+
+      #ruler {
+        position: relative;
+        height: 100%;
       }
 
       .ruler-tick {
@@ -348,7 +366,12 @@
     <div class="timeline-wrapper">
       <!-- ガントエリア（ラベル列を内包してスクロール同期） -->
       <div class="gantt-column">
-        <div class="ruler-row" id="ruler"></div>
+        <div class="ruler-row">
+          <div class="ruler-label-stub"></div>
+          <div class="ruler-axis-scroll" id="ruler-axis-scroll">
+            <div id="ruler"></div>
+          </div>
+        </div>
         <div class="gantt-scroll" id="gantt-scroll">
           <div id="gantt-inner">
             <div class="empty-msg" id="empty-msg">読み上げを開始するとコメントが表示されます</div>
