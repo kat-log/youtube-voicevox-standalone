@@ -275,6 +275,16 @@ function startRafLoop(): void {
       if (row) renderSegments(row, lc, now);
     }
     updateRuler();
+
+    // 横スクロール自動追従：右端付近（40px以内）なら現在時刻に追従
+    const scroll = document.getElementById('gantt-scroll');
+    if (scroll) {
+      const distFromRight = scroll.scrollWidth - scroll.scrollLeft - scroll.clientWidth;
+      if (distFromRight < 40) {
+        scroll.scrollLeft = scroll.scrollWidth - scroll.clientWidth;
+      }
+    }
+
     rafId = requestAnimationFrame(loop);
   }
   rafId = requestAnimationFrame(loop);
