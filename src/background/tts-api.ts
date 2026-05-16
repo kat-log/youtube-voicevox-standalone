@@ -1,10 +1,10 @@
 import type { TTSQuestSynthesisResponse, TTSQuestAudioStatusResponse } from '@/types/api-responses';
 import type { TtsEngine, AudioQueueItem } from '@/types/state';
-import { getState, shiftComment, pushAudio, unshiftComment } from './state';
+import { getState, shiftComment, pushAudio, unshiftComment, MAX_AUDIO_QUEUE } from './state';
 import { logDebug, logWarn, logError, formatQueueState, sendStatus } from './messaging';
 import { playNextAudio, updateBadge } from './audio-player';
 import { evaluateRushMode } from './rush-mode';
-import { getEffectiveMaxConcurrent, getParallelSpeakerId, resetParallelSlotCounter } from './parallel-playback';
+import { getParallelSpeakerId, resetParallelSlotCounter } from './parallel-playback';
 import { getSpeakerName } from './speaker-names';
 import { isRandomSpeakerEnabled, getRandomSpeakerId } from './random-speaker';
 import { fetchWithTimeout } from '@/utils/fetchWithTimeout';
@@ -48,7 +48,9 @@ export function scheduleNextProcessing(): void {
 
   const state = getState();
   if (state.commentQueue.length === 0) return;
-  const effectiveThreshold = PREFETCH_THRESHOLD + getEffectiveMaxConcurrent();
+  const effectiveThreshold = currentEngine === 'local-voicevox'
+    ? MAX_AUDIO_QUEUE
+    : PREFETCH_THRESHOLD + maxConcurrent;
   // in-flight の合成リクエスト + pending バッファも考慮
   const totalPending = state.audioQueue.length + ttsProcessingCount + pendingResults.size;
   if (totalPending >= effectiveThreshold) {
