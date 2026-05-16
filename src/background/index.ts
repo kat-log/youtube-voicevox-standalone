@@ -62,9 +62,7 @@ chrome.storage.sync.get(['ttsEngine', 'browserVoice', 'localVoicevoxHost', 'para
       initLocalSpeakerNames(data.localVoicevoxHost as string);
     }
   }
-  if (data.parallelSynthesisCount) {
-    setMaxParallelSynthesis(data.parallelSynthesisCount as number);
-  }
+  setMaxParallelSynthesis((data.parallelSynthesisCount as number | undefined) ?? 3);
 });
 
 // 共通の読み上げ開始フロー（onMessageとonCommandで共有）
