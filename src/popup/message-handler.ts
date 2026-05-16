@@ -77,6 +77,11 @@ export function initMessageHandler(): void {
     chrome.tabs.create({ url: chrome.runtime.getURL('stats/stats.html') });
   });
 
+  // タイムラインページを開く
+  document.getElementById('open-timeline-page')?.addEventListener('click', () => {
+    chrome.tabs.create({ url: chrome.runtime.getURL('timeline/timeline.html') });
+  });
+
   // 専用ページを開く
   document.getElementById('open-log-page')?.addEventListener('click', () => {
     chrome.tabs.create({ url: chrome.runtime.getURL('log/log.html') });

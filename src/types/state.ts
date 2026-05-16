@@ -32,6 +32,7 @@ export interface AudioQueueItem {
   url?: string;
   text?: string;
   voiceName?: string;
+  lifecycleId?: string;
 }
 
 export interface CommentQueueItem {
@@ -40,6 +41,8 @@ export interface CommentQueueItem {
   speed: number;
   tabId: number;
   speakerId?: string;
+  lifecycleId?: string;
+  fetchTime?: number;
 }
 
 export interface ExtensionState {

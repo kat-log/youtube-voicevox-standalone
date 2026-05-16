@@ -13,6 +13,7 @@ import { sendStatus, logDebug, logWarn, formatQueueState } from './messaging';
 import { scheduleNextProcessing } from './tts-api';
 import { evaluateRushMode, resolveEffectiveSpeed } from './rush-mode';
 import { getEffectiveMaxConcurrent } from './parallel-playback';
+import { trackPlayStart, trackPlayEnd } from './lifecycle-tracker';
 
 /** chrome.tts の rate を補正（エンジンの指数的スケーリングを相殺） */
 export function correctTtsRate(sliderSpeed: number): number {
@@ -75,6 +76,7 @@ export function playNextAudio(): void {
 
     const audioId = generateAudioId();
     incrementPlayingCount();
+    trackPlayStart(item.lifecycleId, audioId);
     lastQueueEmptyLogged = false;
 
     sendStatus('listening');
@@ -223,6 +225,7 @@ export function stopCurrentAudio(): void {
 // audioEnded メッセージのハンドラー（audioId指定）
 export function handleAudioEndedById(audioId: string): void {
   clearPlayingTimeout(audioId);
+  trackPlayEnd(audioId);
   decrementPlayingCount();
 
   const state = getState();

@@ -21,6 +21,7 @@ export default defineConfig({
         speakerConfig: resolve(__dirname, 'src/speaker-config/speaker-config.html'),
         testSpeak: resolve(__dirname, 'src/test-speak/test-speak.html'),
         offscreen: resolve(__dirname, 'src/offscreen/offscreen.html'),
+        timeline: resolve(__dirname, 'src/timeline/timeline.html'),
       },
       output: {
         entryFileNames: '[name].js',

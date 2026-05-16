@@ -8,6 +8,7 @@ import { getEffectiveMaxConcurrent, getParallelSpeakerId, resetParallelSlotCount
 import { getSpeakerName } from './speaker-names';
 import { isRandomSpeakerEnabled, getRandomSpeakerId } from './random-speaker';
 import { fetchWithTimeout } from '@/utils/fetchWithTimeout';
+import { trackSynthStart, trackSynthEnd, setActiveSynthGetter } from './lifecycle-tracker';
 
 export class RateLimitError extends Error {
   constructor(public retryAfter: number) {
@@ -35,6 +36,8 @@ const PREFETCH_THRESHOLD = 25;  // audioQueue にこの数まで先読み
 const MIN_PROCESS_DELAY = 500;  // TTS API呼出の最低間隔(ms)
 const MIN_PARALLEL_DELAY = 50;  // 並列合成時の最低間隔(ms)
 const MAX_RATE_LIMIT_RETRIES = 5; // レート制限リトライ上限
+
+setActiveSynthGetter(() => ttsProcessingCount);
 
 // 次のコメント処理をスケジュール（audioQueue が閾値未満なら先読み）
 export function scheduleNextProcessing(): void {
@@ -108,6 +111,10 @@ export function getMaxParallelSynthesis(): number {
   return maxParallelSynthesis;
 }
 
+export function getTtsProcessingCount(): number {
+  return ttsProcessingCount;
+}
+
 export function processCommentQueue(): void {
   const state = getState();
   if (state.commentQueue.length === 0) return;
@@ -129,10 +136,13 @@ export function processCommentQueue(): void {
       : browserVoiceName;
     const voiceLabel = effectiveVoice || 'default';
     logDebug(`ブラウザTTS [${voiceLabel}]：${comment.newMessage} | キュー: ${formatQueueState()}`);
+    trackSynthStart(comment.lifecycleId);
+    trackSynthEnd(comment.lifecycleId);
     pushAudio({
       type: 'speech',
       text: comment.newMessage,
       voiceName: effectiveVoice || undefined,
+      lifecycleId: comment.lifecycleId,
     });
     updateBadge();
     evaluateRushMode();
@@ -144,6 +154,7 @@ export function processCommentQueue(): void {
   if (currentEngine === 'local-voicevox') {
     // ローカルVOICEVOX: ローカルエンジンで音声合成
     ttsProcessingCount++;
+    trackSynthStart(comment.lifecycleId);
     const seq = nextSynthesisSeq++;
     const localSpeakerLabel = getSpeakerName(comment.speakerId);
     logDebug(`ローカルVOICEVOX REQUEST [${localSpeakerLabel}] (seq=${seq}, 並列=${ttsProcessingCount}/${maxParallelSynthesis})：${comment.newMessage} | キュー: ${formatQueueState()}`);
@@ -155,6 +166,7 @@ export function processCommentQueue(): void {
 
   // VOICEVOX: TTS Quest APIで音声合成（常にシリアル）
   ttsProcessingCount++;
+  trackSynthStart(comment.lifecycleId);
   const speakerLabel = getSpeakerName(comment.speakerId);
   logDebug(`VOICEVOX REQUEST [${speakerLabel}]：${comment.newMessage} | キュー: ${formatQueueState()}`);
   synthesizeWithRetry(comment, 0);
@@ -167,13 +179,14 @@ function synthesizeWithRetry(
     speed: number;
     tabId: number;
     speakerId?: string;
+    lifecycleId?: string;
   },
   retryCount: number,
   rateLimitRetryCount = 0
 ): void {
   const maxRetries = 3;
   const currentSession = getState().sessionId;
-  const { apiKeyVOICEVOX, newMessage, speakerId } = comment;
+  const { apiKeyVOICEVOX, newMessage, speakerId, lifecycleId } = comment;
 
   // VOICEVOX APIへのリクエスト直前にステータスを更新
   sendStatus('generating');
@@ -186,7 +199,8 @@ function synthesizeWithRetry(
 
       logDebug(`VOICEVOX RESPONSE：${audioUrl} | キュー: ${formatQueueState()}`);
 
-      pushAudio({ type: 'url', url: audioUrl });
+      trackSynthEnd(lifecycleId);
+      pushAudio({ type: 'url', url: audioUrl, lifecycleId });
       updateBadge();
       evaluateRushMode();
       playNextAudio();
@@ -321,13 +335,14 @@ function synthesizeLocalWithRetry(
   comment: {
     newMessage: string;
     speakerId?: string;
+    lifecycleId?: string;
   },
   retryCount: number,
   seq: number
 ): void {
   const maxRetries = 3;
   const currentSession = getState().sessionId;
-  const { newMessage, speakerId } = comment;
+  const { newMessage, speakerId, lifecycleId } = comment;
 
   sendStatus('generating');
 
@@ -339,7 +354,8 @@ function synthesizeLocalWithRetry(
 
       logDebug(`ローカルVOICEVOX RESPONSE (seq=${seq})：data URI (${dataUri.length} chars) | キュー: ${formatQueueState()}`);
 
-      insertInOrder(seq, { type: 'url', url: dataUri });
+      trackSynthEnd(lifecycleId);
+      insertInOrder(seq, { type: 'url', url: dataUri, lifecycleId });
       updateBadge();
       evaluateRushMode();
       playNextAudio();

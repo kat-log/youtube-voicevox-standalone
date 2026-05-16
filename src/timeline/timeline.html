@@ -1,0 +1,367 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>ずんだもん読み上げ - コメント処理タイムライン</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: none !important;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-size: 13px;
+        background: var(--bg-main, #f8f9fa);
+        color: var(--text-primary, #1a1a1a);
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      /* ===== ダークモード ===== */
+      .dark-mode {
+        --bg-main: #1a1a1a;
+        --bg-section: #242424;
+        --bg-card: #2e2e2e;
+        --text-primary: #e8e8e8;
+        --text-secondary: #9ca3af;
+        --border-color: #404040;
+        --ruler-bg: #2e2e2e;
+        --row-hover: #333;
+        --label-bg: #242424;
+      }
+
+      body:not(.dark-mode) {
+        --bg-main: #f8f9fa;
+        --bg-section: #fff;
+        --bg-card: #fff;
+        --text-primary: #1a1a1a;
+        --text-secondary: #6b7280;
+        --border-color: #e5e7eb;
+        --ruler-bg: #f0f0f0;
+        --row-hover: #f5f5f5;
+        --label-bg: #fff;
+      }
+
+      /* ===== ヘッダー ===== */
+      .page-header {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--bg-section);
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .page-header h1 {
+        font-size: 16px;
+        font-weight: 600;
+      }
+
+      .clear-btn {
+        margin-left: auto;
+        padding: 4px 10px;
+        font-size: 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: var(--bg-card);
+        color: var(--text-primary);
+        cursor: pointer;
+      }
+
+      .clear-btn:hover {
+        background: var(--border-color);
+      }
+
+      /* ===== カウンターカード ===== */
+      .counters {
+        display: flex;
+        gap: 8px;
+        padding: 10px 16px;
+        background: var(--bg-section);
+        border-bottom: 1px solid var(--border-color);
+        flex-shrink: 0;
+      }
+
+      .counter-card {
+        flex: 1;
+        min-width: 100px;
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-card);
+        text-align: center;
+      }
+
+      .counter-label {
+        font-size: 11px;
+        color: var(--text-secondary);
+        margin-bottom: 4px;
+        white-space: nowrap;
+      }
+
+      .counter-value {
+        font-size: 24px;
+        font-weight: 700;
+        line-height: 1;
+      }
+
+      .counter-card.synth-wait .counter-value { color: #6b7280; }
+      .counter-card.synth-active .counter-value { color: #3b82f6; }
+      .counter-card.play-wait .counter-value { color: #f59e0b; }
+      .counter-card.play-active .counter-value { color: #10b981; }
+
+      /* ===== 凡例 ===== */
+      .legend {
+        display: flex;
+        gap: 14px;
+        padding: 6px 16px;
+        background: var(--bg-section);
+        border-bottom: 1px solid var(--border-color);
+        flex-shrink: 0;
+        flex-wrap: wrap;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 11px;
+        color: var(--text-secondary);
+      }
+
+      .legend-swatch {
+        width: 14px;
+        height: 10px;
+        border-radius: 2px;
+      }
+
+      .swatch-sw { background: #6b7280; }
+      .swatch-sa { background: #3b82f6; }
+      .swatch-pw { background: #f59e0b; }
+      .swatch-pa { background: #10b981; }
+
+      /* ===== タイムライン本体 ===== */
+      .timeline-wrapper {
+        flex: 1;
+        display: flex;
+        overflow: hidden;
+      }
+
+      /* 左: コメントラベル列 */
+      .label-column {
+        width: 160px;
+        min-width: 160px;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid var(--border-color);
+        background: var(--label-bg);
+        overflow: hidden;
+      }
+
+      .label-header {
+        height: 28px;
+        padding: 0 8px;
+        display: flex;
+        align-items: center;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        border-bottom: 1px solid var(--border-color);
+        background: var(--ruler-bg);
+        flex-shrink: 0;
+      }
+
+      .label-body {
+        flex: 1;
+        overflow: hidden;
+      }
+
+      /* 右: ガントエリア */
+      .gantt-column {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        position: relative;
+      }
+
+      /* 目盛りヘッダー */
+      .ruler-row {
+        height: 28px;
+        position: relative;
+        background: var(--ruler-bg);
+        border-bottom: 1px solid var(--border-color);
+        overflow: hidden;
+        flex-shrink: 0;
+      }
+
+      .ruler-tick {
+        position: absolute;
+        top: 0;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        pointer-events: none;
+      }
+
+      .ruler-tick-line {
+        width: 1px;
+        height: 8px;
+        background: var(--border-color);
+        margin-top: 4px;
+      }
+
+      .ruler-tick-label {
+        font-size: 10px;
+        color: var(--text-secondary);
+        margin-top: 2px;
+        margin-left: 3px;
+        white-space: nowrap;
+      }
+
+      /* ガントスクロールエリア */
+      .gantt-scroll {
+        flex: 1;
+        overflow: auto;
+      }
+
+      /* ガント本体（絶対座標で行を配置） */
+      #gantt-inner {
+        position: relative;
+        min-height: 100%;
+      }
+
+      /* 1コメント行 */
+      .timeline-row {
+        height: 28px;
+        display: flex;
+        position: relative;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .timeline-row:hover {
+        background: var(--row-hover);
+      }
+
+      /* ラベル行（左列と同期スクロールのため同一要素でレイアウト） */
+      .row-label {
+        width: 160px;
+        min-width: 160px;
+        padding: 0 8px;
+        display: flex;
+        align-items: center;
+        font-size: 12px;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        border-right: 1px solid var(--border-color);
+        color: var(--text-primary);
+        background: var(--label-bg);
+        position: sticky;
+        left: 0;
+        z-index: 1;
+      }
+
+      /* ガントセグメント */
+      .segment {
+        position: absolute;
+        height: 16px;
+        top: 6px;
+        border-radius: 2px;
+        min-width: 2px;
+        cursor: pointer;
+        transition: opacity 0.1s;
+      }
+
+      .segment:hover {
+        opacity: 0.8;
+      }
+
+      .segment.synth-wait  { background: #6b7280; }
+      .segment.synth-active { background: #3b82f6; }
+      .segment.play-wait   { background: #f59e0b; }
+      .segment.play-active { background: #10b981; }
+
+      /* ツールチップ */
+      #tooltip {
+        position: fixed;
+        background: #1f2937;
+        color: #f9fafb;
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        pointer-events: none;
+        z-index: 9999;
+        display: none;
+        line-height: 1.6;
+        white-space: nowrap;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      }
+
+      .empty-msg {
+        padding: 24px;
+        color: var(--text-secondary);
+        font-size: 13px;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page-header">
+      <h1>コメント処理タイムライン</h1>
+      <button class="clear-btn" id="clear-btn">クリア</button>
+    </div>
+
+    <div class="counters">
+      <div class="counter-card synth-wait">
+        <div class="counter-label">音声生成待ち</div>
+        <div class="counter-value" id="cnt-synth-wait">0</div>
+      </div>
+      <div class="counter-card synth-active">
+        <div class="counter-label">音声生成中</div>
+        <div class="counter-value" id="cnt-synth-active">0</div>
+      </div>
+      <div class="counter-card play-wait">
+        <div class="counter-label">読み上げ待ち</div>
+        <div class="counter-value" id="cnt-play-wait">0</div>
+      </div>
+      <div class="counter-card play-active">
+        <div class="counter-label">読み上げ中</div>
+        <div class="counter-value" id="cnt-play-active">0</div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-swatch swatch-sw"></div>音声生成待ち</div>
+      <div class="legend-item"><div class="legend-swatch swatch-sa"></div>音声生成中</div>
+      <div class="legend-item"><div class="legend-swatch swatch-pw"></div>読み上げ待ち</div>
+      <div class="legend-item"><div class="legend-swatch swatch-pa"></div>読み上げ中</div>
+    </div>
+
+    <div class="timeline-wrapper">
+      <!-- ガントエリア（ラベル列を内包してスクロール同期） -->
+      <div class="gantt-column">
+        <div class="ruler-row" id="ruler"></div>
+        <div class="gantt-scroll" id="gantt-scroll">
+          <div id="gantt-inner">
+            <div class="empty-msg" id="empty-msg">読み上げを開始するとコメントが表示されます</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tooltip"></div>
+
+    <script type="module" src="./timeline.ts"></script>
+  </body>
+</html>
