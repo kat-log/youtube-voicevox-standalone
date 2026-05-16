@@ -114,12 +114,15 @@ function addOrUpdateRow(lc: CommentLifecycle): void {
   let row = ganttInner.querySelector<HTMLElement>(`[data-id="${CSS.escape(lc.id)}"]`);
   if (!row) {
     row = createRow(lc);
-    ganttInner.prepend(row);
+    ganttInner.append(row);
 
-    // 新規コメントが追加されたとき、スクロールが最上部付近なら追従
+    // 新規コメントが追加されたとき、スクロールが最下部付近なら追従
     const scroll = document.getElementById('gantt-scroll');
-    if (scroll && scroll.scrollTop < 40) {
-      scroll.scrollTop = 0;
+    if (scroll) {
+      const distFromBottom = scroll.scrollHeight - scroll.scrollTop - scroll.clientHeight;
+      if (distFromBottom < 40) {
+        scroll.scrollTop = scroll.scrollHeight;
+      }
     }
   }
   renderSegments(row, lc, Date.now());
