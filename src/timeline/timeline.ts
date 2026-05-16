@@ -167,39 +167,39 @@ function renderSegments(row: HTMLElement, lc: CommentLifecycle, now: number): vo
 
   const stages: Array<{ cls: string; start: number; end: number | null }> = [];
 
-  // 音声生成待ち: fetchTime → synthStartTime（足切り済みは droppedTime で止める）
+  // 音声生成待ち: fetchTime → synthStartTime（足切り or 停止で止める）
   if (lc.fetchTime) {
     stages.push({
       cls: 'synth-wait',
       start: lc.fetchTime,
-      end: lc.synthStartTime ?? lc.droppedTime ?? null,
+      end: lc.synthStartTime ?? lc.droppedTime ?? lc.stoppedTime ?? null,
     });
   }
 
-  // 音声生成中: synthStartTime → synthEndTime
+  // 音声生成中: synthStartTime → synthEndTime（停止で止める）
   if (lc.synthStartTime) {
     stages.push({
       cls: 'synth-active',
       start: lc.synthStartTime,
-      end: lc.synthEndTime ?? null,
+      end: lc.synthEndTime ?? lc.stoppedTime ?? null,
     });
   }
 
-  // 読み上げ待ち: synthEndTime → playStartTime
+  // 読み上げ待ち: synthEndTime → playStartTime（停止で止める）
   if (lc.synthEndTime) {
     stages.push({
       cls: 'play-wait',
       start: lc.synthEndTime,
-      end: lc.playStartTime ?? null,
+      end: lc.playStartTime ?? lc.stoppedTime ?? null,
     });
   }
 
-  // 読み上げ中: playStartTime → playEndTime
+  // 読み上げ中: playStartTime → playEndTime（停止で止める）
   if (lc.playStartTime) {
     stages.push({
       cls: 'play-active',
       start: lc.playStartTime,
-      end: lc.playEndTime ?? null,
+      end: lc.playEndTime ?? lc.stoppedTime ?? null,
     });
   }
 
@@ -247,9 +247,10 @@ function startRafLoop(): void {
   function loop() {
     const now = Date.now();
     for (const [, lc] of lifecycles) {
-      // 完了済みおよび足切り済みは再描画不要
+      // 完了済み・足切り済み・停止済みは再描画不要
       if (lc.playEndTime) continue;
       if (lc.droppedTime && !lc.synthStartTime) continue;
+      if (lc.stoppedTime) continue;
       const ganttInner = document.getElementById('gantt-inner');
       const row = ganttInner?.querySelector<HTMLElement>(`[data-id="${CSS.escape(lc.id)}"]`);
       if (row) renderSegments(row, lc, now);
@@ -269,7 +270,7 @@ function showTooltip(e: MouseEvent, lc: CommentLifecycle): void {
 
   const synthWait = lc.synthStartTime
     ? lc.synthStartTime - lc.fetchTime
-    : (lc.droppedTime ?? now) - lc.fetchTime;
+    : (lc.droppedTime ?? lc.stoppedTime ?? now) - lc.fetchTime;
   lines.push(`音声生成待ち: ${synthWait}ms`);
   if (lc.droppedTime && !lc.synthStartTime) {
     lines.push(`⚠️ 足切り済み（キュー上限により破棄）`);
@@ -278,22 +279,26 @@ function showTooltip(e: MouseEvent, lc: CommentLifecycle): void {
   if (lc.synthStartTime) {
     const synthActive = lc.synthEndTime
       ? lc.synthEndTime - lc.synthStartTime
-      : now - lc.synthStartTime;
+      : (lc.stoppedTime ?? now) - lc.synthStartTime;
     lines.push(`音声生成中: ${synthActive}ms`);
   }
 
   if (lc.synthEndTime) {
     const playWait = lc.playStartTime
       ? lc.playStartTime - lc.synthEndTime
-      : now - lc.synthEndTime;
+      : (lc.stoppedTime ?? now) - lc.synthEndTime;
     lines.push(`読み上げ待ち: ${playWait}ms`);
   }
 
   if (lc.playStartTime) {
     const playActive = lc.playEndTime
       ? lc.playEndTime - lc.playStartTime
-      : now - lc.playStartTime;
+      : (lc.stoppedTime ?? now) - lc.playStartTime;
     lines.push(`読み上げ中: ${playActive}ms`);
+  }
+
+  if (lc.stoppedTime) {
+    lines.push(`⏹ 停止により中断`);
   }
 
   tooltip.innerHTML = lines.join('<br>');

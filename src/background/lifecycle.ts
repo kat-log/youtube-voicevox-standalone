@@ -1,5 +1,5 @@
 import { getState, updateState, resetState, incrementSessionId, pushComment, clearAllPlayingTimeouts } from './state';
-import { trackFetch, trackDrop } from './lifecycle-tracker';
+import { trackFetch, trackDrop, trackStopAll } from './lifecycle-tracker';
 import { LiveChatEndedError } from './youtube-api';
 import { scheduleNextProcessing, cancelScheduledProcessing } from './tts-api';
 import { stopCurrentAudio, updateBadge, clearBadge } from './audio-player';
@@ -335,10 +335,8 @@ export function stopAll(): void {
   chrome.storage.session.set({ domModeActive: false }).catch(() => {});
   chrome.storage.session.remove('domRecoveryConfig').catch(() => {});
 
-  // 停止時点でキューに残っているコメントを足切り済みとしてマーク
-  for (const item of state.commentQueue) {
-    if (item.lifecycleId) trackDrop(item.lifecycleId);
-  }
+  // 停止時点で進行中のすべてのエントリを停止済みとしてマーク
+  trackStopAll();
 
   // 状態リセット
   resetState();

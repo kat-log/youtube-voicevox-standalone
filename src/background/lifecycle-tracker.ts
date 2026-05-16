@@ -9,6 +9,7 @@ export interface CommentLifecycle {
   playStartTime?: number;
   playEndTime?: number;
   droppedTime?: number;
+  stoppedTime?: number;
 }
 
 export interface TimelineStatus {
@@ -69,6 +70,16 @@ export function trackDrop(id: string): void {
   if (!lc || lc.synthStartTime) return;
   lc.droppedTime = Date.now();
   broadcastUpdate(id);
+}
+
+export function trackStopAll(): void {
+  const now = Date.now();
+  for (const [, lc] of lifecycles) {
+    if (lc.playEndTime) continue;   // 完了済みはスキップ
+    if (lc.droppedTime) continue;   // キュー上限による足切り済みはスキップ
+    lc.stoppedTime = now;
+    broadcastUpdate(lc.id);
+  }
 }
 
 export function trackPlayEnd(audioId: string): void {
