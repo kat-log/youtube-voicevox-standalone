@@ -1,4 +1,5 @@
 import { getState, updateState, resetState, incrementSessionId, pushComment, clearAllPlayingTimeouts } from './state';
+import { trackFetch } from './lifecycle-tracker';
 import { LiveChatEndedError } from './youtube-api';
 import { scheduleNextProcessing, cancelScheduledProcessing } from './tts-api';
 import { stopCurrentAudio, updateBadge, clearBadge } from './audio-player';
@@ -151,12 +152,17 @@ export function startPolling(config: {
           if (filterReason1) {
             logInfo(`フィルタ除外(${filterReason1}): "${newMessage}"`);
           } else {
+            const lcId1 = crypto.randomUUID();
+            const ft1 = Date.now();
+            trackFetch(lcId1, newMessage, ft1);
             pushComment({
               apiKeyVOICEVOX: config.apiKeyVOICEVOX,
               newMessage,
               speed: config.speed,
               tabId: config.tabId,
               speakerId: getEffectiveSpeakerId(),
+              lifecycleId: lcId1,
+              fetchTime: ft1,
             });
             addedCount++;
           }
@@ -207,12 +213,17 @@ export function startPolling(config: {
               if (filterReason2) {
                 logInfo(`フィルタ除外(${filterReason2}): "${newMessage}"`);
               } else {
+                const lcId2 = crypto.randomUUID();
+                const ft2 = Date.now();
+                trackFetch(lcId2, newMessage, ft2);
                 pushComment({
                   apiKeyVOICEVOX: config.apiKeyVOICEVOX,
                   newMessage,
                   speed: config.speed,
                   tabId: config.tabId,
                   speakerId: getEffectiveSpeakerId(),
+                  lifecycleId: lcId2,
+                  fetchTime: ft2,
                 });
               }
             }

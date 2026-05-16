@@ -205,6 +205,11 @@ export interface GetStatsMessage {
   action: 'getStats';
 }
 
+// Timeline Page → Background メッセージ
+export interface GetTimelineStateMessage {
+  action: 'getTimelineState';
+}
+
 // Background が受信するメッセージの Discriminated Union
 export type IncomingMessage =
   | StartMessage
@@ -233,6 +238,7 @@ export type IncomingMessage =
   | GetLocalSpeakersMessage
   | TestSpeakMessage
   | GetStatsMessage
+  | GetTimelineStateMessage
   | DomChatMessagesMessage
   | DomChatErrorMessage
   | DomChatLogMessage;

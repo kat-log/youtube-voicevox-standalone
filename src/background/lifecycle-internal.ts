@@ -1,4 +1,5 @@
 import { getState, updateState, pushComment, clearAudioQueue } from './state';
+import { trackFetch } from './lifecycle-tracker';
 import { getFilterConfig, shouldFilter, stripEmojis, removeNgWords } from './comment-filter';
 import { isRandomSpeakerEnabled, getRandomSpeakerId } from './random-speaker';
 import { logDebug, logInfo } from './messaging';
@@ -79,12 +80,17 @@ export function processChatMessages(
       if (filterReason1) {
         logInfo(`フィルタ除外(${filterReason1}): "${newMessage}"`);
       } else {
+        const lcId1 = crypto.randomUUID();
+        const ft1 = Date.now();
+        trackFetch(lcId1, newMessage, ft1);
         pushComment({
           apiKeyVOICEVOX: config.apiKeyVOICEVOX,
           newMessage,
           speed: config.speed,
           tabId: config.tabId,
           speakerId: getEffectiveSpeakerId(),
+          lifecycleId: lcId1,
+          fetchTime: ft1,
         });
         addedCount++;
       }
@@ -139,12 +145,17 @@ export function processChatMessages(
         if (filterReason2) {
           logInfo(`フィルタ除外(${filterReason2}): "${newMessage}"`);
         } else {
+          const lcId2 = crypto.randomUUID();
+          const ft2 = Date.now();
+          trackFetch(lcId2, newMessage, ft2);
           pushComment({
             apiKeyVOICEVOX: config.apiKeyVOICEVOX,
             newMessage,
             speed: config.speed,
             tabId: config.tabId,
             speakerId: getEffectiveSpeakerId(),
+            lifecycleId: lcId2,
+            fetchTime: ft2,
           });
         }
       } else {

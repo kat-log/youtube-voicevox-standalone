@@ -6,7 +6,7 @@ import { startPolling, stopAll } from './lifecycle';
 import { processChatMessages, getStandaloneConfig, setStandaloneConfig } from './lifecycle-internal';
 import { sendStatus, logInfo, logWarn, updateErrorMessage } from './messaging';
 import { loadFilterConfigFromStorage, setFilterConfig } from './comment-filter';
-import { setTtsEngine, setBrowserVoice, setLocalVoicevoxHost, setMaxParallelSynthesis, cancelScheduledProcessing } from './tts-api';
+import { setTtsEngine, setBrowserVoice, setLocalVoicevoxHost, setMaxParallelSynthesis, cancelScheduledProcessing, getTtsProcessingCount } from './tts-api';
 import { loadRushConfigFromStorage, setRushConfig, evaluateRushMode } from './rush-mode';
 import { loadAutoCatchUpConfigFromStorage, setAutoCatchUpConfig } from './auto-catchup';
 import { loadParallelPlaybackConfigFromStorage, setParallelPlaybackConfig, loadParallelSpeakersConfigFromStorage, setParallelSpeakersConfig } from './parallel-playback';
@@ -16,6 +16,7 @@ import { handleTestSpeak, isTestAudioId, handleTestAudioEnded, handleTestAudioEr
 import { fetchWithTimeout } from '@/utils/fetchWithTimeout';
 import type { TtsEngine } from '@/types/state';
 import type { IncomingMessage } from '@/types/messages';
+import { getAllLifecycles } from './lifecycle-tracker';
 
 // ポップアップ・ログページから session storage にアクセスできるようにする
 chrome.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' });
@@ -471,6 +472,18 @@ chrome.runtime.onMessage.addListener(
           sendResponse({ status: 'success', stats: data.stats });
         });
         return true;
+      }
+
+      case 'getTimelineState': {
+        const state = getState();
+        const status = {
+          pendingSynth: state.commentQueue.length,
+          activeSynth: getTtsProcessingCount(),
+          pendingPlay: state.audioQueue.length,
+          activePlaying: state.playingCount,
+        };
+        sendResponse({ lifecycles: getAllLifecycles(), status });
+        return false;
       }
 
       case 'domChatMessages': {
