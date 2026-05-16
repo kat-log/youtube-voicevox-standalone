@@ -9,6 +9,8 @@ const LABEL_WIDTH = 160;
 const RULER_INTERVAL_MS = 5000;
 // 目盛りの横幅（px）= 5s * 10px/s = 50px
 const RULER_INTERVAL_PX = RULER_INTERVAL_MS * SCALE;
+// タイムラインに保持するコメント行の上限
+const MAX_TIMELINE_ROWS = 1000;
 
 let originTime: number = Date.now();
 const lifecycles = new Map<string, CommentLifecycle>();
@@ -120,6 +122,22 @@ function getGanttWidth(): number {
   return LABEL_WIDTH + (now - originTime) * SCALE + 100;
 }
 
+// ===== 古い行の削除 =====
+function pruneOldestRows(): void {
+  const ganttInner = document.getElementById('gantt-inner');
+  while (lifecycles.size > MAX_TIMELINE_ROWS) {
+    const oldestId = lifecycles.keys().next().value;
+    if (!oldestId) break;
+    lifecycles.delete(oldestId);
+    if (ganttInner) {
+      const row = ganttInner.querySelector<HTMLElement>(
+        `[data-id="${CSS.escape(oldestId)}"]`
+      );
+      row?.remove();
+    }
+  }
+}
+
 // ===== 行の追加・更新 =====
 function addOrUpdateRow(lc: CommentLifecycle): void {
   const ganttInner = document.getElementById('gantt-inner');
@@ -132,6 +150,7 @@ function addOrUpdateRow(lc: CommentLifecycle): void {
   if (!row) {
     row = createRow(lc);
     ganttInner.append(row);
+    pruneOldestRows();
 
     // 新規コメントが追加されたとき、スクロールが最下部付近なら追従
     const scroll = document.getElementById('gantt-scroll');
