@@ -1,5 +1,5 @@
 import '../styles/styles.scss';
-import type { TtsEngine, ParallelSpeakersConfig } from '@/types/state';
+import type { TtsEngine, ParallelSpeakersConfig, RoundRobinPreset } from '@/types/state';
 import { RANDOM_SPEAKER_SENTINEL } from '@/types/state';
 import { initTestSpeakResultListener } from '@/utils/test-speak-ui';
 
@@ -251,4 +251,246 @@ countSlider.addEventListener('input', () => {
   renderDropdowns();
   autoSave();
 });
+
+// --- Round-robin preset management ---
+const RR_MAX_PRESETS = 10;
+let rrDragStartId: string | null = null;
+
+function loadRoundRobinPresets(): void {
+  chrome.storage.sync.get(['roundRobinPresets'], (data) => {
+    const presets = (data.roundRobinPresets as RoundRobinPreset[] | undefined) ?? [];
+    renderRoundRobinPresetList(presets);
+    const saveBtn = document.getElementById('rrSavePresetBtn') as HTMLButtonElement;
+    saveBtn.disabled = presets.length >= RR_MAX_PRESETS;
+  });
+}
+
+function renderRoundRobinPresetList(presets: RoundRobinPreset[]): void {
+  const container = document.getElementById('rrPresetList')!;
+  container.innerHTML = '';
+
+  if (presets.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'preset-empty';
+    empty.textContent = 'プリセットがありません';
+    container.appendChild(empty);
+    return;
+  }
+
+  for (const preset of presets) {
+    const item = document.createElement('div');
+    item.className = 'preset-item';
+    item.setAttribute('draggable', 'true');
+    item.dataset.presetId = preset.id;
+
+    // 上段: ドラッグハンドル + 名前
+    const topRow = document.createElement('div');
+    topRow.className = 'preset-item-top';
+
+    const handle = document.createElement('span');
+    handle.className = 'drag-handle';
+    handle.textContent = '⠿';
+    handle.title = 'ドラッグして並び替え';
+
+    const nameEl = document.createElement('span');
+    nameEl.className = 'preset-item-name';
+    nameEl.title = preset.name;
+    nameEl.textContent = preset.name;
+
+    topRow.appendChild(handle);
+    topRow.appendChild(nameEl);
+
+    // 下段: アクションボタン
+    const actions = document.createElement('div');
+    actions.className = 'preset-item-actions';
+
+    const loadBtn = document.createElement('button');
+    loadBtn.className = 'preset-load-btn';
+    loadBtn.textContent = '呼び出す';
+    loadBtn.title = 'このプリセットの設定を読み込む';
+    loadBtn.addEventListener('click', () => applyRoundRobinPreset(preset));
+
+    const overwriteBtn = document.createElement('button');
+    overwriteBtn.textContent = '上書き';
+    overwriteBtn.title = '現在の設定でこのプリセットを更新';
+    overwriteBtn.addEventListener('click', () => overwriteRoundRobinPreset(preset.id));
+
+    const copyBtn = document.createElement('button');
+    copyBtn.textContent = '複製';
+    copyBtn.disabled = presets.length >= RR_MAX_PRESETS;
+    copyBtn.addEventListener('click', () => copyRoundRobinPreset(preset));
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = '削除';
+    deleteBtn.addEventListener('click', () => deleteRoundRobinPreset(preset.id));
+
+    actions.appendChild(loadBtn);
+    actions.appendChild(overwriteBtn);
+    actions.appendChild(copyBtn);
+    actions.appendChild(deleteBtn);
+
+    item.appendChild(topRow);
+    item.appendChild(actions);
+
+    // ドラッグ&ドロップ
+    item.addEventListener('dragstart', (e) => {
+      rrDragStartId = preset.id;
+      item.classList.add('dragging');
+      e.dataTransfer!.effectAllowed = 'move';
+      e.dataTransfer!.setData('text/plain', preset.id);
+    });
+    item.addEventListener('dragend', () => {
+      rrDragStartId = null;
+      item.classList.remove('dragging');
+      container.querySelectorAll('.drag-over').forEach((el) => el.classList.remove('drag-over'));
+    });
+    item.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer!.dropEffect = 'move';
+      container.querySelectorAll('.drag-over').forEach((el) => el.classList.remove('drag-over'));
+      if (rrDragStartId !== preset.id) item.classList.add('drag-over');
+    });
+    item.addEventListener('dragleave', () => {
+      item.classList.remove('drag-over');
+    });
+    item.addEventListener('drop', (e) => {
+      e.preventDefault();
+      if (!rrDragStartId || rrDragStartId === preset.id) return;
+      reorderRoundRobinPreset(rrDragStartId, preset.id);
+    });
+
+    container.appendChild(item);
+  }
+}
+
+function saveCurrentAsRoundRobinPreset(name: string): void {
+  const roundRobinSpeakerCount = parseInt(
+    (document.getElementById('speakerCount') as HTMLInputElement).value,
+    10
+  );
+  const speakerIds: string[] = [];
+  const selects = document.getElementById('speaker-list')!.querySelectorAll('select');
+  selects.forEach((sel) => speakerIds.push(sel.value));
+
+  const preset: RoundRobinPreset = {
+    id: crypto.randomUUID(),
+    name,
+    speakerIds,
+    roundRobinSpeakerCount,
+  };
+
+  const errorEl = document.getElementById('rrPresetError')!;
+
+  chrome.storage.sync.get(['roundRobinPresets'], (data) => {
+    const presets = (data.roundRobinPresets as RoundRobinPreset[] | undefined) ?? [];
+    if (presets.length >= RR_MAX_PRESETS) {
+      errorEl.textContent = `プリセットは最大${RR_MAX_PRESETS}件まで保存できます。`;
+      errorEl.style.display = 'block';
+      return;
+    }
+    presets.unshift(preset);
+    chrome.storage.sync.set({ roundRobinPresets: presets }, () => {
+      (document.getElementById('rrPresetNameInput') as HTMLInputElement).value = '';
+      errorEl.style.display = 'none';
+      loadRoundRobinPresets();
+    });
+  });
+}
+
+function applyRoundRobinPreset(preset: RoundRobinPreset): void {
+  const slider = document.getElementById('speakerCount') as HTMLInputElement;
+  slider.value = String(preset.roundRobinSpeakerCount);
+  document.getElementById('current-count')!.textContent = String(preset.roundRobinSpeakerCount);
+  slider.setAttribute('aria-valuetext', String(preset.roundRobinSpeakerCount));
+
+  renderDropdowns();
+
+  // renderDropdowns の後にドロップダウンの値を復元
+  const selects = document.getElementById('speaker-list')!.querySelectorAll('select');
+  selects.forEach((sel, idx) => {
+    if (preset.speakerIds[idx]) {
+      sel.value = preset.speakerIds[idx];
+    }
+  });
+
+  savedSpeakerIds = preset.speakerIds.slice();
+  autoSave();
+}
+
+function deleteRoundRobinPreset(id: string): void {
+  chrome.storage.sync.get(['roundRobinPresets'], (data) => {
+    const presets = (data.roundRobinPresets as RoundRobinPreset[] | undefined) ?? [];
+    const updated = presets.filter((p) => p.id !== id);
+    chrome.storage.sync.set({ roundRobinPresets: updated }, () => loadRoundRobinPresets());
+  });
+}
+
+function copyRoundRobinPreset(preset: RoundRobinPreset): void {
+  chrome.storage.sync.get(['roundRobinPresets'], (data) => {
+    const presets = (data.roundRobinPresets as RoundRobinPreset[] | undefined) ?? [];
+    if (presets.length >= RR_MAX_PRESETS) return;
+    const copy: RoundRobinPreset = {
+      ...preset,
+      id: crypto.randomUUID(),
+      name: `${preset.name}のコピー`,
+    };
+    presets.unshift(copy);
+    chrome.storage.sync.set({ roundRobinPresets: presets }, () => loadRoundRobinPresets());
+  });
+}
+
+function overwriteRoundRobinPreset(id: string): void {
+  const roundRobinSpeakerCount = parseInt(
+    (document.getElementById('speakerCount') as HTMLInputElement).value,
+    10
+  );
+  const speakerIds: string[] = [];
+  document.getElementById('speaker-list')!.querySelectorAll('select').forEach((sel) => {
+    speakerIds.push(sel.value);
+  });
+
+  chrome.storage.sync.get(['roundRobinPresets'], (data) => {
+    const presets = (data.roundRobinPresets as RoundRobinPreset[] | undefined) ?? [];
+    const idx = presets.findIndex((p) => p.id === id);
+    if (idx < 0) return;
+    presets[idx] = { ...presets[idx], speakerIds, roundRobinSpeakerCount };
+    chrome.storage.sync.set({ roundRobinPresets: presets }, () => loadRoundRobinPresets());
+  });
+}
+
+function reorderRoundRobinPreset(fromId: string, toId: string): void {
+  chrome.storage.sync.get(['roundRobinPresets'], (data) => {
+    const presets = (data.roundRobinPresets as RoundRobinPreset[] | undefined) ?? [];
+    const fromIdx = presets.findIndex((p) => p.id === fromId);
+    const toIdx = presets.findIndex((p) => p.id === toId);
+    if (fromIdx < 0 || toIdx < 0) return;
+    const [moved] = presets.splice(fromIdx, 1);
+    presets.splice(toIdx, 0, moved);
+    chrome.storage.sync.set({ roundRobinPresets: presets }, () => loadRoundRobinPresets());
+  });
+}
+
+// 保存ボタン
+document.getElementById('rrSavePresetBtn')!.addEventListener('click', () => {
+  const input = document.getElementById('rrPresetNameInput') as HTMLInputElement;
+  const name = input.value.trim();
+  const errorEl = document.getElementById('rrPresetError')!;
+  if (!name) {
+    errorEl.textContent = 'プリセット名を入力してください。';
+    errorEl.style.display = 'block';
+    return;
+  }
+  errorEl.style.display = 'none';
+  saveCurrentAsRoundRobinPreset(name);
+});
+
+// Enterキーで保存（IME確定のEnterは除外）
+document.getElementById('rrPresetNameInput')!.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.isComposing) {
+    document.getElementById('rrSavePresetBtn')!.click();
+  }
+});
+
+// 初期ロード
+loadRoundRobinPresets();
 

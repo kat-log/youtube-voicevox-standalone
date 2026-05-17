@@ -27,6 +27,23 @@ export interface ParallelSpeakersConfig {
   roundRobinSpeakerCount: number; // 持ち回り話者数（並列再生OFF時に使用、デフォルト3）
 }
 
+export interface RandomSpeakerPreset {
+  id: string;
+  name: string;
+  allowedIds: {
+    voicevox: string[] | null;
+    localVoicevox: string[] | null;
+    browser: string[] | null;
+  };
+}
+
+export interface RoundRobinPreset {
+  id: string;
+  name: string;
+  speakerIds: string[];
+  roundRobinSpeakerCount: number;
+}
+
 export interface AudioQueueItem {
   type: 'url' | 'speech';
   url?: string;
