@@ -40,6 +40,7 @@ export function initDataManagement(): void {
     (document.getElementById('import-settings-file') as HTMLInputElement).click();
   });
   document.getElementById('import-settings-file')!.addEventListener('change', handleImport);
+  document.getElementById('reset-settings-btn')!.addEventListener('click', handleResetToDefaults);
 }
 
 async function handleExport(): Promise<void> {
@@ -114,6 +115,18 @@ async function handleImport(event: Event): Promise<void> {
     await chrome.storage.local.set({ stats: parsed.local.stats });
   }
 
+  loadSettings();
+}
+
+async function handleResetToDefaults(): Promise<void> {
+  if (
+    !confirm(
+      '⚠️ すべての設定をデフォルト（初期設定）に戻します。\n\nAPIキーを含むすべての設定が失われます。続行しますか？'
+    )
+  )
+    return;
+
+  await Promise.all([chrome.storage.sync.clear(), chrome.storage.local.clear()]);
   loadSettings();
 }
 
