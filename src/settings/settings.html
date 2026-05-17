@@ -9,15 +9,17 @@
       <h1>設定</h1>
       <div class="section">
         <div class="section-title">データ管理</div>
-        <div class="toggle-container">
-          <label class="toggle-switch" aria-label="APIキーも含める">
-            <input type="checkbox" id="export-include-api-keys" role="switch" aria-checked="false" />
-            <span class="slider round"></span>
-          </label>
-          <span>APIキーも含める (ファイル共有時にご注意ください)</span>
-        </div>
-        <div style="display: flex; gap: 8px; margin-top: 8px;">
+        <div style="margin-bottom: 8px;">
           <button type="button" id="export-settings-btn" class="small-btn">エクスポート</button>
+          <div class="toggle-container" style="margin-left: 20px; margin-top: 6px;">
+            <label class="toggle-switch" aria-label="APIキーも含める">
+              <input type="checkbox" id="export-include-api-keys" role="switch" aria-checked="false" />
+              <span class="slider round"></span>
+            </label>
+            <span>APIキーも含める (ファイル共有時にご注意ください)</span>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-top: 12px;">
           <button type="button" id="import-settings-btn" class="small-btn">インポート</button>
           <button type="button" id="reset-settings-btn" class="small-btn">デフォルトに戻す</button>
           <input type="file" id="import-settings-file" accept=".json" style="display: none;" />
