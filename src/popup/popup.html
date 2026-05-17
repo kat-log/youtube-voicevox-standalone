@@ -581,23 +581,6 @@
       </div>
     </div>
 
-    <!-- データ管理セクション -->
-    <div class="section">
-      <div class="section-title">データ管理</div>
-      <div class="toggle-container">
-        <label class="toggle-switch" aria-label="APIキーも含める">
-          <input type="checkbox" id="export-include-api-keys" role="switch" aria-checked="false" />
-          <span class="slider round"></span>
-        </label>
-        <span>APIキーも含める <span style="color: #e67e22;">⚠️ ファイル共有時に注意</span></span>
-      </div>
-      <div style="display: flex; gap: 8px; margin-top: 8px;">
-        <button type="button" id="export-settings-btn" class="small-btn">エクスポート</button>
-        <button type="button" id="import-settings-btn" class="small-btn">インポート</button>
-        <input type="file" id="import-settings-file" accept=".json" style="display: none;" />
-      </div>
-    </div>
-
     <!-- 読み上げ実績リンク -->
     <div id="stats-link" class="stats-link-container" role="button" tabindex="0" aria-label="読み上げ実績ページを開く">
       <span id="stats-emoji" class="stats-emoji">🔰</span>
@@ -626,6 +609,14 @@
         >
           専用ページで開く
         </button>
+        <button
+          type="button"
+          id="open-settings-page"
+          class="small-btn settings-icon-btn"
+          style="margin-left: 6px"
+          aria-label="設定を開く"
+          title="設定"
+        >⚙</button>
       </div>
       <div class="accordion-content">
         <pre id="debug"></pre>
