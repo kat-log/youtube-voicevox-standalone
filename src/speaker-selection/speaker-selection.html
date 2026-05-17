@@ -377,6 +377,51 @@
         text-overflow: ellipsis;
         white-space: nowrap;
       }
+      .preset-rename-btn {
+        flex-shrink: 0;
+        background: none;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        cursor: pointer;
+        color: var(--text-secondary);
+        font-size: 11px;
+        padding: 1px 5px;
+        white-space: nowrap;
+      }
+      .preset-rename-btn:hover {
+        background: var(--border-color);
+        color: var(--text-primary);
+      }
+      .preset-name-input {
+        flex: 1;
+        font-size: 13px;
+        padding: 1px 4px;
+        border: 1px solid var(--accent-color);
+        border-radius: 3px;
+        background: var(--bg-section);
+        color: var(--text-primary);
+        min-width: 0;
+      }
+      .preset-name-confirm-btn,
+      .preset-name-cancel-btn {
+        flex-shrink: 0;
+        background: none;
+        border: 1px solid var(--border-color);
+        border-radius: 3px;
+        cursor: pointer;
+        color: var(--text-primary);
+        font-size: 11px;
+        padding: 0 4px;
+        height: 20px;
+      }
+      .preset-name-confirm-btn:hover {
+        background: var(--accent-color);
+        color: #fff;
+        border-color: var(--accent-color);
+      }
+      .preset-name-cancel-btn:hover {
+        background: var(--border-color);
+      }
       .preset-item-actions {
         display: flex;
         gap: 4px;

@@ -297,8 +297,59 @@ function renderRoundRobinPresetList(presets: RoundRobinPreset[]): void {
     nameEl.title = preset.name;
     nameEl.textContent = preset.name;
 
+    const renameBtn = document.createElement('button');
+    renameBtn.className = 'preset-rename-btn';
+    renameBtn.textContent = '✏ 変更';
+    renameBtn.title = 'プリセット名を変更';
+    renameBtn.addEventListener('click', () => {
+      topRow.removeChild(nameEl);
+      topRow.removeChild(renameBtn);
+
+      const input = document.createElement('input');
+      input.className = 'preset-name-input';
+      input.type = 'text';
+      input.value = preset.name;
+      input.maxLength = 40;
+
+      const confirmBtn = document.createElement('button');
+      confirmBtn.className = 'preset-name-confirm-btn';
+      confirmBtn.textContent = '✓';
+      confirmBtn.title = '確定';
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'preset-name-cancel-btn';
+      cancelBtn.textContent = '✗';
+      cancelBtn.title = 'キャンセル';
+
+      const doConfirm = () => {
+        const newName = input.value.trim();
+        if (newName) renameRoundRobinPreset(preset.id, newName);
+      };
+      const doCancel = () => {
+        topRow.removeChild(input);
+        topRow.removeChild(confirmBtn);
+        topRow.removeChild(cancelBtn);
+        topRow.appendChild(nameEl);
+        topRow.appendChild(renameBtn);
+      };
+
+      confirmBtn.addEventListener('click', doConfirm);
+      cancelBtn.addEventListener('click', doCancel);
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.isComposing) doConfirm();
+        if (e.key === 'Escape') doCancel();
+      });
+
+      topRow.appendChild(input);
+      topRow.appendChild(confirmBtn);
+      topRow.appendChild(cancelBtn);
+      input.focus();
+      input.select();
+    });
+
     topRow.appendChild(handle);
     topRow.appendChild(nameEl);
+    topRow.appendChild(renameBtn);
 
     // 下段: アクションボタン
     const actions = document.createElement('div');
@@ -435,6 +486,16 @@ function copyRoundRobinPreset(preset: RoundRobinPreset): void {
       name: `${preset.name}のコピー`,
     };
     presets.unshift(copy);
+    chrome.storage.sync.set({ roundRobinPresets: presets }, () => loadRoundRobinPresets());
+  });
+}
+
+function renameRoundRobinPreset(id: string, newName: string): void {
+  chrome.storage.sync.get(['roundRobinPresets'], (data) => {
+    const presets = (data.roundRobinPresets as RoundRobinPreset[] | undefined) ?? [];
+    const idx = presets.findIndex((p) => p.id === id);
+    if (idx < 0) return;
+    presets[idx] = { ...presets[idx], name: newName };
     chrome.storage.sync.set({ roundRobinPresets: presets }, () => loadRoundRobinPresets());
   });
 }
