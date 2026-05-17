@@ -22,6 +22,8 @@ const SYNC_KEYS_WITHOUT_API = [
   'autoCatchUpConfig',
   'parallelPlaybackConfig',
   'parallelSpeakersConfig',
+  'randomSpeakerPresets',
+  'roundRobinPresets',
 ] as const;
 
 const API_KEYS = ['apiKeyVOICEVOX', 'apiKeyYoutube'] as const;
