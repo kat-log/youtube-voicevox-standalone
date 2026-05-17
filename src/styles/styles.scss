@@ -280,6 +280,13 @@ input[type='range'] {
   }
 }
 
+/* 設定アイコンボタン */
+.settings-icon-btn {
+  font-size: 20px;
+  padding: 2px 8px;
+  line-height: 1;
+}
+
 /* APIキーコンテナ */
 .api-key-container {
   display: flex;

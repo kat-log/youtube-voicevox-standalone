@@ -87,6 +87,11 @@ export function initMessageHandler(): void {
     chrome.tabs.create({ url: chrome.runtime.getURL('log/log.html') });
   });
 
+  // 設定ページを開く
+  document.getElementById('open-settings-page')?.addEventListener('click', () => {
+    chrome.tabs.create({ url: chrome.runtime.getURL('settings/settings.html') });
+  });
+
   // アコーディオンの機能を追加
   document.querySelectorAll('.accordion-button').forEach((btn) => {
     btn.addEventListener('click', function (this: HTMLElement) {

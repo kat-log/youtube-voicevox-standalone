@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>設定 - YouTubeライブチャット読み上げ</title>
+  </head>
+  <body>
+    <div class="container">
+      <h1>設定</h1>
+      <div class="section">
+        <div class="section-title">データ管理</div>
+        <div class="toggle-container">
+          <label class="toggle-switch" aria-label="APIキーも含める">
+            <input type="checkbox" id="export-include-api-keys" role="switch" aria-checked="false" />
+            <span class="slider round"></span>
+          </label>
+          <span>APIキーも含める (ファイル共有時にご注意ください)</span>
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 8px;">
+          <button type="button" id="export-settings-btn" class="small-btn">エクスポート</button>
+          <button type="button" id="import-settings-btn" class="small-btn">インポート</button>
+          <input type="file" id="import-settings-file" accept=".json" style="display: none;" />
+        </div>
+      </div>
+    </div>
+    <script type="module" src="./settings.ts"></script>
+  </body>
+</html>

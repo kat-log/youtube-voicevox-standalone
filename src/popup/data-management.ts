@@ -99,8 +99,10 @@ async function handleImport(event: Event): Promise<void> {
     return;
   }
 
+  const sync = parsed.sync as Record<string, unknown>;
   const hasApiKeys =
-    'apiKeyVOICEVOX' in parsed.sync || 'apiKeyYoutube' in parsed.sync;
+    (typeof sync['apiKeyVOICEVOX'] === 'string' && sync['apiKeyVOICEVOX'] !== '') ||
+    (typeof sync['apiKeyYoutube'] === 'string' && sync['apiKeyYoutube'] !== '');
   const confirmMessage = hasApiKeys
     ? '⚠️ このファイルにはAPIキーが含まれています。\n\n現在の設定が上書きされます。続行しますか？'
     : '現在の設定が上書きされます。続行しますか？';
