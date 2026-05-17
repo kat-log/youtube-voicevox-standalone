@@ -1,5 +1,5 @@
 import '../styles/styles.scss';
-import type { TtsEngine } from '@/types/state';
+import type { TtsEngine, RandomSpeakerPreset } from '@/types/state';
 import {
   parseSpeakerName,
   parseLocalSpeakers,
@@ -391,6 +391,302 @@ function batchToggleStyle(checked: boolean): void {
   refreshAllCharCheckboxes();
   autoSave();
 }
+
+// --- Preset management ---
+const MAX_PRESETS = 10;
+let dragStartId: string | null = null;
+
+function loadRandomPresets(): void {
+  chrome.storage.sync.get(['randomSpeakerPresets'], (data) => {
+    const presets = (data.randomSpeakerPresets as RandomSpeakerPreset[] | undefined) ?? [];
+    renderPresetList(presets);
+    const saveBtn = document.getElementById('savePresetBtn') as HTMLButtonElement;
+    saveBtn.disabled = presets.length >= MAX_PRESETS;
+  });
+}
+
+function renderPresetList(presets: RandomSpeakerPreset[]): void {
+  const container = document.getElementById('presetList')!;
+  container.innerHTML = '';
+
+  if (presets.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'preset-empty';
+    empty.textContent = 'プリセットがありません';
+    container.appendChild(empty);
+    return;
+  }
+
+  for (const preset of presets) {
+    const item = document.createElement('div');
+    item.className = 'preset-item';
+    item.setAttribute('draggable', 'true');
+    item.dataset.presetId = preset.id;
+
+    // 上段: ドラッグハンドル + 名前
+    const topRow = document.createElement('div');
+    topRow.className = 'preset-item-top';
+
+    const handle = document.createElement('span');
+    handle.className = 'drag-handle';
+    handle.textContent = '⠿';
+    handle.title = 'ドラッグして並び替え';
+
+    const nameEl = document.createElement('span');
+    nameEl.className = 'preset-item-name';
+    nameEl.title = preset.name;
+    nameEl.textContent = preset.name;
+
+    topRow.appendChild(handle);
+    topRow.appendChild(nameEl);
+
+    // 下段: アクションボタン
+    const actions = document.createElement('div');
+    actions.className = 'preset-item-actions';
+
+    const loadBtn = document.createElement('button');
+    loadBtn.className = 'preset-load-btn';
+    loadBtn.textContent = '呼び出す';
+    loadBtn.title = 'このプリセットの設定を読み込む';
+    loadBtn.addEventListener('click', () => applyRandomPreset(preset));
+
+    const overwriteBtn = document.createElement('button');
+    overwriteBtn.textContent = '上書き';
+    overwriteBtn.title = '現在の選択でこのプリセットを更新';
+    overwriteBtn.addEventListener('click', () => overwriteRandomPreset(preset.id));
+
+    const copyBtn = document.createElement('button');
+    copyBtn.textContent = '複製';
+    copyBtn.disabled = presets.length >= MAX_PRESETS;
+    copyBtn.addEventListener('click', () => copyRandomPreset(preset));
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = '削除';
+    deleteBtn.addEventListener('click', () => deleteRandomPreset(preset.id));
+
+    actions.appendChild(loadBtn);
+    actions.appendChild(overwriteBtn);
+    actions.appendChild(copyBtn);
+    actions.appendChild(deleteBtn);
+
+    item.appendChild(topRow);
+    item.appendChild(actions);
+
+    // ドラッグ&ドロップ
+    item.addEventListener('dragstart', (e) => {
+      dragStartId = preset.id;
+      item.classList.add('dragging');
+      e.dataTransfer!.effectAllowed = 'move';
+      e.dataTransfer!.setData('text/plain', preset.id);
+    });
+    item.addEventListener('dragend', () => {
+      dragStartId = null;
+      item.classList.remove('dragging');
+      container.querySelectorAll('.drag-over').forEach((el) => el.classList.remove('drag-over'));
+    });
+    item.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer!.dropEffect = 'move';
+      container.querySelectorAll('.drag-over').forEach((el) => el.classList.remove('drag-over'));
+      if (dragStartId !== preset.id) item.classList.add('drag-over');
+    });
+    item.addEventListener('dragleave', () => {
+      item.classList.remove('drag-over');
+    });
+    item.addEventListener('drop', (e) => {
+      e.preventDefault();
+      if (!dragStartId || dragStartId === preset.id) return;
+      reorderRandomPreset(dragStartId, preset.id);
+    });
+
+    container.appendChild(item);
+  }
+}
+
+function saveCurrentAsPreset(name: string): void {
+  const keys = [
+    'randomSpeakerAllowedIds',
+    'randomSpeakerAllowedIdsLocal',
+    'randomSpeakerAllowedIdsBrowser',
+  ];
+  chrome.storage.sync.get(keys, (data) => {
+    const preset: RandomSpeakerPreset = {
+      id: crypto.randomUUID(),
+      name,
+      allowedIds: {
+        voicevox: (data.randomSpeakerAllowedIds as string[] | undefined) ?? null,
+        localVoicevox: (data.randomSpeakerAllowedIdsLocal as string[] | undefined) ?? null,
+        browser: (data.randomSpeakerAllowedIdsBrowser as string[] | undefined) ?? null,
+      },
+    };
+
+    const errorEl = document.getElementById('presetError')!;
+    const jsonSize = JSON.stringify(preset).length;
+    if (jsonSize > 7000) {
+      errorEl.textContent = '選択話者数が多すぎます。各エンジンの選択数を減らしてください。';
+      errorEl.style.display = 'block';
+      return;
+    }
+    errorEl.style.display = 'none';
+
+    chrome.storage.sync.get(['randomSpeakerPresets'], (d2) => {
+      const presets = (d2.randomSpeakerPresets as RandomSpeakerPreset[] | undefined) ?? [];
+      if (presets.length >= MAX_PRESETS) {
+        errorEl.textContent = `プリセットは最大${MAX_PRESETS}件まで保存できます。`;
+        errorEl.style.display = 'block';
+        return;
+      }
+      presets.unshift(preset);
+      chrome.storage.sync.set({ randomSpeakerPresets: presets }, () => {
+        (document.getElementById('presetNameInput') as HTMLInputElement).value = '';
+        loadRandomPresets();
+      });
+    });
+  });
+}
+
+function applyRandomPreset(preset: RandomSpeakerPreset): void {
+  const storageUpdate: Record<string, string[] | null> = {
+    randomSpeakerAllowedIds: preset.allowedIds.voicevox,
+    randomSpeakerAllowedIdsLocal: preset.allowedIds.localVoicevox,
+    randomSpeakerAllowedIdsBrowser: preset.allowedIds.browser,
+  };
+
+  // null値のキーは削除、非null値のキーは設定
+  const toSet: Record<string, string[]> = {};
+  const toRemove: string[] = [];
+  for (const [key, val] of Object.entries(storageUpdate)) {
+    if (val === null) {
+      toRemove.push(key);
+    } else {
+      toSet[key] = val;
+    }
+  }
+
+  const doApply = () => {
+    // 現在エンジンの選択状態をUIに反映
+    const engineKey =
+      currentEngine === 'local-voicevox'
+        ? 'randomSpeakerAllowedIdsLocal'
+        : currentEngine === 'browser'
+          ? 'randomSpeakerAllowedIdsBrowser'
+          : 'randomSpeakerAllowedIds';
+    const engineAllowedIds = storageUpdate[engineKey];
+
+    if (engineAllowedIds === null) {
+      checkedIds = new Set(allSpeakers.map((s) => s.id));
+    } else {
+      checkedIds = new Set(engineAllowedIds);
+    }
+
+    render();
+
+    // background に通知
+    chrome.runtime.sendMessage({
+      action: 'updateRandomSpeakerAllowedIds',
+      ids: engineAllowedIds,
+      engine: currentEngine,
+    });
+  };
+
+  if (toRemove.length > 0) {
+    chrome.storage.sync.remove(toRemove, () => {
+      if (Object.keys(toSet).length > 0) {
+        chrome.storage.sync.set(toSet, doApply);
+      } else {
+        doApply();
+      }
+    });
+  } else {
+    chrome.storage.sync.set(toSet, doApply);
+  }
+}
+
+function deleteRandomPreset(id: string): void {
+  chrome.storage.sync.get(['randomSpeakerPresets'], (data) => {
+    const presets = (data.randomSpeakerPresets as RandomSpeakerPreset[] | undefined) ?? [];
+    const updated = presets.filter((p) => p.id !== id);
+    chrome.storage.sync.set({ randomSpeakerPresets: updated }, () => loadRandomPresets());
+  });
+}
+
+function copyRandomPreset(preset: RandomSpeakerPreset): void {
+  chrome.storage.sync.get(['randomSpeakerPresets'], (data) => {
+    const presets = (data.randomSpeakerPresets as RandomSpeakerPreset[] | undefined) ?? [];
+    if (presets.length >= MAX_PRESETS) return;
+    const copy: RandomSpeakerPreset = {
+      ...preset,
+      id: crypto.randomUUID(),
+      name: `${preset.name}のコピー`,
+    };
+    presets.unshift(copy);
+    chrome.storage.sync.set({ randomSpeakerPresets: presets }, () => loadRandomPresets());
+  });
+}
+
+function overwriteRandomPreset(id: string): void {
+  const keys = [
+    'randomSpeakerAllowedIds',
+    'randomSpeakerAllowedIdsLocal',
+    'randomSpeakerAllowedIdsBrowser',
+  ];
+  chrome.storage.sync.get(keys, (data) => {
+    const newAllowedIds: RandomSpeakerPreset['allowedIds'] = {
+      voicevox: (data.randomSpeakerAllowedIds as string[] | undefined) ?? null,
+      localVoicevox: (data.randomSpeakerAllowedIdsLocal as string[] | undefined) ?? null,
+      browser: (data.randomSpeakerAllowedIdsBrowser as string[] | undefined) ?? null,
+    };
+    const errorEl = document.getElementById('presetError')!;
+    if (JSON.stringify(newAllowedIds).length > 7000) {
+      errorEl.textContent = '選択話者数が多すぎます。各エンジンの選択数を減らしてください。';
+      errorEl.style.display = 'block';
+      return;
+    }
+    chrome.storage.sync.get(['randomSpeakerPresets'], (d2) => {
+      const presets = (d2.randomSpeakerPresets as RandomSpeakerPreset[] | undefined) ?? [];
+      const idx = presets.findIndex((p) => p.id === id);
+      if (idx < 0) return;
+      presets[idx] = { ...presets[idx], allowedIds: newAllowedIds };
+      chrome.storage.sync.set({ randomSpeakerPresets: presets }, () => loadRandomPresets());
+    });
+  });
+}
+
+function reorderRandomPreset(fromId: string, toId: string): void {
+  chrome.storage.sync.get(['randomSpeakerPresets'], (data) => {
+    const presets = (data.randomSpeakerPresets as RandomSpeakerPreset[] | undefined) ?? [];
+    const fromIdx = presets.findIndex((p) => p.id === fromId);
+    const toIdx = presets.findIndex((p) => p.id === toId);
+    if (fromIdx < 0 || toIdx < 0) return;
+    const [moved] = presets.splice(fromIdx, 1);
+    presets.splice(toIdx, 0, moved);
+    chrome.storage.sync.set({ randomSpeakerPresets: presets }, () => loadRandomPresets());
+  });
+}
+
+// 保存ボタン
+document.getElementById('savePresetBtn')!.addEventListener('click', () => {
+  const input = document.getElementById('presetNameInput') as HTMLInputElement;
+  const name = input.value.trim();
+  const errorEl = document.getElementById('presetError')!;
+  if (!name) {
+    errorEl.textContent = 'プリセット名を入力してください。';
+    errorEl.style.display = 'block';
+    return;
+  }
+  errorEl.style.display = 'none';
+  saveCurrentAsPreset(name);
+});
+
+// Enterキーで保存（IME確定のEnterは除外）
+document.getElementById('presetNameInput')!.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.isComposing) {
+    document.getElementById('savePresetBtn')!.click();
+  }
+});
+
+// 初期ロード
+loadRandomPresets();
 
 function applyFilters(): void {
   const query = (document.getElementById('searchInput') as HTMLInputElement).value.toLowerCase();

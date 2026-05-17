@@ -77,3 +77,12 @@ git push origin v{新バージョン}
 
 `gh run watch` でリリースワークフローの完了を待ち、`gh release view v{新バージョン}` でリリースと zip の存在を確認する。
 完了したら結果をユーザーに報告する。
+
+## ステップ 8: zip のローカル保存
+
+ユーザーに「`youtube-voicevox-v{新バージョン}.zip` をローカルに置いておきますか？」と確認する。
+「はい」の場合は以下を実行する。
+
+```
+gh release download v{新バージョン} --dir .
+```

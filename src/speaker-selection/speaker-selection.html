@@ -11,7 +11,7 @@
         box-sizing: border-box;
       }
       .page-container {
-        max-width: 640px;
+        max-width: 960px;
         margin: 0 auto;
         padding: 24px 20px 60px;
       }
@@ -99,6 +99,17 @@
       }
       .style-batch-label {
         flex: 1;
+      }
+
+      /* Main layout: speaker list left, preset panel right */
+      .main-layout {
+        display: flex;
+        gap: 20px;
+        align-items: flex-start;
+      }
+      .speaker-area {
+        flex: 1;
+        min-width: 0;
       }
 
       /* Character group */
@@ -253,6 +264,157 @@
         padding: 20px;
         color: #e74c3c;
       }
+
+      /* Preset panel (right side, sticky) */
+      .preset-panel {
+        width: 272px;
+        flex-shrink: 0;
+        position: sticky;
+        top: 16px;
+        max-height: calc(100vh - 80px);
+        overflow-y: auto;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background: var(--bg-section);
+        padding: 14px;
+        box-sizing: border-box;
+      }
+      .preset-panel-title {
+        font-weight: 600;
+        font-size: 13px;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--border-color);
+      }
+      .preset-save-row {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 8px;
+      }
+      .preset-save-row input {
+        flex: 1;
+        min-width: 0;
+        height: 30px;
+        padding: 0 8px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        font-size: 12px;
+        outline: none;
+        box-sizing: border-box;
+      }
+      .preset-save-row input:focus {
+        border-color: var(--accent-color);
+      }
+      .preset-save-row button {
+        height: 30px;
+        padding: 0 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        cursor: pointer;
+        font-size: 12px;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .preset-save-row button:hover:not(:disabled) {
+        background: var(--border-color);
+      }
+      .preset-save-row button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      .preset-error {
+        font-size: 12px;
+        color: #e74c3c;
+        margin-bottom: 8px;
+      }
+      .preset-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .preset-item {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 8px 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background: var(--bg-primary);
+        transition: border-color 0.1s;
+      }
+      .preset-item.drag-over {
+        border-color: var(--accent-color);
+        background: var(--bg-section);
+      }
+      .preset-item.dragging {
+        opacity: 0.4;
+      }
+      .preset-item-top {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .drag-handle {
+        cursor: grab;
+        color: var(--text-secondary);
+        font-size: 15px;
+        line-height: 1;
+        flex-shrink: 0;
+        user-select: none;
+        padding: 0 2px;
+      }
+      .drag-handle:active {
+        cursor: grabbing;
+      }
+      .preset-item-name {
+        flex: 1;
+        font-size: 13px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .preset-item-actions {
+        display: flex;
+        gap: 4px;
+      }
+      .preset-item-actions button {
+        flex: 1;
+        height: 24px;
+        padding: 0 4px;
+        border: 1px solid var(--border-color);
+        border-radius: 5px;
+        background: var(--bg-section);
+        color: var(--text-primary);
+        cursor: pointer;
+        font-size: 11px;
+        white-space: nowrap;
+      }
+      .preset-item-actions button:hover:not(:disabled) {
+        background: var(--border-color);
+      }
+      .preset-item-actions button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      .preset-load-btn {
+        background: var(--accent-color) !important;
+        color: #fff !important;
+        border-color: var(--accent-color) !important;
+      }
+      .preset-load-btn:hover:not(:disabled) {
+        opacity: 0.85;
+        background: var(--accent-color) !important;
+      }
+      .preset-empty {
+        font-size: 12px;
+        color: var(--text-secondary);
+        text-align: center;
+        padding: 8px 0;
+      }
     </style>
   </head>
   <body>
@@ -279,19 +441,33 @@
         <button type="button" class="toolbar-btn" id="styleBatchDeselect">解除</button>
       </div>
 
-      <div class="test-text-form" style="margin-bottom: 12px;">
-        <label for="testText">テスト再生テキスト:</label>
-        <input
-          type="text"
-          class="test-text-input"
-          id="testText"
-          value="こんにちは、テスト再生です"
-          placeholder="読み上げたいテキストを入力"
-        />
-      </div>
+      <div class="main-layout">
+        <div class="speaker-area">
+          <div class="test-text-form" style="margin-bottom: 12px;">
+            <label for="testText">テスト再生テキスト:</label>
+            <input
+              type="text"
+              class="test-text-input"
+              id="testText"
+              value="こんにちは、テスト再生です"
+              placeholder="読み上げたいテキストを入力"
+            />
+          </div>
 
-      <div id="speakerList">
-        <div class="loading" id="loadingMsg">話者リストを取得中...</div>
+          <div id="speakerList">
+            <div class="loading" id="loadingMsg">話者リストを取得中...</div>
+          </div>
+        </div>
+
+        <div class="preset-panel" id="randomPresetSection">
+          <div class="preset-panel-title">お気に入りプリセット</div>
+          <div class="preset-save-row">
+            <input type="text" id="presetNameInput" placeholder="プリセット名..." maxlength="40" />
+            <button type="button" id="savePresetBtn">保存</button>
+          </div>
+          <div id="presetError" class="preset-error" style="display:none"></div>
+          <div class="preset-list" id="presetList"></div>
+        </div>
       </div>
     </div>
 
