@@ -380,7 +380,12 @@ function renderRoundRobinPresetList(presets: RoundRobinPreset[]): void {
     actions.appendChild(copyBtn);
     actions.appendChild(deleteBtn);
 
+    const metaEl = document.createElement('div');
+    metaEl.className = 'preset-item-meta';
+    metaEl.textContent = `${preset.roundRobinSpeakerCount}話者`;
+
     item.appendChild(topRow);
+    item.appendChild(metaEl);
     item.appendChild(actions);
 
     // ドラッグ&ドロップ
