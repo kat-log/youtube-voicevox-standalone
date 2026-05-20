@@ -72,6 +72,32 @@
   document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 })();
 
+/* ── Theme toggle ────────────────────────────────────────── */
+(function () {
+  const btn = document.getElementById('themeToggle');
+  if (!btn) return;
+
+  function applyTheme(theme) {
+    document.documentElement.dataset.theme = theme;
+    if (theme === 'dark') {
+      btn.textContent = '☀️';
+      btn.setAttribute('aria-label', 'ライトモードに切り替え');
+    } else {
+      btn.textContent = '🌙';
+      btn.setAttribute('aria-label', 'ダークモードに切り替え');
+    }
+  }
+
+  // data-theme is already set by the inline <head> script; just sync the icon
+  applyTheme(document.documentElement.dataset.theme || 'light');
+
+  btn.addEventListener('click', () => {
+    const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('theme', next);
+    applyTheme(next);
+  });
+})();
+
 /* ── Nav shadow on scroll ────────────────────────────────── */
 (function () {
   const nav = document.querySelector('.nav');
