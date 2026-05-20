@@ -27,6 +27,10 @@
   --nav-h:       64px;
   --transition:  .22s cubic-bezier(.4,0,.2,1);
   --max-w:       1160px;
+  --hero-g1:     #1a6b08;
+  --hero-g2:     #2d8a12;
+  --hero-g3:     #4aaa20;
+  --hero-g4:     #5ec42b;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -40,6 +44,10 @@
     --green-pale: #1a2e12;
     --green-light:#2a4a1a;
     --yellow-light:#2a2200;
+    --hero-g1:    #0d2b06;
+    --hero-g2:    #1e5a0c;
+    --hero-g3:    #2d7a14;
+    --hero-g4:    #3a8c16;
   }
 }
 
@@ -54,6 +62,10 @@ html[data-theme="dark"] {
   --green-pale: #1a2e12;
   --green-light:#2a4a1a;
   --yellow-light:#2a2200;
+  --hero-g1:    #0d2b06;
+  --hero-g2:    #1e5a0c;
+  --hero-g3:    #2d7a14;
+  --hero-g4:    #3a8c16;
 }
 
 html[data-theme="light"] {
@@ -66,6 +78,10 @@ html[data-theme="light"] {
   --green-pale:  #f0fcea;
   --green-light: #d4f5be;
   --yellow-light:#fffacc;
+  --hero-g1:     #1a6b08;
+  --hero-g2:     #2d8a12;
+  --hero-g3:     #4aaa20;
+  --hero-g4:     #5ec42b;
 }
 
 /* ── Reset & Base ────────────────────────────────────────── */
@@ -291,7 +307,7 @@ html[data-theme="light"] .nav { background: rgba(255,255,255,.85); }
 .hero {
   min-height: 100vh;
   padding-top: var(--nav-h);
-  background: linear-gradient(145deg, #0d2b06 0%, #1e5a0c 40%, #2d7a14 70%, #3a8c16 100%);
+  background: linear-gradient(145deg, var(--hero-g1) 0%, var(--hero-g2) 40%, var(--hero-g3) 70%, var(--hero-g4) 100%);
   position: relative;
   overflow: hidden;
   display: flex;
