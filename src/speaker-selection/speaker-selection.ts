@@ -394,6 +394,18 @@ function batchToggleStyle(checked: boolean): void {
 
 // --- Preset management ---
 const MAX_PRESETS = 10;
+
+function getPresetSpeakerCountText(preset: RandomSpeakerPreset): string {
+  let ids: string[] | null;
+  if (currentEngine === 'voicevox') {
+    ids = preset.allowedIds.voicevox;
+  } else if (currentEngine === 'local-voicevox') {
+    ids = preset.allowedIds.localVoicevox;
+  } else {
+    ids = preset.allowedIds.browser;
+  }
+  return ids === null ? '全話者' : `${ids.length}話者を選択`;
+}
 let dragStartId: string | null = null;
 
 function loadRandomPresets(): void {
@@ -520,7 +532,12 @@ function renderPresetList(presets: RandomSpeakerPreset[]): void {
     actions.appendChild(copyBtn);
     actions.appendChild(deleteBtn);
 
+    const metaEl = document.createElement('div');
+    metaEl.className = 'preset-item-meta';
+    metaEl.textContent = getPresetSpeakerCountText(preset);
+
     item.appendChild(topRow);
+    item.appendChild(metaEl);
     item.appendChild(actions);
 
     // ドラッグ&ドロップ
