@@ -805,3 +805,47 @@ function applyFilters(): void {
   }
 }
 
+// --- Resizable panel ---
+const PANEL_WIDTH_KEY = 'randomSpeakerPanelWidth';
+const PANEL_WIDTH_DEFAULT = 384;
+
+(function initResizer(): void {
+  const resizer = document.getElementById('layoutResizer') as HTMLElement;
+  const presetPanel = document.getElementById('randomPresetSection') as HTMLElement;
+
+  chrome.storage.sync.get([PANEL_WIDTH_KEY], (data) => {
+    const width = (data[PANEL_WIDTH_KEY] as number | undefined) ?? PANEL_WIDTH_DEFAULT;
+    presetPanel.style.width = `${width}px`;
+  });
+
+  let startX = 0;
+  let startWidth = 0;
+
+  resizer.addEventListener('mousedown', (e) => {
+    startX = e.clientX;
+    startWidth = presetPanel.getBoundingClientRect().width;
+    resizer.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    const onMove = (ev: MouseEvent) => {
+      const dx = startX - ev.clientX;
+      const newWidth = Math.max(180, Math.min(600, startWidth + dx));
+      presetPanel.style.width = `${newWidth}px`;
+    };
+
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      resizer.classList.remove('dragging');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      const finalWidth = Math.round(presetPanel.getBoundingClientRect().width);
+      chrome.storage.sync.set({ [PANEL_WIDTH_KEY]: finalWidth });
+    };
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+})();
+
