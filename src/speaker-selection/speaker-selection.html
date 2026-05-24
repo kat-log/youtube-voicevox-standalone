@@ -104,12 +104,38 @@
       /* Main layout: speaker list left, preset panel right */
       .main-layout {
         display: flex;
-        gap: 20px;
+        gap: 0;
         align-items: flex-start;
       }
       .speaker-area {
         flex: 1;
         min-width: 0;
+      }
+
+      /* Drag resizer between speaker-area and preset-panel */
+      .resizer {
+        width: 16px;
+        flex-shrink: 0;
+        cursor: col-resize;
+        position: sticky;
+        top: 16px;
+        height: calc(100vh - 80px);
+        display: flex;
+        align-items: stretch;
+        justify-content: center;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      .resizer::after {
+        content: '';
+        width: 2px;
+        background: var(--border-color);
+        border-radius: 1px;
+        transition: background 0.15s;
+      }
+      .resizer:hover::after,
+      .resizer.dragging::after {
+        background: var(--accent-color);
       }
 
       /* Character group */
@@ -267,7 +293,7 @@
 
       /* Preset panel (right side, sticky) */
       .preset-panel {
-        width: 272px;
+        width: 384px;
         flex-shrink: 0;
         position: sticky;
         top: 16px;
@@ -509,6 +535,7 @@
           </div>
         </div>
 
+        <div class="resizer" id="layoutResizer"></div>
         <div class="preset-panel" id="randomPresetSection">
           <div class="preset-panel-title">お気に入りプリセット</div>
           <div class="preset-save-row">
