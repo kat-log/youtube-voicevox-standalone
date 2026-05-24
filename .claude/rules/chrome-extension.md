@@ -10,7 +10,7 @@ YouTube ライブチャットを VOICEVOX で読み上げる Chrome 拡張（Man
 |------|------|
 | ビルドツール | Vite + TypeScript |
 | 出力先 | `dist/` |
-| エントリーポイント | background, domChat, popup, log, onboarding, stats, speakerSelection, speakerConfig, testSpeak, offscreen |
+| エントリーポイント | background, domChat, popup, log, onboarding, stats, speakerSelection, speakerConfig, testSpeak, offscreen, hub |
 | パス alias | `@/` → `src/` |
 
 ## ファイル配置ルール
@@ -40,3 +40,15 @@ Chrome の拡張機能ページ（`chrome://extensions/`）で `dist/` フォル
 
 - `npm publish` は行わない（`package.json` に `"private": true`）
 - Chrome Web Store への提出は手動（zip を使って Developer Dashboard からアップロード）
+
+## ハブページのメンテナンス
+
+`src/hub/hub.html` は全ページへのナビゲーションを一元化するページ一覧（目次）ページ。
+
+以下の場合は必ず `src/hub/hub.html` も合わせて更新すること：
+
+- 新しいユーザー向けページを追加したとき → カードを追加する
+- 既存ページのファイルパスや名前を変更したとき → `href` を更新する
+- ページを削除したとき → 該当カードを削除する
+
+更新箇所: `hub.html` 内の `<a class="card" href="...">` 要素

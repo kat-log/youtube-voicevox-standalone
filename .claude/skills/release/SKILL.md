@@ -86,3 +86,9 @@ git push origin v{新バージョン}
 ```
 gh release download v{新バージョン} --dir .
 ```
+
+## ステップ 9: 古い zip の削除
+
+カレントディレクトリの `youtube-voicevox-v*.zip` を一覧表示し、今回の `youtube-voicevox-v{新バージョン}.zip` 以外が存在する場合は、
+ユーザーに「古い zip ファイルを削除しますか？」と確認する。
+「はい」の場合は最新バージョン以外の zip をすべて削除する。
