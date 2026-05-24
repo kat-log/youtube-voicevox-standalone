@@ -23,6 +23,7 @@ export default defineConfig({
         offscreen: resolve(__dirname, 'src/offscreen/offscreen.html'),
         timeline: resolve(__dirname, 'src/timeline/timeline.html'),
         settings: resolve(__dirname, 'src/settings/settings.html'),
+        hub: resolve(__dirname, 'src/hub/hub.html'),
       },
       output: {
         entryFileNames: '[name].js',

@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>ページ一覧 - YouTubeライブチャット読み上げ</title>
+    <style>
+      .hub-header {
+        text-align: center;
+        margin-bottom: 24px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--border-color);
+      }
+      .hub-header h1 {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 0 0 4px;
+      }
+      .hub-header p {
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin: 0;
+      }
+      .cards-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+      .card {
+        display: block;
+        background-color: var(--bg-section);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 14px;
+        text-decoration: none;
+        color: inherit;
+        cursor: pointer;
+        transition: border-color 0.15s, box-shadow 0.15s;
+      }
+      .card:hover {
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 2px var(--accent-light);
+      }
+      .card-icon {
+        font-size: 22px;
+        margin-bottom: 8px;
+        line-height: 1;
+      }
+      .card-name {
+        font-weight: 600;
+        font-size: 13px;
+        color: var(--text-primary);
+        margin-bottom: 4px;
+      }
+      .card-desc {
+        font-size: 11px;
+        color: var(--text-secondary);
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="hub-header">
+        <h1>YouTubeライブチャット読み上げ</h1>
+        <p>ページ一覧</p>
+      </div>
+      <div class="cards-grid">
+        <a class="card" href="../popup/popup.html" target="_blank">
+          <div class="card-icon">🎙️</div>
+          <div class="card-name">ポップアップ</div>
+          <div class="card-desc">読み上げの開始・停止、エンジンや話者などの主要設定</div>
+        </a>
+        <a class="card" href="../settings/settings.html" target="_blank">
+          <div class="card-icon">⚙️</div>
+          <div class="card-name">設定</div>
+          <div class="card-desc">設定のエクスポート・インポート・デフォルトに戻す</div>
+        </a>
+        <a class="card" href="../onboarding/onboarding.html" target="_blank">
+          <div class="card-icon">📖</div>
+          <div class="card-name">使い方ガイド</div>
+          <div class="card-desc">セットアップ手順・各エンジンの導入方法</div>
+        </a>
+        <a class="card" href="../speaker-selection/speaker-selection.html" target="_blank">
+          <div class="card-icon">🎲</div>
+          <div class="card-name">ランダム話者</div>
+          <div class="card-desc">ランダムモード用の話者選択・プリセット管理</div>
+        </a>
+        <a class="card" href="../speaker-config/speaker-config.html" target="_blank">
+          <div class="card-icon">🔄</div>
+          <div class="card-name">持ち回り話者設定</div>
+          <div class="card-desc">持ち回り制・並列再生の話者ごとの設定</div>
+        </a>
+        <a class="card" href="../test-speak/test-speak.html" target="_blank">
+          <div class="card-icon">🔊</div>
+          <div class="card-name">テスト再生</div>
+          <div class="card-desc">任意テキストで各話者の音声を確認</div>
+        </a>
+        <a class="card" href="../stats/stats.html" target="_blank">
+          <div class="card-icon">🏆</div>
+          <div class="card-name">読み上げ実績</div>
+          <div class="card-desc">累計読み上げ件数・ランク・進捗の確認</div>
+        </a>
+        <a class="card" href="../log/log.html" target="_blank">
+          <div class="card-icon">📋</div>
+          <div class="card-name">ログ</div>
+          <div class="card-desc">拡張機能の動作ログをレベル別に確認</div>
+        </a>
+        <a class="card" href="../timeline/timeline.html" target="_blank">
+          <div class="card-icon">📊</div>
+          <div class="card-name">タイムライン</div>
+          <div class="card-desc">コメント処理の進行状況をガントチャートで可視化</div>
+        </a>
+      </div>
+    </div>
+    <script type="module" src="./hub.ts"></script>
+  </body>
+</html>
