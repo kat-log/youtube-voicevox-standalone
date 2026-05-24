@@ -12,6 +12,7 @@
       "all_frames": true
     }
   ],
+  "options_page": "hub/hub.html",
   "action": {
     "default_popup": "popup/popup.html",
     "default_icon": "./icon/youtube-live-comment-icon.png",
