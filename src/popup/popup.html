@@ -35,9 +35,15 @@
       <p id="error" role="alert" aria-live="assertive"></p>
     </div>
 
+    <div id="reorderable-sections">
     <!-- 初期設定セクション -->
-    <div class="section">
-      <div class="section-title">初期設定</div>
+    <div class="section" data-section-id="initial-settings">
+      <div class="section-header" role="button" tabindex="0" aria-expanded="true">
+        <span class="drag-handle" aria-label="ドラッグして並び替え" title="ドラッグして並び替え">⠿</span>
+        <span class="section-title">初期設定</span>
+        <span class="section-caret">▾</span>
+      </div>
+      <div class="section-body">
 
       <label for="chatMode">コメント取得方式:</label>
       <select id="chatMode" name="chatMode">
@@ -165,11 +171,17 @@
         </div>
         <p class="info-text">PCスペックに応じて調整してください。</p>
       </div>
+      </div>
     </div>
 
     <!-- 話者設定セクション -->
-    <div class="section">
-      <div class="section-title">話者設定</div>
+    <div class="section" data-section-id="speaker-settings">
+      <div class="section-header" role="button" tabindex="0" aria-expanded="true">
+        <span class="drag-handle" aria-label="ドラッグして並び替え" title="ドラッグして並び替え">⠿</span>
+        <span class="section-title">話者設定</span>
+        <span class="section-caret">▾</span>
+      </div>
+      <div class="section-body">
 
       <div id="voicevox-settings">
         <label for="speaker">話者選択:</label>
@@ -241,11 +253,17 @@
           テスト再生ページ
         </button>
       </div>
+      </div>
     </div>
 
     <!-- 基本設定セクション -->
-    <div class="section">
-      <div class="section-title">基本設定</div>
+    <div class="section" data-section-id="basic-settings">
+      <div class="section-header" role="button" tabindex="0" aria-expanded="true">
+        <span class="drag-handle" aria-label="ドラッグして並び替え" title="ドラッグして並び替え">⠿</span>
+        <span class="section-title">基本設定</span>
+        <span class="section-caret">▾</span>
+      </div>
+      <div class="section-body">
 
       <label for="volume">音量:</label>
       <div class="slider-group">
@@ -283,11 +301,17 @@
       <p id="speed-unsupported-info" class="info-text" style="display: none">
         この音声では再生速度の変更はサポートされていません（等速固定）
       </p>
+      </div>
     </div>
 
     <!-- おもしろ設定セクション -->
-    <div class="section">
-      <div class="section-title">おもしろ設定</div>
+    <div class="section" data-section-id="fun-settings">
+      <div class="section-header" role="button" tabindex="0" aria-expanded="true">
+        <span class="drag-handle" aria-label="ドラッグして並び替え" title="ドラッグして並び替え">⠿</span>
+        <span class="section-title">おもしろ設定</span>
+        <span class="section-caret">▾</span>
+      </div>
+      <div class="section-body">
 
       <div class="toggle-container">
         <label class="toggle-switch" aria-label="ラッシュモード（自動倍速モード）">
@@ -428,11 +452,17 @@
       <p id="parallel-unsupported-info" class="info-text" style="display: none">
         ブラウザ内蔵音声では並列再生は利用できません
       </p>
+      </div>
     </div>
 
     <!-- コメントフィルター設定 -->
-    <div class="section">
-      <div class="section-title">コメントフィルター</div>
+    <div class="section" data-section-id="filter-settings">
+      <div class="section-header" role="button" tabindex="0" aria-expanded="true">
+        <span class="drag-handle" aria-label="ドラッグして並び替え" title="ドラッグして並び替え">⠿</span>
+        <span class="section-title">コメントフィルター</span>
+        <span class="section-caret">▾</span>
+      </div>
+      <div class="section-body">
 
       <div class="toggle-container">
         <label class="toggle-switch" aria-label="最新N件取得モード">
@@ -566,11 +596,17 @@
           </label>
         </div>
       </div>
+      </div>
     </div>
 
     <!-- 設定セクション -->
-    <div class="section">
-      <div class="section-title">設定</div>
+    <div class="section" data-section-id="general-settings">
+      <div class="section-header" role="button" tabindex="0" aria-expanded="true">
+        <span class="drag-handle" aria-label="ドラッグして並び替え" title="ドラッグして並び替え">⠿</span>
+        <span class="section-title">設定</span>
+        <span class="section-caret">▾</span>
+      </div>
+      <div class="section-body">
 
       <div class="toggle-container">
         <label class="toggle-switch" aria-label="ダークモード">
@@ -579,6 +615,8 @@
         </label>
         <span>ダークモード</span>
       </div>
+      </div>
+    </div>
     </div>
 
     <!-- 読み上げ実績リンク -->

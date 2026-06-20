@@ -138,6 +138,63 @@ button:hover {
   margin-bottom: 8px;
 }
 
+/* 折りたたみ・並び替え対応セクションの見出し行 */
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  margin-bottom: 8px;
+  user-select: none;
+}
+
+.section-header .section-title {
+  margin-bottom: 0;
+}
+
+.section-header .drag-handle {
+  cursor: grab;
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1;
+  flex-shrink: 0;
+  user-select: none;
+  padding: 0 2px;
+}
+
+.section-header .drag-handle:active {
+  cursor: grabbing;
+}
+
+.section-caret {
+  margin-left: auto;
+  color: var(--text-secondary);
+  font-size: 12px;
+  transition: transform 0.15s ease;
+}
+
+/* 折りたたみ時はボディを隠し、caret を倒す */
+.section.collapsed .section-body {
+  display: none;
+}
+
+.section.collapsed .section-header {
+  margin-bottom: 0;
+}
+
+.section.collapsed .section-caret {
+  transform: rotate(-90deg);
+}
+
+/* ドラッグ中の視覚フィードバック */
+.section.dragging {
+  opacity: 0.4;
+}
+
+.section.drag-over {
+  border-color: var(--accent-color);
+}
+
 /* レンジスライダー */
 input[type='range'] {
   -webkit-appearance: none;
