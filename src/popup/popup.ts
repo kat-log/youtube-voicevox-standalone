@@ -11,6 +11,7 @@ import { initParallelPlaybackConfig } from './parallel-playback-config';
 import { initRandomSpeakerConfig } from './random-speaker-config';
 import { initDarkMode } from './dark-mode';
 import { initTestSpeakConfig } from './test-speak-config';
+import { initSectionLayout } from './section-layout';
 document.addEventListener('DOMContentLoaded', () => {
   loadSettings();
   initMessageHandler();
@@ -23,4 +24,5 @@ document.addEventListener('DOMContentLoaded', () => {
   initRandomSpeakerConfig();
   initDarkMode();
   initTestSpeakConfig();
+  initSectionLayout();
 });

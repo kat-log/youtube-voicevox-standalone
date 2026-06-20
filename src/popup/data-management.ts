@@ -1,4 +1,5 @@
 import { loadSettings } from './settings-loader';
+import { applySectionLayout } from './section-layout';
 
 const SYNC_KEYS_WITHOUT_API = [
   'speed',
@@ -26,6 +27,8 @@ const SYNC_KEYS_WITHOUT_API = [
   'roundRobinPresets',
   'randomSpeakerPanelWidth',
   'roundRobinPanelWidth',
+  'popupSectionCollapsed',
+  'popupSectionOrder',
 ] as const;
 
 const API_KEYS = ['apiKeyVOICEVOX', 'apiKeyYoutube'] as const;
@@ -120,6 +123,7 @@ async function handleImport(event: Event): Promise<void> {
   }
 
   loadSettings();
+  applySectionLayout();
 }
 
 async function handleResetToDefaults(): Promise<void> {
