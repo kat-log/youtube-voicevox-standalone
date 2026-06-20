@@ -2,6 +2,8 @@
 
 YouTube のライブのコメントを、音声読み上げソフト「VOICEVOX」のずんだもんの声で読み上げるようにするクローム拡張機能です。
 
+🛒 **[Chrome ウェブストアでインストール](https://chromewebstore.google.com/detail/gdakacmdogbakjhalfjkclkagdojhooi?hl=ja)** ｜ 🌐 **[紹介ページ（LP）](https://kat-log.github.io/youtube-voicevox-standalone/)**
+
 ## 📋 概要
 
 この拡張機能は、YouTube のライブ配信でリアルタイムに投稿されるコメントを自動で取得し、VOICEVOX の音声合成技術を使用して音声で読み上げる機能を提供します。視覚障害のある方や、画面を見ながら他の作業をしている方にとって、ライブコメントを聞き逃すことなく楽しむことができます。
