@@ -265,7 +265,8 @@ export function updateBadge(): void {
   const state = getState();
   const queueLen = state.commentQueue.length + state.audioQueue.length;
 
-  if (queueLen > 0 && state.liveChatId !== null) {
+  if (state.liveChatId !== null) {
+    // 開始中はキューが空（0）でも表示する。緑バッジ＝読み上げ開始中の目印
     chrome.action.setBadgeText({ text: String(queueLen) });
     chrome.action.setBadgeBackgroundColor({ color: '#4caf50' });
   } else {

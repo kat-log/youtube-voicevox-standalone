@@ -1,6 +1,6 @@
 import { getState, updateState, incrementSessionId } from './state';
 import { extractVideoId, fetchLiveChatId } from './youtube-api';
-import { handleAudioEnded, handleAudioEndedById, initPlaybackSettings, updateCachedVolume, updateCachedSpeed } from './audio-player';
+import { handleAudioEnded, handleAudioEndedById, initPlaybackSettings, updateCachedVolume, updateCachedSpeed, updateBadge } from './audio-player';
 import { initTabListeners } from './tab-manager';
 import { startPolling, stopAll } from './lifecycle';
 import { processChatMessages, getStandaloneConfig, setStandaloneConfig } from './lifecycle-internal';
@@ -139,6 +139,8 @@ async function handleStart(config: {
       logInfo(`DOMモード開始: tabId=${tabs[0].id}, videoId=${videoId}`);
     }
     sendStatus('waiting');
+    // 開始直後（キュー空）でも開始中の目印として緑の「0」を表示
+    updateBadge();
     return { status: 'success' };
   }
 
@@ -161,6 +163,8 @@ async function handleStart(config: {
     });
 
     sendStatus('listening');
+    // 開始直後（キュー空）でも開始中の目印として緑の「0」を表示
+    updateBadge();
     return { status: 'success' };
   } catch (error) {
     const err = error as Error & { details?: unknown };
