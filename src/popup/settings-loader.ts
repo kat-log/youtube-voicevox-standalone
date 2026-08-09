@@ -2,6 +2,7 @@ import { setRangeFill, updateDualRangeFill, formatMaxLength, maxLengthToSlider }
 import { updateStatusUI, validateInputs, updateShortcutTooltips } from './status-ui';
 import { setSpeed, applyVolumeStepCount } from './playback-controls';
 import { normalizeVolumeStepCount } from '../utils/volume';
+import { stripRandomSentinel } from '@/types/state';
 import { updateStatsLink } from './message-handler';
 import { toggleEngineUI, populateBrowserVoices, fetchLocalSpeakers, updateVoicevoxBalanceVisibility } from './tts-engine-config';
 import { updateParallelSpeakersToggleState, updateSpeakerCountSummary } from './parallel-playback-config';
@@ -236,7 +237,7 @@ export function loadSettings(): void {
         const host =
           data.localVoicevoxHost ||
           (document.getElementById('localVoicevoxHost') as HTMLInputElement).value;
-        fetchLocalSpeakers(host, data.localSpeakerId);
+        fetchLocalSpeakers(host, stripRandomSentinel(data.localSpeakerId));
       }
 
       // 持ち回り制話者設定を復元（トグル状態と要約テキストのみ、詳細は専用ページ）
@@ -263,7 +264,8 @@ export function loadSettings(): void {
             }
           });
           // 保存された話者IDを選択
-          select.value = data.speakerId || '1';
+          // 過去バージョンでセンチネル値が保存されている場合があるため除去する
+          select.value = stripRandomSentinel(data.speakerId) || '1';
 
           // ランダム話者モードの復元
           const randomEnabled = data.randomSpeakerEnabled || false;

@@ -1,7 +1,7 @@
 import { getState, updateState, pushComment, clearAudioQueue } from './state';
 import { trackFetch, trackDrop } from './lifecycle-tracker';
 import { getFilterConfig, shouldFilter, stripEmojis, removeNgWords } from './comment-filter';
-import { isRandomSpeakerEnabled, getRandomSpeakerId } from './random-speaker';
+import { resolveSpeakerId } from './random-speaker';
 import { logDebug, logInfo } from './messaging';
 import { updateBadge } from './audio-player';
 import { evaluateAutoCatchUp, getAutoCatchUpConfig } from './auto-catchup';
@@ -35,8 +35,7 @@ export function processChatMessages(
   const filterConfig = getFilterConfig();
   const autoCatchUpEnabled = getAutoCatchUpConfig().enabled;
 
-  const getEffectiveSpeakerId = (): string | undefined =>
-    isRandomSpeakerEnabled() ? (getRandomSpeakerId() || config.speakerId) : config.speakerId;
+  const getEffectiveSpeakerId = (): string | undefined => resolveSpeakerId(config.speakerId);
 
   const isFirstFetch = state.latestTimestamp === null;
 

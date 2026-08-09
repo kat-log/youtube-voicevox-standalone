@@ -1,5 +1,5 @@
 import type { TTSQuestSynthesisResponse, TTSQuestAudioStatusResponse } from '@/types/api-responses';
-import type { TtsEngine, AudioQueueItem } from '@/types/state';
+import { stripRandomSentinel, type TtsEngine, type AudioQueueItem } from '@/types/state';
 import { getState, shiftComment, pushAudio, unshiftComment, MAX_AUDIO_QUEUE } from './state';
 import { logDebug, logWarn, logError, formatQueueState, sendStatus } from './messaging';
 import { playNextAudio, updateBadge } from './audio-player';
@@ -270,7 +270,9 @@ function synthesizeWithRetry(
 export async function fetchVoiceVox(apiKey: string, text: string, speakerId?: string): Promise<string> {
   const encodedText = encodeURIComponent(text);
   const effectiveSpeakerId =
-    speakerId || (await chrome.storage.sync.get(['speakerId'])).speakerId || '1';
+    stripRandomSentinel(speakerId) ||
+    stripRandomSentinel((await chrome.storage.sync.get(['speakerId'])).speakerId) ||
+    '1';
 
   let url = `https://api.tts.quest/v3/voicevox/synthesis?text=${encodedText}&speaker=${effectiveSpeakerId}`;
   if (apiKey) {
@@ -409,7 +411,9 @@ export function insertInOrder(seq: number, item: AudioQueueItem | null): void {
 // ローカル VOICEVOX API で音声合成（audio_query → synthesis → data URI）
 export async function fetchLocalVoiceVox(text: string, speakerId?: string): Promise<string> {
   const effectiveSpeakerId =
-    speakerId || (await chrome.storage.sync.get(['localSpeakerId'])).localSpeakerId || '1';
+    stripRandomSentinel(speakerId) ||
+    stripRandomSentinel((await chrome.storage.sync.get(['localSpeakerId'])).localSpeakerId) ||
+    '1';
   const encodedText = encodeURIComponent(text);
 
   // Step 1: audio_query
