@@ -4,6 +4,7 @@ import { applySectionLayout } from './section-layout';
 const SYNC_KEYS_WITHOUT_API = [
   'speed',
   'volume',
+  'volumeStepCount',
   'ttsEngine',
   'speakerId',
   'localSpeakerId',

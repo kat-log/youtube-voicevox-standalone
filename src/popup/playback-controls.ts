@@ -1,8 +1,17 @@
 import { setRangeFill } from './slider-utils';
 import { validateInputs } from './status-ui';
+import {
+  DEFAULT_VOLUME_STEP_COUNT,
+  formatVolume,
+  normalizeVolumeStepCount,
+  quantizeVolume,
+  volumeStepSize,
+  type VolumeStepCount,
+} from '../utils/volume';
 
 let speed = 1.0;
 let volume = 1.0;
+let volumeStepCount: VolumeStepCount = DEFAULT_VOLUME_STEP_COUNT;
 
 export function getSpeed(): number {
   return speed;
@@ -20,7 +29,41 @@ export function setVolume(v: number): void {
   volume = v;
 }
 
+export function getVolumeStepCount(): VolumeStepCount {
+  return volumeStepCount;
+}
+
+/**
+ * 音量スライダーを指定の段階数に合わせて再構成する。
+ * 現在の音量は新しいグリッドに丸めて表示・保持する。
+ */
+export function applyVolumeStepCount(stepCount: VolumeStepCount, currentVolume: number): void {
+  volumeStepCount = stepCount;
+  volume = quantizeVolume(currentVolume, stepCount);
+
+  const slider = document.getElementById('volume') as HTMLInputElement | null;
+  if (!slider) return;
+
+  slider.step = String(volumeStepSize(stepCount));
+
+  // 音量非対応の音声では最大固定の表示を保つ
+  if (slider.disabled) return;
+
+  slider.value = String(volume);
+  slider.setAttribute('aria-valuetext', `音量${Math.round(volume * 100)}%`);
+  setRangeFill(slider);
+
+  const display = document.getElementById('current-volume');
+  if (display) display.textContent = formatVolume(volume, stepCount);
+}
+
 export function initPlaybackControls(): void {
+  // 設定ページで音量の細かさが変更されたら即時反映（ポップアップをタブで開いている場合）
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName !== 'sync' || !changes.volumeStepCount) return;
+    applyVolumeStepCount(normalizeVolumeStepCount(changes.volumeStepCount.newValue), volume);
+  });
+
   // chatMode セレクトの変更リスナー
   document.getElementById('chatMode')?.addEventListener('change', (event) => {
     const mode = (event.target as HTMLSelectElement).value as 'official' | 'standalone' | 'dom';
@@ -147,7 +190,7 @@ export function initPlaybackControls(): void {
     const target = event.target as HTMLInputElement;
     volume = parseFloat(target.value);
     chrome.storage.sync.set({ volume: volume });
-    document.getElementById('current-volume')!.textContent = `${volume}`;
+    document.getElementById('current-volume')!.textContent = formatVolume(volume, volumeStepCount);
     chrome.runtime.sendMessage({ action: 'setVolume', volume: volume });
 
     const pct = Math.round(volume * 100);

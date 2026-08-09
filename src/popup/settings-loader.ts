@@ -1,6 +1,7 @@
 import { setRangeFill, updateDualRangeFill, formatMaxLength, maxLengthToSlider } from './slider-utils';
 import { updateStatusUI, validateInputs, updateShortcutTooltips } from './status-ui';
-import { setSpeed, setVolume } from './playback-controls';
+import { setSpeed, applyVolumeStepCount } from './playback-controls';
+import { normalizeVolumeStepCount } from '../utils/volume';
 import { updateStatsLink } from './message-handler';
 import { toggleEngineUI, populateBrowserVoices, fetchLocalSpeakers, updateVoicevoxBalanceVisibility } from './tts-engine-config';
 import { updateParallelSpeakersToggleState, updateSpeakerCountSummary } from './parallel-playback-config';
@@ -13,6 +14,7 @@ export function loadSettings(): void {
       'apiKeyYoutube',
       'speed',
       'volume',
+      'volumeStepCount',
       'latestOnlyMode',
       'latestOnlyCount',
       'speakerId',
@@ -45,14 +47,8 @@ export function loadSettings(): void {
       speedSlider.setAttribute('aria-valuetext', `${loadedSpeed.toFixed(1)}倍速`);
       setRangeFill(speedSlider);
 
-      const loadedVolume = data.volume || 1.0;
-      setVolume(loadedVolume);
-      const volumeSlider = document.getElementById('volume') as HTMLInputElement;
-      volumeSlider.value = String(loadedVolume);
-      document.getElementById('current-volume')!.textContent = `${loadedVolume}`;
-      setRangeFill(volumeSlider);
-      const volumePct = Math.round(loadedVolume * 100);
-      document.getElementById('volume')!.setAttribute('aria-valuetext', `音量${volumePct}%`);
+      // 音量スライダー（段階数の設定に応じて step を切り替える）
+      applyVolumeStepCount(normalizeVolumeStepCount(data.volumeStepCount), data.volume ?? 1.0);
 
       const latestOnlyMode = data.latestOnlyMode || false;
       (document.getElementById('latestOnlyMode') as HTMLInputElement).checked = latestOnlyMode;

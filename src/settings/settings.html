@@ -8,6 +8,34 @@
     <div class="container">
       <h1>設定</h1>
       <div class="section">
+        <div class="section-title">音量調整の細かさ</div>
+        <p class="info-text" style="margin-top: 0">
+          ポップアップの音量スライダーを何段階で調整できるようにするかを選びます。
+          細かくするほど小さな音量まで指定できます。
+        </p>
+        <div style="max-width: 420px">
+          <label for="volumeStepCount">段階数: <span id="current-volume-step-count">10段階</span></label>
+          <div class="slider-group">
+            <input
+              type="range"
+              id="volumeStepCount"
+              min="0"
+              max="2"
+              step="1"
+              value="0"
+              aria-label="音量調整の細かさ"
+              aria-valuetext="10段階"
+            />
+          </div>
+          <div class="dual-range-legend">
+            <span>10段階（標準）</span>
+            <span>20段階</span>
+            <span>100段階</span>
+          </div>
+          <p class="info-text" id="volume-step-count-hint">設定できる最小音量: 0.1（0 = ミュート）</p>
+        </div>
+      </div>
+      <div class="section">
         <div class="section-title">データ管理</div>
         <div style="margin-bottom: 8px;">
           <button type="button" id="export-settings-btn" class="small-btn">エクスポート</button>

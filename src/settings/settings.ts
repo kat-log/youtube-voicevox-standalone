@@ -1,5 +1,6 @@
 import '../styles/styles.scss';
 import { initDataManagement } from '../popup/data-management';
+import { initVolumeGranularity } from './volume-granularity';
 
 chrome.storage.sync.get(['darkMode'], (data) => {
   const isDark =
@@ -13,4 +14,5 @@ chrome.storage.sync.get(['darkMode'], (data) => {
 
 document.addEventListener('DOMContentLoaded', () => {
   initDataManagement();
+  initVolumeGranularity();
 });
