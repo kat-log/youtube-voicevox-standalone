@@ -1,5 +1,6 @@
 import { setRangeFill } from './slider-utils';
-import { getSpeed, getVolume } from './playback-controls';
+import { getSpeed, getVolume, getVolumeStepCount } from './playback-controls';
+import { formatVolume } from '../utils/volume';
 import { updateParallelSpeakersToggleState } from './parallel-playback-config';
 import { updateSpeakerDropdownForRandomMode } from './random-speaker-config';
 
@@ -63,7 +64,7 @@ export function updateVolumeSliderState(): void {
     if (!isRateSupportedVoice(voiceName)) {
       volumeSlider.disabled = true;
       volumeSlider.value = '1';
-      document.getElementById('current-volume')!.textContent = '1.0';
+      document.getElementById('current-volume')!.textContent = formatVolume(1, getVolumeStepCount());
       volumeSlider.setAttribute('aria-valuetext', '音量100%');
       setRangeFill(volumeSlider);
       info.style.display = 'block';
@@ -74,7 +75,7 @@ export function updateVolumeSliderState(): void {
   const volume = getVolume();
   volumeSlider.disabled = false;
   volumeSlider.value = String(volume);
-  document.getElementById('current-volume')!.textContent = `${volume}`;
+  document.getElementById('current-volume')!.textContent = formatVolume(volume, getVolumeStepCount());
   const pct = Math.round(volume * 100);
   volumeSlider.setAttribute('aria-valuetext', `音量${pct}%`);
   setRangeFill(volumeSlider);
