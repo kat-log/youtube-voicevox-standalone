@@ -1,3 +1,5 @@
+import { RANDOM_SPEAKER_SENTINEL } from '@/types/state';
+
 function sendRandomSpeakerConfig(): void {
   const enabled = (document.getElementById('randomSpeakerEnabled') as HTMLInputElement).checked;
   const engine = (document.getElementById('ttsEngine') as HTMLSelectElement).value;
@@ -26,7 +28,21 @@ export function updateRandomSpeakerSummary(): void {
   });
 }
 
-const RANDOM_OPTION_VALUE = '__random__';
+const RANDOM_OPTION_VALUE = RANDOM_SPEAKER_SENTINEL;
+
+/**
+ * ドロップダウンから実際に使える話者IDを取り出す。
+ * ランダムモード中はダミーoptionが選択されているため、実在する最初の話者IDを返す。
+ * （実際のランダム選択は background 側で行われる）
+ */
+export function getSelectedRealSpeakerId(select: HTMLSelectElement | null): string {
+  if (!select) return '';
+  if (select.value !== RANDOM_OPTION_VALUE) return select.value;
+  const real = Array.from(select.options).find(
+    (opt) => opt.value && opt.value !== RANDOM_OPTION_VALUE
+  );
+  return real?.value ?? '';
+}
 
 /** ランダムモードON/OFFに応じて、話者ドロップダウンにダミーoptionを挿入/削除して表示を切り替える */
 export function updateSpeakerDropdownForRandomMode(engine: string, randomEnabled: boolean): void {

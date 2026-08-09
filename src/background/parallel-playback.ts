@@ -1,5 +1,5 @@
 import type { ParallelPlaybackConfig, ParallelSpeakersConfig } from '@/types/state';
-import { RANDOM_SPEAKER_SENTINEL } from '@/types/state';
+import { RANDOM_SPEAKER_SENTINEL, stripRandomSentinel } from '@/types/state';
 import { getState } from './state';
 import { getTtsEngine } from './tts-api';
 import { getRandomSpeakerId, ensureRandomSpeakerCache } from './random-speaker';
@@ -124,7 +124,7 @@ export function getParallelSpeakerId(originalSpeakerId: string | undefined): str
   if (slot === 0) return originalSpeakerId;
   const speakerId = speakersConfig.speakerIds[slot - 1];
   if (speakerId === RANDOM_SPEAKER_SENTINEL) {
-    return getRandomSpeakerId() || originalSpeakerId;
+    return getRandomSpeakerId() || stripRandomSentinel(originalSpeakerId);
   }
   return speakerId || originalSpeakerId;
 }

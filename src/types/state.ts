@@ -86,6 +86,15 @@ export interface ExtensionState {
 
 export const RANDOM_SPEAKER_SENTINEL = '__random__';
 
+/**
+ * ランダム話者モードのダミー値を除去する。
+ * このセンチネル値は UI 表示専用であり、話者IDとして API に渡してはいけない。
+ */
+export function stripRandomSentinel(speakerId: string | undefined | null): string | undefined {
+  if (!speakerId || speakerId === RANDOM_SPEAKER_SENTINEL) return undefined;
+  return speakerId;
+}
+
 export type ExtensionStatus =
   | 'idle'
   | 'connecting'

@@ -1,5 +1,6 @@
 import { setRangeFill } from './slider-utils';
 import { validateInputs } from './status-ui';
+import { getSelectedRealSpeakerId } from './random-speaker-config';
 import {
   DEFAULT_VOLUME_STEP_COUNT,
   formatVolume,
@@ -86,9 +87,13 @@ export function initPlaybackControls(): void {
     const apiKeyVOICEVOX = (document.getElementById('apiKeyVOICEVOX') as HTMLInputElement).value;
     const apiKeyYoutube = (document.getElementById('apiKeyYoutube') as HTMLInputElement).value;
     const engine = (document.getElementById('ttsEngine') as HTMLSelectElement).value;
-    const speakerId = engine === 'local-voicevox'
-      ? (document.getElementById('localSpeaker') as HTMLSelectElement).value
-      : (document.getElementById('speaker') as HTMLSelectElement).value;
+    // ランダムモード中はドロップダウンにダミー値が入っているため、実在する話者IDに解決する
+    // （ランダム選択は background 側で行う。センチネル値を保存・送信してはいけない）
+    const speakerId = getSelectedRealSpeakerId(
+      document.getElementById(
+        engine === 'local-voicevox' ? 'localSpeaker' : 'speaker'
+      ) as HTMLSelectElement | null
+    );
     const chatMode = ((document.getElementById('chatMode') as HTMLSelectElement)?.value ?? 'dom') as 'official' | 'standalone' | 'dom';
 
     if (chatMode === 'official' && !apiKeyYoutube) {

@@ -8,7 +8,7 @@ import { ERROR_THRESHOLD_FOR_STATUS } from './state';
 import { shouldFilter, getFilterConfig, stripEmojis, removeNgWords } from './comment-filter';
 import { evaluateRushMode } from './rush-mode';
 import { evaluateAutoCatchUp, getAutoCatchUpConfig } from './auto-catchup';
-import { isRandomSpeakerEnabled, getRandomSpeakerId } from './random-speaker';
+import { resolveSpeakerId } from './random-speaker';
 import { fetchWithTimeout } from '@/utils/fetchWithTimeout';
 
 // ポーリング開始
@@ -32,8 +32,7 @@ export function startPolling(config: {
   }
   let isFirstFetch = true;
 
-  const getEffectiveSpeakerId = (): string | undefined =>
-    isRandomSpeakerEnabled() ? (getRandomSpeakerId() || config.speakerId) : config.speakerId;
+  const getEffectiveSpeakerId = (): string | undefined => resolveSpeakerId(config.speakerId);
 
   const checkNewComments = async (): Promise<void> => {
     const state = getState();

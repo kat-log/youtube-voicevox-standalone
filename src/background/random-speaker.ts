@@ -1,4 +1,4 @@
-import type { TtsEngine } from '@/types/state';
+import { stripRandomSentinel, type TtsEngine } from '@/types/state';
 import { logWarn } from './messaging';
 import { fetchWithTimeout } from '@/utils/fetchWithTimeout';
 
@@ -178,4 +178,20 @@ export function getRandomSpeakerId(): string | undefined {
   if (cachedSpeakerIds.length === 0) return undefined;
   const index = Math.floor(Math.random() * cachedSpeakerIds.length);
   return cachedSpeakerIds[index];
+}
+
+/**
+ * 実際に音声合成へ渡す話者IDを解決する。
+ * ランダムモード時はランダムな話者IDを返すが、話者リストのキャッシュが未取得の場合は
+ * undefined を返して呼び出し側のフォールバック（storage の保存値 → '1'）に委ねる。
+ * センチネル値（'__random__'）はここより先へ絶対に渡さない。
+ */
+export function resolveSpeakerId(configSpeakerId: string | undefined): string | undefined {
+  if (isRandomSpeakerEnabled()) {
+    const picked = getRandomSpeakerId();
+    if (picked) return picked;
+    // キャッシュ未取得。次回以降のために取得を促しつつ、今回は保存値へフォールバックする
+    ensureRandomSpeakerCache();
+  }
+  return stripRandomSentinel(configSpeakerId);
 }
