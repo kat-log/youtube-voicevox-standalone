@@ -92,3 +92,12 @@ gh release download v{新バージョン} --dir .
 カレントディレクトリの `youtube-voicevox-v*.zip` を一覧表示し、今回の `youtube-voicevox-v{新バージョン}.zip` 以外が存在する場合は、
 ユーザーに「古い zip ファイルを削除しますか？」と確認する。
 「はい」の場合は最新バージョン以外の zip をすべて削除する。
+
+## ステップ 10: Chrome Web Store 提出案内
+
+最後に、Chrome Web Store への提出は手動である旨とあわせて以下の URL を提示する。
+
+- **Developer Dashboard（zip のアップロード先）**: https://chrome.google.com/webstore/devconsole/
+- **公開ストアページ**: https://chromewebstore.google.com/detail/gdakacmdogbakjhalfjkclkagdojhooi?hl=ja
+
+案内文には、ローカルに保存した `youtube-voicevox-v{新バージョン}.zip` のパスも一緒に載せること。
