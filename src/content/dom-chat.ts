@@ -18,6 +18,10 @@ if ((window as WindowWithInit).__domChatInitialized) {
     chrome.runtime.sendMessage({ action: 'domChatLog', message }).catch(() => {});
   };
 
+  // alt が絵文字・絵文字修飾子のみで構成されているか（標準Unicode絵文字の img 判定用）
+  const UNICODE_EMOJI_ONLY_REGEX =
+    /^[\uFE0F\u200D\p{Emoji_Presentation}\p{Extended_Pictographic}\u{1F3FB}-\u{1F3FF}]+$/u;
+
   const extractText = (renderer: Element): string => {
     const messageEl = renderer.querySelector('#message');
     if (!messageEl) return '';
@@ -31,7 +35,18 @@ if ((window as WindowWithInit).__domChatInitialized) {
         if (el.tagName === 'IMG') {
           const alt = (el as HTMLImageElement).alt?.trim() ?? '';
           if (alt) {
-            text += (alt.startsWith(':') && alt.endsWith(':')) ? alt : `:${alt}:`;
+            if (alt.startsWith(':') && alt.endsWith(':')) {
+              // すでにショートコード形式（例: ":_2BROOtojya:"）
+              text += alt;
+            } else if (UNICODE_EMOJI_ONLY_REGEX.test(alt)) {
+              // 標準Unicode絵文字（YouTubeは <img alt="🙌"> で描画する）。
+              // コロンで包むと偽ショートコードになり、絵文字除去時に
+              // 後続の本文まで巻き込んで削除されてしまうため、そのまま連結する。
+              text += alt;
+            } else {
+              // カスタム絵文字名（例: "KyoyuAnijyaKyoyu"）
+              text += `:${alt}:`;
+            }
           }
         } else {
           text += el.textContent ?? '';

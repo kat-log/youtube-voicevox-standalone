@@ -155,6 +155,36 @@ describe('stripEmojis', () => {
   it('コロン付きカスタム絵文字コードを除去', () => {
     expect(stripEmojis(':koroneMimidokan::koroneMimidokan:')).toBe('');
   });
+
+  // 回帰: DOM取得経路では標準Unicode絵文字もコロンで包まれることがあり
+  // （旧 dom-chat.ts の挙動）、置換順が誤っていると孤立コロンが
+  // 次のコロンとペアになって間の本文を巻き込んで削除していた
+  it('コロンで包まれたUnicode絵文字の後ろの本文が消えない', () => {
+    expect(stripEmojis('兄者さん⸜:🙌🏻:⸝‍おはようございます:KyoyuAnijyaKyoyu:')).toBe(
+      '兄者さん⸜⸝おはようございます'
+    );
+  });
+
+  it('コロンで包まれたUnicode絵文字が複数あっても本文が消えない', () => {
+    expect(stripEmojis('兄者おはよう:💙:今日もFIGHTです:🥰::✨:')).toBe(
+      '兄者おはよう今日もFIGHTです'
+    );
+  });
+
+  it('生の絵文字（API取得経路）でもDOM取得経路と同じ結果になる', () => {
+    expect(stripEmojis('兄者さん⸜🙌🏻⸝‍おはようございます:KyoyuAnijyaKyoyu:')).toBe(
+      '兄者さん⸜⸝おはようございます'
+    );
+    expect(stripEmojis('兄者おはよう💙今日もFIGHTです🥰✨')).toBe('兄者おはよう今日もFIGHTです');
+  });
+
+  it('スキントーン修飾子付き絵文字をコロンで包んでも本文が残る', () => {
+    expect(stripEmojis('おはよう:👍🏽:こんばんは')).toBe('おはようこんばんは');
+  });
+
+  it('単独で残るZWJ・異体字セレクタを除去', () => {
+    expect(stripEmojis('あ\u200Dい\uFE0Fう')).toBe('あいう');
+  });
 });
 
 describe('removeNgWords', () => {
