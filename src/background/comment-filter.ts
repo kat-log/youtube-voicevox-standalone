@@ -27,6 +27,9 @@ const UNICODE_EMOJI_REGEX =
 // YouTube絵文字ショートコード: :_2BROOtojya: や :thumbsup: や :_だいそうげん: 等（Unicode対応）
 const EMOJI_SHORTCODE_REGEX = /:[^\s:]+:/g;
 
+// 絵文字本体を除去した後に単独で残る ZWJ / 異体字セレクタ
+const EMOJI_MODIFIER_REGEX = /\u200D|\uFE0F/g;
+
 /** 全角ASCII文字（！〜～）を半角に正規化する */
 function normalizeWidth(str: string): string {
   return str.replace(/[\uFF01-\uFF5E]/g, (ch) =>
@@ -87,11 +90,18 @@ export function shouldFilter(message: string, config: FilterConfig): string | fa
   return false;
 }
 
-/** テキストからUnicode絵文字とYouTubeカスタム絵文字コードを除去する */
+/**
+ * テキストからUnicode絵文字とYouTubeカスタム絵文字コードを除去する。
+ *
+ * ショートコードを必ず先に除去すること。Unicode絵文字を先に消すと、
+ * DOM取得経路の ":🙌:" が "::" になり、続く EMOJI_SHORTCODE_REGEX が
+ * 残ったコロンと次のコロンをペアと誤認して、間の本文まで巻き込んで削除してしまう。
+ */
 export function stripEmojis(text: string): string {
   return text
-    .replace(UNICODE_EMOJI_REGEX, '')
     .replace(EMOJI_SHORTCODE_REGEX, '')
+    .replace(UNICODE_EMOJI_REGEX, '')
+    .replace(EMOJI_MODIFIER_REGEX, '')
     .replace(/\s+/g, ' ')
     .trim();
 }
