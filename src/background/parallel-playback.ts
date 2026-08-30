@@ -25,9 +25,9 @@ export function setParallelPlaybackConfig(newConfig: ParallelPlaybackConfig): vo
 
 export function loadParallelPlaybackConfigFromStorage(): void {
   chrome.storage.sync.get(['parallelPlaybackConfig'], (data) => {
-    if (data.parallelPlaybackConfig) {
-      config = { ...DEFAULT_CONFIG, ...data.parallelPlaybackConfig };
-    }
+    config = data.parallelPlaybackConfig
+      ? { ...DEFAULT_CONFIG, ...data.parallelPlaybackConfig }
+      : { ...DEFAULT_CONFIG };
   });
 }
 
@@ -89,11 +89,11 @@ export function setParallelSpeakersConfig(newConfig: ParallelSpeakersConfig): vo
 
 export function loadParallelSpeakersConfigFromStorage(): void {
   chrome.storage.sync.get(['parallelSpeakersConfig'], (data) => {
-    if (data.parallelSpeakersConfig) {
-      speakersConfig = { ...DEFAULT_SPEAKERS_CONFIG, ...data.parallelSpeakersConfig };
-      if (speakersConfig.enabled && speakersConfig.speakerIds.includes(RANDOM_SPEAKER_SENTINEL)) {
-        ensureRandomSpeakerCache();
-      }
+    speakersConfig = data.parallelSpeakersConfig
+      ? { ...DEFAULT_SPEAKERS_CONFIG, ...data.parallelSpeakersConfig }
+      : { ...DEFAULT_SPEAKERS_CONFIG };
+    if (speakersConfig.enabled && speakersConfig.speakerIds.includes(RANDOM_SPEAKER_SENTINEL)) {
+      ensureRandomSpeakerCache();
     }
   });
 }

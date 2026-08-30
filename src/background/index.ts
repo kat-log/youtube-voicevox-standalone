@@ -17,6 +17,7 @@ import { fetchWithTimeout } from '@/utils/fetchWithTimeout';
 import type { TtsEngine } from '@/types/state';
 import type { IncomingMessage } from '@/types/messages';
 import { getAllLifecycles } from './lifecycle-tracker';
+import { initSettingsSync } from './settings-sync';
 
 // ポップアップ・ログページから session storage にアクセスできるようにする
 chrome.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' });
@@ -44,6 +45,9 @@ loadRandomSpeakerConfigFromStorage();
 
 // 音量・速度キャッシュを初期化
 initPlaybackSettings();
+
+// storage の直接変更（設定インポート・リセット等）を各キャッシュへ反映
+initSettingsSync();
 
 // 話者名キャッシュを初期化
 initSpeakerNames();
@@ -188,6 +192,9 @@ chrome.runtime.onMessage.addListener(
   ) => {
     switch (request.action) {
       case 'start': {
+        // 再生設定のキャッシュを開始時の値に揃える
+        if (typeof request.volume === 'number') updateCachedVolume(request.volume);
+        if (typeof request.speed === 'number') updateCachedSpeed(request.speed);
         handleStart({
           apiKeyVOICEVOX: request.apiKeyVOICEVOX,
           apiKeyYoutube: request.apiKeyYoutube,
@@ -554,6 +561,10 @@ chrome.commands.onCommand.addListener(async (command) => {
     ]);
 
     const mode = (data.chatMode ?? 'dom') as 'official' | 'dom';
+
+    // 再生設定のキャッシュを保存値に揃える
+    if (typeof data.volume === 'number') updateCachedVolume(data.volume);
+    if (typeof data.speed === 'number') updateCachedSpeed(data.speed);
 
     if (mode === 'official' && !data.apiKeyYoutube) {
       // eslint-disable-next-line no-console

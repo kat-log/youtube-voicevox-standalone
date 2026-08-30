@@ -21,9 +21,9 @@ export function setRushConfig(config: RushModeConfig): void {
 
 export function loadRushConfigFromStorage(): void {
   chrome.storage.sync.get(['rushModeConfig'], (data) => {
-    if (data.rushModeConfig) {
-      rushConfig = { ...DEFAULT_RUSH_CONFIG, ...data.rushModeConfig };
-    }
+    rushConfig = data.rushModeConfig
+      ? { ...DEFAULT_RUSH_CONFIG, ...data.rushModeConfig }
+      : { ...DEFAULT_RUSH_CONFIG };
   });
 }
 
