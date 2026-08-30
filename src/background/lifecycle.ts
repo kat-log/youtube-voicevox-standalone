@@ -11,14 +11,25 @@ import { evaluateAutoCatchUp, getAutoCatchUpConfig } from './auto-catchup';
 import { resolveSpeakerId } from './random-speaker';
 import { fetchWithTimeout } from '@/utils/fetchWithTimeout';
 
-// ポーリング開始
-export function startPolling(config: {
+interface PollingConfig {
   apiKeyVOICEVOX: string;
   apiKeyYoutube: string;
   speed: number;
   tabId: number;
   speakerId?: string;
-}): void {
+}
+
+// 実行中のポーリング設定への参照（話者IDの実行時更新に使用）
+let activePollingConfig: PollingConfig | null = null;
+
+/** 実行中のポーリングの話者IDを更新する（storage 変更の即時反映用） */
+export function updatePollingSpeakerId(speakerId: string | undefined): void {
+  if (activePollingConfig) activePollingConfig.speakerId = speakerId;
+}
+
+// ポーリング開始
+export function startPolling(config: PollingConfig): void {
+  activePollingConfig = config;
   // 新セッション開始時に前回のログをクリア
   clearDebugLogs();
 
@@ -329,6 +340,9 @@ export function stopAll(): void {
   if (state.activeTabId) {
     chrome.tabs.sendMessage(state.activeTabId, { action: 'stopStandalonePolling' }).catch(() => {});
   }
+
+  // 実行中のポーリング設定を破棄
+  activePollingConfig = null;
 
   // DOMモードの MutationObserver を停止
   chrome.storage.session.set({ domModeActive: false }).catch(() => {});

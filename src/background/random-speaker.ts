@@ -2,13 +2,16 @@ import { stripRandomSentinel, type TtsEngine } from '@/types/state';
 import { logWarn } from './messaging';
 import { fetchWithTimeout } from '@/utils/fetchWithTimeout';
 
+export const DEFAULT_TTS_ENGINE: TtsEngine = 'local-voicevox';
+export const DEFAULT_LOCAL_VOICEVOX_HOST = 'http://localhost:50021';
+
 let randomSpeakerEnabled = false;
 let allSpeakerIds: string[] = [];
 let cachedSpeakerIds: string[] = [];
 let allowedSpeakerIds: Set<string> | null = null;
 let isFetching = false;
-let currentEngine: TtsEngine = 'local-voicevox';
-let localHost: string = 'http://localhost:50021';
+let currentEngine: TtsEngine = DEFAULT_TTS_ENGINE;
+let localHost: string = DEFAULT_LOCAL_VOICEVOX_HOST;
 
 /** エンジンに応じたランダム話者の許可リスト用ストレージキーを返す */
 export function getRandomSpeakerStorageKey(engine: TtsEngine): string {
@@ -77,6 +80,11 @@ function applyAllowedFilter(): void {
   }
 }
 
+/**
+ * ランダム話者設定を storage の内容で丸ごと再適用する。
+ * 起動時だけでなく、設定インポートなど background 外からの storage 変更時にも呼ばれるため、
+ * 「値があれば上書き」ではなく「storage の状態＝現在の状態」になるよう常に全項目を反映する。
+ */
 export function loadRandomSpeakerConfigFromStorage(): void {
   chrome.storage.sync.get(
     [
@@ -88,16 +96,28 @@ export function loadRandomSpeakerConfigFromStorage(): void {
       'randomSpeakerAllowedIdsBrowser',
     ],
     (data) => {
-      if (data.ttsEngine) currentEngine = data.ttsEngine as TtsEngine;
-      if (data.localVoicevoxHost) localHost = data.localVoicevoxHost as string;
+      const engine = (data.ttsEngine as TtsEngine | undefined) ?? DEFAULT_TTS_ENGINE;
+      const host = (data.localVoicevoxHost as string | undefined) || DEFAULT_LOCAL_VOICEVOX_HOST;
+      const engineChanged = currentEngine !== engine;
+      const hostChanged = localHost !== host;
+      currentEngine = engine;
+      localHost = host;
+
+      // エンジン／ホストが変わったら話者リストのキャッシュは無効
+      if (engineChanged || (engine === 'local-voicevox' && hostChanged)) {
+        allSpeakerIds = [];
+        cachedSpeakerIds = [];
+      }
 
       // エンジンに応じた allowlist を読み込む
-      const storageKey = getRandomSpeakerStorageKey(currentEngine);
+      const storageKey = getRandomSpeakerStorageKey(engine);
       const ids = data[storageKey] as string[] | undefined;
       allowedSpeakerIds = ids ? new Set(ids) : null;
+      // 取得済みの話者リストがあれば allowlist を即座に反映する
+      applyAllowedFilter();
 
-      if (data.randomSpeakerEnabled) {
-        randomSpeakerEnabled = true;
+      randomSpeakerEnabled = Boolean(data.randomSpeakerEnabled);
+      if (randomSpeakerEnabled) {
         fetchAndCacheSpeakerIds();
       }
     }

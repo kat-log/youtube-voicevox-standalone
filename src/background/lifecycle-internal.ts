@@ -25,6 +25,11 @@ export function setStandaloneConfig(config: StandaloneConfig): void {
   standaloneConfig = config;
 }
 
+/** DOMモードで実行中の設定の話者IDを更新する（storage 変更の即時反映用） */
+export function updateStandaloneSpeakerId(speakerId: string | undefined): void {
+  if (standaloneConfig) standaloneConfig.speakerId = speakerId;
+}
+
 export function processChatMessages(
   messages: Array<{ text: string; timestampMs: number }>,
   config: StandaloneConfig

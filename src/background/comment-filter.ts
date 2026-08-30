@@ -50,9 +50,9 @@ export function setFilterConfig(config: FilterConfig): void {
 
 export async function loadFilterConfigFromStorage(): Promise<void> {
   const data = await chrome.storage.sync.get('filterConfig');
-  if (data.filterConfig) {
-    cachedConfig = { ...DEFAULT_FILTER_CONFIG, ...data.filterConfig };
-  }
+  cachedConfig = data.filterConfig
+    ? { ...DEFAULT_FILTER_CONFIG, ...data.filterConfig }
+    : { ...DEFAULT_FILTER_CONFIG };
 }
 
 function isEmojiOnly(text: string): boolean {

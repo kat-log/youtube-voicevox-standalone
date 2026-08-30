@@ -20,9 +20,9 @@ export function setAutoCatchUpConfig(newConfig: AutoCatchUpConfig): void {
 
 export function loadAutoCatchUpConfigFromStorage(): void {
   chrome.storage.sync.get(['autoCatchUpConfig'], (data) => {
-    if (data.autoCatchUpConfig) {
-      config = { ...DEFAULT_AUTO_CATCHUP_CONFIG, ...data.autoCatchUpConfig };
-    }
+    config = data.autoCatchUpConfig
+      ? { ...DEFAULT_AUTO_CATCHUP_CONFIG, ...data.autoCatchUpConfig }
+      : { ...DEFAULT_AUTO_CATCHUP_CONFIG };
   });
 }
 

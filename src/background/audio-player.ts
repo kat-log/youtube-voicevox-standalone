@@ -28,15 +28,26 @@ export function isRateSupportedVoice(voiceName: string | undefined): boolean {
 }
 
 // 音量・速度のモジュールレベルキャッシュ（chrome.storage.sync.get を毎回呼ばない）
-let cachedVolume = 1.0;
-let cachedSpeed = 1.0;
+export const DEFAULT_VOLUME = 1.0;
+export const DEFAULT_SPEED = 1.0;
 
-/** 起動時に storage から音量・速度を読み込む */
+let cachedVolume = DEFAULT_VOLUME;
+let cachedSpeed = DEFAULT_SPEED;
+
+/** 起動時に storage から音量・速度を読み込む（未保存ならデフォルトへ戻す） */
 export function initPlaybackSettings(): void {
   chrome.storage.sync.get(['volume', 'speed'], (data) => {
-    if (data.volume !== undefined) cachedVolume = data.volume;
-    if (data.speed !== undefined) cachedSpeed = data.speed;
+    cachedVolume = typeof data.volume === 'number' ? data.volume : DEFAULT_VOLUME;
+    cachedSpeed = typeof data.speed === 'number' ? data.speed : DEFAULT_SPEED;
   });
+}
+
+export function getCachedVolume(): number {
+  return cachedVolume;
+}
+
+export function getCachedSpeed(): number {
+  return cachedSpeed;
 }
 
 export function updateCachedVolume(v: number): void {
