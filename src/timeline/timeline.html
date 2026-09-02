@@ -34,6 +34,7 @@
         --border-color: #404040;
         --ruler-bg: #2e2e2e;
         --row-hover: #333;
+        --row-selected: #3a4a63;
         --label-bg: #242424;
       }
 
@@ -46,6 +47,7 @@
         --border-color: #e5e7eb;
         --ruler-bg: #f0f0f0;
         --row-hover: #f5f5f5;
+        --row-selected: #dbeafe;
         --label-bg: #fff;
       }
 
@@ -244,10 +246,21 @@
         display: flex;
         position: relative;
         border-bottom: 1px solid var(--border-color);
+        cursor: pointer;
       }
 
       .timeline-row:hover {
         background: var(--row-hover);
+      }
+
+      /* クリックで中央スクロールした行 */
+      .timeline-row.selected {
+        background: var(--row-selected);
+      }
+
+      .timeline-row.selected .row-speaker,
+      .timeline-row.selected .row-label {
+        background: var(--row-selected);
       }
 
       /* 固定列（横スクロールしても左端に貼り付く）。

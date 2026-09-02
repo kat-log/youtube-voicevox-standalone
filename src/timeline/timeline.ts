@@ -279,7 +279,41 @@ function createRow(lc: CommentLifecycle): HTMLElement {
   track.className = 'row-track';
   row.appendChild(track);
 
+  // 行のどこにカーソルがあってもツールチップを出す。
+  // lifecycle は更新のたびに別オブジェクトに差し替わるので、
+  // 生成時の lc を捕捉せずイベント発生時に引き直すこと
+  row.addEventListener('mousemove', (e) => {
+    const current = lifecycles.get(row.dataset.id ?? '');
+    if (current) showTooltip(e, current);
+  });
+  row.addEventListener('mouseleave', hideTooltip);
+  row.addEventListener('click', () => centerRow(row));
+
   return row;
+}
+
+// ===== クリックした行のバーを画面中央へ =====
+function centerRow(row: HTMLElement): void {
+  const lc = lifecycles.get(row.dataset.id ?? '');
+  const scroll = document.getElementById('gantt-scroll');
+  if (!lc || !scroll) return;
+
+  document.querySelector('.timeline-row.selected')?.classList.remove('selected');
+  row.classList.add('selected');
+
+  // 未完了の行はバーが現在時刻まで伸びている（renderSegments と同じ終端の求め方）
+  const lastTime = lc.playEndTime ?? lc.stoppedTime ?? lc.droppedTime ?? Date.now();
+  const startPx = (lc.fetchTime - originTime) * SCALE;
+  const endPx = (lastTime - originTime) * SCALE;
+
+  // 固定列は左端に貼り付いてスクロール領域を覆うため、それを除いた可視幅の
+  // 中央にバーの中点が来るよう scrollLeft を決める
+  // （バーのコンテンツ座標 = 固定列幅 + startPx なので、固定列幅は打ち消し合う）
+  const visibleWidth = Math.max(scroll.clientWidth - getFixedColsWidth(), 1);
+  const target = (startPx + endPx) / 2 - visibleWidth / 2;
+  const maxScroll = Math.max(scroll.scrollWidth - scroll.clientWidth, 0);
+
+  scroll.scrollTo({ left: Math.max(0, Math.min(target, maxScroll)), behavior: 'smooth' });
 }
 
 // ===== セグメント描画 =====
@@ -336,9 +370,6 @@ function renderSegments(row: HTMLElement, lc: CommentLifecycle, now: number): vo
     seg.className = `segment ${stage.cls}`;
     seg.style.left = `${startPx}px`;
     seg.style.width = `${widthPx}px`;
-
-    seg.addEventListener('mousemove', (e) => showTooltip(e, lc));
-    seg.addEventListener('mouseleave', hideTooltip);
 
     track.appendChild(seg);
   }
