@@ -311,6 +311,43 @@
       .segment.play-wait   { background: #f59e0b; }
       .segment.play-active { background: #10b981; }
 
+      /* 列幅リサイザ（固定列の境界に重ねるフルハイトのつまみ）。
+         .gantt-column 基準の絶対配置なので、横スクロールしてもズレない */
+      .col-resizer {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 9px;
+        margin-left: -4px;
+        cursor: col-resize;
+        z-index: 10;
+        display: flex;
+        justify-content: center;
+      }
+
+      .col-resizer::after {
+        content: '';
+        width: 1px;
+        height: 100%;
+        background: transparent;
+        transition: background 0.1s;
+      }
+
+      .col-resizer:hover::after,
+      .col-resizer.dragging::after {
+        background: #3b82f6;
+        width: 2px;
+      }
+
+      #resizer-speaker { left: var(--speaker-width); }
+      #resizer-label { left: calc(var(--speaker-width) + var(--label-width)); }
+
+      /* ドラッグ中はテキスト選択とホバー演出を止める */
+      body.resizing {
+        user-select: none;
+        cursor: col-resize;
+      }
+
       /* ツールチップ */
       #tooltip {
         position: fixed;
@@ -383,6 +420,8 @@
             <div class="empty-msg" id="empty-msg">読み上げを開始するとコメントが表示されます</div>
           </div>
         </div>
+        <div class="col-resizer" id="resizer-speaker" title="話者カラムの幅を変更"></div>
+        <div class="col-resizer" id="resizer-label" title="コメントカラムの幅を変更"></div>
       </div>
     </div>
 

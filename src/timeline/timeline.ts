@@ -6,6 +6,12 @@ const SCALE = 0.01;
 // 固定列（話者・コメント）の既定幅。CSS の --speaker-width / --label-width と一致させる
 const DEFAULT_SPEAKER_WIDTH = 120;
 const DEFAULT_LABEL_WIDTH = 240;
+// 固定列の幅の許容範囲（px）
+const SPEAKER_WIDTH_RANGE = { min: 60, max: 400 };
+const LABEL_WIDTH_RANGE = { min: 80, max: 800 };
+// 列幅の保存キー
+const SPEAKER_WIDTH_KEY = 'timelineSpeakerWidth';
+const LABEL_WIDTH_KEY = 'timelineLabelWidth';
 // 目盛り間隔: 5秒
 const RULER_INTERVAL_MS = 5000;
 // 目盛りの横幅（px）= 5s * 10px/s = 50px
@@ -26,11 +32,16 @@ function getFixedColsWidth(): number {
   return speakerWidth + labelWidth;
 }
 
-/** CSS 変数（固定列の幅の正）を JS 側のミラーに取り込む */
-function syncColumnWidths(): void {
-  const style = getComputedStyle(document.body);
-  speakerWidth = parseFloat(style.getPropertyValue('--speaker-width')) || DEFAULT_SPEAKER_WIDTH;
-  labelWidth = parseFloat(style.getPropertyValue('--label-width')) || DEFAULT_LABEL_WIDTH;
+/** JS 側の幅を CSS 変数に書き戻す。セグメントは .row-track 越しに自動追従する */
+function applyColumnWidths(): void {
+  document.body.style.setProperty('--speaker-width', `${speakerWidth}px`);
+  document.body.style.setProperty('--label-width', `${labelWidth}px`);
+  applyGanttWidth();
+  updateRuler();
+}
+
+function clamp(value: number, range: { min: number; max: number }): number {
+  return Math.max(range.min, Math.min(range.max, value));
 }
 
 /** ガント本体の横幅を #gantt-inner に反映する（固定列の幅は CSS 変数に委ねる） */
@@ -61,6 +72,62 @@ chrome.storage.sync.get(['darkMode'], (data) => {
   if (isDark) document.body.classList.add('dark-mode');
 });
 
+// ===== 保存済みの列幅を復元 =====
+chrome.storage.sync.get([SPEAKER_WIDTH_KEY, LABEL_WIDTH_KEY], (data) => {
+  if (typeof data[SPEAKER_WIDTH_KEY] === 'number') {
+    speakerWidth = clamp(data[SPEAKER_WIDTH_KEY], SPEAKER_WIDTH_RANGE);
+  }
+  if (typeof data[LABEL_WIDTH_KEY] === 'number') {
+    labelWidth = clamp(data[LABEL_WIDTH_KEY], LABEL_WIDTH_RANGE);
+  }
+  applyColumnWidths();
+});
+
+// ===== 列幅のドラッグ変更 =====
+setupColumnResizer('resizer-speaker', SPEAKER_WIDTH_RANGE, () => speakerWidth, (w) => {
+  speakerWidth = w;
+});
+setupColumnResizer('resizer-label', LABEL_WIDTH_RANGE, () => labelWidth, (w) => {
+  labelWidth = w;
+});
+
+function setupColumnResizer(
+  resizerId: string,
+  range: { min: number; max: number },
+  getWidth: () => number,
+  setWidth: (width: number) => void
+): void {
+  const resizer = document.getElementById(resizerId);
+  if (!resizer) return;
+
+  resizer.addEventListener('mousedown', (e: MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = getWidth();
+    resizer.classList.add('dragging');
+    document.body.classList.add('resizing');
+
+    const onMove = (moveEvent: MouseEvent): void => {
+      setWidth(clamp(startWidth + moveEvent.clientX - startX, range));
+      applyColumnWidths();
+    };
+
+    const onUp = (): void => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      resizer.classList.remove('dragging');
+      document.body.classList.remove('resizing');
+      chrome.storage.sync.set({
+        [SPEAKER_WIDTH_KEY]: speakerWidth,
+        [LABEL_WIDTH_KEY]: labelWidth,
+      });
+    };
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+}
+
 // ===== 初期状態取得 =====
 chrome.runtime.sendMessage({ action: 'getTimelineState' }, (response: {
   lifecycles: CommentLifecycle[];
@@ -76,7 +143,6 @@ chrome.runtime.sendMessage({ action: 'getTimelineState' }, (response: {
     addOrUpdateRow(lc);
   }
   updateCounters(response.status);
-  syncColumnWidths();
   updateRuler();
   startRafLoop();
 });
