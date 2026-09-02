@@ -22,6 +22,8 @@ export interface TimelineStatus {
 }
 
 const MAX_COMPLETED = 200;
+/** タイムラインに保持するコメント本文の最大長。列幅を広げた分だけ長く表示できるようにする */
+const MAX_TEXT_LENGTH = 100;
 
 const lifecycles = new Map<string, CommentLifecycle>();
 const audioIdToLifecycleId = new Map<string, string>();
@@ -34,7 +36,7 @@ export function setActiveSynthGetter(fn: () => number): void {
 }
 
 export function trackFetch(id: string, text: string, fetchTime: number): void {
-  lifecycles.set(id, { id, text: text.slice(0, 30), fetchTime });
+  lifecycles.set(id, { id, text: text.slice(0, MAX_TEXT_LENGTH), fetchTime });
   broadcastUpdate(id);
   broadcastStatus();
 }
