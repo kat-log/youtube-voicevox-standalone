@@ -11,6 +11,9 @@
       }
 
       body {
+        /* 固定列（話者・コメント）の幅。timeline.ts から書き換えられる */
+        --speaker-width: 120px;
+        --label-width: 240px;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         font-size: 13px;
         background: var(--bg-main, #f8f9fa);
@@ -31,6 +34,7 @@
         --border-color: #404040;
         --ruler-bg: #2e2e2e;
         --row-hover: #333;
+        --row-selected: #3a4a63;
         --label-bg: #242424;
       }
 
@@ -43,6 +47,7 @@
         --border-color: #e5e7eb;
         --ruler-bg: #f0f0f0;
         --row-hover: #f5f5f5;
+        --row-selected: #dbeafe;
         --label-bg: #fff;
       }
 
@@ -152,37 +157,7 @@
         overflow: hidden;
       }
 
-      /* 左: コメントラベル列 */
-      .label-column {
-        width: 160px;
-        min-width: 160px;
-        flex-shrink: 0;
-        display: flex;
-        flex-direction: column;
-        border-right: 1px solid var(--border-color);
-        background: var(--label-bg);
-        overflow: hidden;
-      }
-
-      .label-header {
-        height: 28px;
-        padding: 0 8px;
-        display: flex;
-        align-items: center;
-        font-size: 11px;
-        font-weight: 600;
-        color: var(--text-secondary);
-        border-bottom: 1px solid var(--border-color);
-        background: var(--ruler-bg);
-        flex-shrink: 0;
-      }
-
-      .label-body {
-        flex: 1;
-        overflow: hidden;
-      }
-
-      /* 右: ガントエリア */
+      /* ガントエリア */
       .gantt-column {
         flex: 1;
         display: flex;
@@ -201,12 +176,21 @@
         overflow: hidden;
       }
 
-      .ruler-label-stub {
-        width: 160px;
-        min-width: 160px;
+      /* 固定列（話者・コメント）に対応するヘッダー */
+      .ruler-stub {
         flex-shrink: 0;
+        padding: 0 8px;
+        line-height: 27px;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-secondary);
         border-right: 1px solid var(--border-color);
+        overflow: hidden;
+        white-space: nowrap;
       }
+
+      .ruler-stub-speaker { width: var(--speaker-width); }
+      .ruler-stub-label { width: var(--label-width); }
 
       .ruler-axis-scroll {
         flex: 1;
@@ -262,29 +246,62 @@
         display: flex;
         position: relative;
         border-bottom: 1px solid var(--border-color);
+        cursor: pointer;
       }
 
       .timeline-row:hover {
         background: var(--row-hover);
       }
 
-      /* ラベル行（左列と同期スクロールのため同一要素でレイアウト） */
+      /* クリックで中央スクロールした行 */
+      .timeline-row.selected {
+        background: var(--row-selected);
+      }
+
+      .timeline-row.selected .row-speaker,
+      .timeline-row.selected .row-label {
+        background: var(--row-selected);
+      }
+
+      /* 固定列（横スクロールしても左端に貼り付く）。
+         text-overflow を効かせるため display:flex ではなく block + line-height で縦中央寄せする */
+      .row-speaker,
       .row-label {
-        width: 160px;
-        min-width: 160px;
+        flex-shrink: 0;
         padding: 0 8px;
-        display: flex;
-        align-items: center;
-        font-size: 12px;
+        line-height: 27px;
         overflow: hidden;
         white-space: nowrap;
         text-overflow: ellipsis;
         border-right: 1px solid var(--border-color);
-        color: var(--text-primary);
         background: var(--label-bg);
         position: sticky;
+      }
+
+      .row-speaker {
+        width: var(--speaker-width);
+        font-size: 11px;
+        color: var(--text-secondary);
         left: 0;
-        z-index: 1;
+        z-index: 3;
+      }
+
+      .row-label {
+        width: var(--label-width);
+        font-size: 12px;
+        color: var(--text-primary);
+        left: var(--speaker-width);
+        z-index: 2;
+      }
+
+      /* ガントバーの基準点。固定列の合計幅だけ右にずらすことで、
+         セグメント自身は列幅に依存しない座標（0 = originTime）で配置できる */
+      .row-track {
+        position: absolute;
+        top: 0;
+        height: 100%;
+        left: calc(var(--speaker-width) + var(--label-width));
+        width: 0;
       }
 
       /* ガントセグメント */
@@ -307,6 +324,43 @@
       .segment.play-wait   { background: #f59e0b; }
       .segment.play-active { background: #10b981; }
 
+      /* 列幅リサイザ（固定列の境界に重ねるフルハイトのつまみ）。
+         .gantt-column 基準の絶対配置なので、横スクロールしてもズレない */
+      .col-resizer {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 9px;
+        margin-left: -4px;
+        cursor: col-resize;
+        z-index: 10;
+        display: flex;
+        justify-content: center;
+      }
+
+      .col-resizer::after {
+        content: '';
+        width: 1px;
+        height: 100%;
+        background: transparent;
+        transition: background 0.1s;
+      }
+
+      .col-resizer:hover::after,
+      .col-resizer.dragging::after {
+        background: #3b82f6;
+        width: 2px;
+      }
+
+      #resizer-speaker { left: var(--speaker-width); }
+      #resizer-label { left: calc(var(--speaker-width) + var(--label-width)); }
+
+      /* ドラッグ中はテキスト選択とホバー演出を止める */
+      body.resizing {
+        user-select: none;
+        cursor: col-resize;
+      }
+
       /* ツールチップ */
       #tooltip {
         position: fixed;
@@ -319,7 +373,8 @@
         z-index: 9999;
         display: none;
         line-height: 1.6;
-        white-space: nowrap;
+        max-width: 420px;
+        overflow-wrap: anywhere;
         box-shadow: 0 2px 8px rgba(0,0,0,0.3);
       }
 
@@ -367,7 +422,8 @@
       <!-- ガントエリア（ラベル列を内包してスクロール同期） -->
       <div class="gantt-column">
         <div class="ruler-row">
-          <div class="ruler-label-stub"></div>
+          <div class="ruler-stub ruler-stub-speaker">話者</div>
+          <div class="ruler-stub ruler-stub-label">コメント</div>
           <div class="ruler-axis-scroll" id="ruler-axis-scroll">
             <div id="ruler"></div>
           </div>
@@ -377,6 +433,8 @@
             <div class="empty-msg" id="empty-msg">読み上げを開始するとコメントが表示されます</div>
           </div>
         </div>
+        <div class="col-resizer" id="resizer-speaker" title="話者カラムの幅を変更"></div>
+        <div class="col-resizer" id="resizer-label" title="コメントカラムの幅を変更"></div>
       </div>
     </div>
 
