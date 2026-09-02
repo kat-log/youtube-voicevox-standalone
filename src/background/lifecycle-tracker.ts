@@ -3,6 +3,8 @@ import { getState } from './state';
 export interface CommentLifecycle {
   id: string;
   text: string;
+  /** 音声合成を開始した時点で確定する話者ラベル（例: `ずんだもん (ノーマル)`） */
+  speaker?: string;
   fetchTime: number;
   synthStartTime?: number;
   synthEndTime?: number;
@@ -37,11 +39,12 @@ export function trackFetch(id: string, text: string, fetchTime: number): void {
   broadcastStatus();
 }
 
-export function trackSynthStart(id: string | undefined): void {
+export function trackSynthStart(id: string | undefined, speaker?: string): void {
   if (!id) return;
   const lc = lifecycles.get(id);
   if (!lc) return;
   lc.synthStartTime = Date.now();
+  if (speaker) lc.speaker = speaker;
   broadcastUpdate(id);
   broadcastStatus();
 }

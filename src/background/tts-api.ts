@@ -138,7 +138,7 @@ export function processCommentQueue(): void {
       : browserVoiceName;
     const voiceLabel = effectiveVoice || 'default';
     logDebug(`ブラウザTTS [${voiceLabel}]：${comment.newMessage} | キュー: ${formatQueueState()}`);
-    trackSynthStart(comment.lifecycleId);
+    trackSynthStart(comment.lifecycleId, voiceLabel);
     trackSynthEnd(comment.lifecycleId);
     pushAudio({
       type: 'speech',
@@ -156,9 +156,9 @@ export function processCommentQueue(): void {
   if (currentEngine === 'local-voicevox') {
     // ローカルVOICEVOX: ローカルエンジンで音声合成
     ttsProcessingCount++;
-    trackSynthStart(comment.lifecycleId);
-    const seq = nextSynthesisSeq++;
     const localSpeakerLabel = getSpeakerName(comment.speakerId);
+    trackSynthStart(comment.lifecycleId, localSpeakerLabel);
+    const seq = nextSynthesisSeq++;
     logDebug(`ローカルVOICEVOX REQUEST [${localSpeakerLabel}] (seq=${seq}, 並列=${ttsProcessingCount}/${maxParallelSynthesis})：${comment.newMessage} | キュー: ${formatQueueState()}`);
     synthesizeLocalWithRetry(comment, 0, seq);
     // 並列スロットが空いていれば即座に次のコメントもスケジュール
@@ -168,8 +168,8 @@ export function processCommentQueue(): void {
 
   // VOICEVOX: TTS Quest APIで音声合成（常にシリアル）
   ttsProcessingCount++;
-  trackSynthStart(comment.lifecycleId);
   const speakerLabel = getSpeakerName(comment.speakerId);
+  trackSynthStart(comment.lifecycleId, speakerLabel);
   logDebug(`VOICEVOX REQUEST [${speakerLabel}]：${comment.newMessage} | キュー: ${formatQueueState()}`);
   synthesizeWithRetry(comment, 0);
 }

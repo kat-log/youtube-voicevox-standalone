@@ -3,8 +3,9 @@ import type { CommentLifecycle, TimelineStatus } from '@/background/lifecycle-tr
 
 // スケール: 10px = 1秒 (0.01 px/ms)
 const SCALE = 0.01;
-// ラベル列の幅（CSSと一致させる）
-const LABEL_WIDTH = 160;
+// 固定列（話者・コメント）の既定幅。CSS の --speaker-width / --label-width と一致させる
+const DEFAULT_SPEAKER_WIDTH = 120;
+const DEFAULT_LABEL_WIDTH = 240;
 // 目盛り間隔: 5秒
 const RULER_INTERVAL_MS = 5000;
 // 目盛りの横幅（px）= 5s * 10px/s = 50px
@@ -15,6 +16,30 @@ const MAX_TIMELINE_ROWS = 500;
 let originTime: number = Date.now();
 const lifecycles = new Map<string, CommentLifecycle>();
 let rafId: number | null = null;
+let speakerWidth = DEFAULT_SPEAKER_WIDTH;
+let labelWidth = DEFAULT_LABEL_WIDTH;
+/** 固定列を除いたガント本体の必要幅（px）。originTime を 0 とする座標系 */
+let maxContentPx = 0;
+
+/** 固定列（話者＋コメント）の合計幅。ガント本体はこの分だけ右にずれる */
+function getFixedColsWidth(): number {
+  return speakerWidth + labelWidth;
+}
+
+/** CSS 変数（固定列の幅の正）を JS 側のミラーに取り込む */
+function syncColumnWidths(): void {
+  const style = getComputedStyle(document.body);
+  speakerWidth = parseFloat(style.getPropertyValue('--speaker-width')) || DEFAULT_SPEAKER_WIDTH;
+  labelWidth = parseFloat(style.getPropertyValue('--label-width')) || DEFAULT_LABEL_WIDTH;
+}
+
+/** ガント本体の横幅を #gantt-inner に反映する（固定列の幅は CSS 変数に委ねる） */
+function applyGanttWidth(): void {
+  const ganttInner = document.getElementById('gantt-inner');
+  if (!ganttInner) return;
+  ganttInner.style.minWidth =
+    `calc(var(--speaker-width) + var(--label-width) + ${maxContentPx}px)`;
+}
 
 // ===== ルーラーとガントのスクロール同期 =====
 {
@@ -51,6 +76,7 @@ chrome.runtime.sendMessage({ action: 'getTimelineState' }, (response: {
     addOrUpdateRow(lc);
   }
   updateCounters(response.status);
+  syncColumnWidths();
   updateRuler();
   startRafLoop();
 });
@@ -96,13 +122,14 @@ function updateRuler(): void {
   ruler.innerHTML = '';
 
   const ganttScroll = document.getElementById('gantt-scroll');
-  const ganttInner = document.getElementById('gantt-inner');
+  const fixed = getFixedColsWidth();
 
-  const visibleAxisWidth = ganttScroll ? ganttScroll.clientWidth : window.innerWidth - LABEL_WIDTH;
-  const contentAxisWidth = ganttInner
-    ? Math.max(parseInt(ganttInner.style.minWidth || '0', 10) - LABEL_WIDTH, 0)
-    : 0;
-  const axisWidth = Math.max(visibleAxisWidth, contentAxisWidth, getGanttWidth() - LABEL_WIDTH);
+  const visibleAxisWidth = Math.max(
+    (ganttScroll ? ganttScroll.clientWidth : window.innerWidth) - fixed,
+    0
+  );
+  const elapsedWidth = (Date.now() - originTime) * SCALE + 100;
+  const axisWidth = Math.max(visibleAxisWidth, maxContentPx, elapsedWidth);
 
   ruler.style.width = `${axisWidth}px`;
 
@@ -115,11 +142,6 @@ function updateRuler(): void {
     tick.innerHTML = `<div class="ruler-tick-line"></div><div class="ruler-tick-label">${i * 5}s</div>`;
     ruler.appendChild(tick);
   }
-}
-
-function getGanttWidth(): number {
-  const now = Date.now();
-  return LABEL_WIDTH + (now - originTime) * SCALE + 100;
 }
 
 // ===== 古い行の削除 =====
@@ -161,6 +183,14 @@ function addOrUpdateRow(lc: CommentLifecycle): void {
       }
     }
   }
+
+  // 話者は音声合成の開始時に確定するため、行の生成後に届く。毎回反映する
+  const speakerCell = row.querySelector<HTMLElement>('.row-speaker');
+  if (speakerCell) {
+    speakerCell.textContent = lc.speaker ?? '';
+    speakerCell.title = lc.speaker ?? '';
+  }
+
   renderSegments(row, lc, Date.now());
 }
 
@@ -169,20 +199,29 @@ function createRow(lc: CommentLifecycle): HTMLElement {
   row.className = 'timeline-row';
   row.dataset.id = lc.id;
 
+  const speaker = document.createElement('div');
+  speaker.className = 'row-speaker';
+  row.appendChild(speaker);
+
   const label = document.createElement('div');
   label.className = 'row-label';
-  const displayText = lc.text.length > 20 ? lc.text.slice(0, 20) + '…' : lc.text;
-  label.textContent = displayText;
+  label.textContent = lc.text;
   label.title = lc.text;
   row.appendChild(label);
+
+  const track = document.createElement('div');
+  track.className = 'row-track';
+  row.appendChild(track);
 
   return row;
 }
 
 // ===== セグメント描画 =====
 function renderSegments(row: HTMLElement, lc: CommentLifecycle, now: number): void {
+  const track = row.querySelector<HTMLElement>('.row-track');
+  if (!track) return;
   // 既存セグメントを削除
-  row.querySelectorAll('.segment').forEach((s) => s.remove());
+  track.textContent = '';
 
   const stages: Array<{ cls: string; start: number; end: number | null }> = [];
 
@@ -223,7 +262,7 @@ function renderSegments(row: HTMLElement, lc: CommentLifecycle, now: number): vo
   }
 
   for (const stage of stages) {
-    const startPx = LABEL_WIDTH + (stage.start - originTime) * SCALE;
+    const startPx = (stage.start - originTime) * SCALE;
     const endMs = stage.end ?? now;
     const widthPx = Math.max(2, (endMs - stage.start) * SCALE);
 
@@ -235,18 +274,15 @@ function renderSegments(row: HTMLElement, lc: CommentLifecycle, now: number): vo
     seg.addEventListener('mousemove', (e) => showTooltip(e, lc));
     seg.addEventListener('mouseleave', hideTooltip);
 
-    row.appendChild(seg);
+    track.appendChild(seg);
   }
 
-  // 行の最小幅を更新（横スクロール用）
-  const ganttInner = document.getElementById('gantt-inner');
-  if (ganttInner) {
-    const currentWidth = stages.length > 0
-      ? LABEL_WIDTH + ((stages[stages.length - 1].end ?? now) - originTime) * SCALE + 20
-      : LABEL_WIDTH + 20;
-    const existingWidth = parseInt(ganttInner.style.minWidth || '0', 10);
-    if (currentWidth > existingWidth) {
-      ganttInner.style.minWidth = `${currentWidth}px`;
+  // ガント本体の必要幅を更新（横スクロール用）
+  if (stages.length > 0) {
+    const endPx = ((stages[stages.length - 1].end ?? now) - originTime) * SCALE + 20;
+    if (endPx > maxContentPx) {
+      maxContentPx = endPx;
+      applyGanttWidth();
     }
   }
 }
@@ -295,7 +331,8 @@ const tooltip = document.getElementById('tooltip')!;
 
 function showTooltip(e: MouseEvent, lc: CommentLifecycle): void {
   const now = Date.now();
-  const lines: string[] = [`💬 ${lc.text.slice(0, 30)}`];
+  const lines: string[] = [`💬 ${lc.text}`];
+  if (lc.speaker) lines.push(`🎤 ${lc.speaker}`);
 
   const synthWait = lc.synthStartTime
     ? lc.synthStartTime - lc.fetchTime
@@ -330,7 +367,11 @@ function showTooltip(e: MouseEvent, lc: CommentLifecycle): void {
     lines.push(`⏹ 停止により中断`);
   }
 
-  tooltip.innerHTML = lines.join('<br>');
+  tooltip.textContent = '';
+  for (const line of lines) {
+    if (tooltip.childNodes.length > 0) tooltip.appendChild(document.createElement('br'));
+    tooltip.appendChild(document.createTextNode(line));
+  }
   tooltip.style.display = 'block';
   positionTooltip(e);
 }
@@ -362,6 +403,7 @@ document.getElementById('clear-btn')?.addEventListener('click', () => {
     ganttInner.innerHTML = '<div class="empty-msg" id="empty-msg">読み上げを開始するとコメントが表示されます</div>';
     ganttInner.style.minWidth = '';
   }
+  maxContentPx = 0;
   originTime = Date.now();
   updateRuler();
 });
