@@ -67,8 +67,8 @@
         font-weight: 600;
       }
 
+      /* 右寄せは先に並ぶ .follow-btn の margin-left: auto が担う */
       .clear-btn {
-        margin-left: auto;
         padding: 4px 10px;
         font-size: 12px;
         border: 1px solid var(--border-color);
@@ -79,6 +79,34 @@
       }
 
       .clear-btn:hover {
+        background: var(--border-color);
+      }
+
+      /* 最新への追従トグル。追従中は色付き、解除中はグレーで状態が分かるようにする */
+      .follow-btn {
+        margin-left: auto;
+        padding: 4px 10px;
+        font-size: 12px;
+        border: 1px solid var(--accent-color);
+        border-radius: 4px;
+        background: var(--accent-color);
+        color: #fff;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      .follow-btn:hover {
+        background: var(--accent-hover);
+        border-color: var(--accent-hover);
+      }
+
+      .follow-btn.off {
+        background: var(--bg-card);
+        border-color: var(--border-color);
+        color: var(--text-secondary);
+      }
+
+      .follow-btn.off:hover {
         background: var(--border-color);
       }
 
@@ -389,6 +417,7 @@
   <body>
     <div class="page-header">
       <h1>コメント処理タイムライン</h1>
+      <button class="follow-btn" id="follow-btn" aria-pressed="true">⏩ 最新に追従中</button>
       <button class="clear-btn" id="clear-btn">クリア</button>
     </div>
 
