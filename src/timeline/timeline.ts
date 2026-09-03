@@ -22,6 +22,15 @@ const MAX_TIMELINE_ROWS = 500;
 let originTime: number = Date.now();
 const lifecycles = new Map<string, CommentLifecycle>();
 let rafId: number | null = null;
+/**
+ * 最新への自動追従（横=右端 / 縦=最下部）。
+ * 過去行のクリックより追従が優先されると行に飛べないため、クリック時に解除する。
+ * ユーザーが自分で端付近まで戻したら再開する
+ */
+let followLatestX = true;
+let followLatestY = true;
+/** 端付近とみなす距離（px）。追従の再開判定に使う */
+const FOLLOW_THRESHOLD_PX = 40;
 let speakerWidth = DEFAULT_SPEAKER_WIDTH;
 let labelWidth = DEFAULT_LABEL_WIDTH;
 /** 固定列を除いたガント本体の必要幅（px）。originTime を 0 とする座標系 */
@@ -68,6 +77,31 @@ function applyGanttWidth(): void {
   if (ganttScrollEl && rulerAxisScroll) {
     ganttScrollEl.addEventListener('scroll', () => {
       rulerAxisScroll.scrollLeft = ganttScrollEl.scrollLeft;
+    });
+  }
+}
+
+// ===== 自動追従状態の更新 =====
+// 端付近まで戻した軸だけ追従を再開する。追従中の自動スクロールもここを通るが、
+// その場合は端にいるため true のまま維持される。
+// 変化した軸だけを見るのは、クリックによる横スクロールで縦の追従解除が
+// 巻き戻らないようにするため
+{
+  const scroll = document.getElementById('gantt-scroll');
+  if (scroll) {
+    let lastLeft = scroll.scrollLeft;
+    let lastTop = scroll.scrollTop;
+    scroll.addEventListener('scroll', () => {
+      if (scroll.scrollLeft !== lastLeft) {
+        lastLeft = scroll.scrollLeft;
+        followLatestX =
+          scroll.scrollWidth - scroll.scrollLeft - scroll.clientWidth < FOLLOW_THRESHOLD_PX;
+      }
+      if (scroll.scrollTop !== lastTop) {
+        lastTop = scroll.scrollTop;
+        followLatestY =
+          scroll.scrollHeight - scroll.scrollTop - scroll.clientHeight < FOLLOW_THRESHOLD_PX;
+      }
     });
   }
 }
@@ -273,13 +307,10 @@ function addOrUpdateRow(lc: CommentLifecycle): void {
     ganttInner.append(row);
     pruneOldestRows();
 
-    // 新規コメントが追加されたとき、スクロールが最下部付近なら追従
+    // 新規コメントが追加されたとき、縦の追従が有効なら最下部へ
     const scroll = document.getElementById('gantt-scroll');
-    if (scroll) {
-      const distFromBottom = scroll.scrollHeight - scroll.scrollTop - scroll.clientHeight;
-      if (distFromBottom < 40) {
-        scroll.scrollTop = scroll.scrollHeight;
-      }
+    if (scroll && followLatestY) {
+      scroll.scrollTop = scroll.scrollHeight;
     }
   }
 
@@ -333,6 +364,11 @@ function centerRow(row: HTMLElement): void {
 
   document.querySelector('.timeline-row.selected')?.classList.remove('selected');
   row.classList.add('selected');
+
+  // 追従が有効なままだと毎フレーム右端へ引き戻され、クリックが効かない。
+  // クリックを優先し、ユーザーが端まで戻したときに追従を再開する
+  followLatestX = false;
+  followLatestY = false;
 
   // 未完了の行はバーが現在時刻まで伸びている（renderSegments と同じ終端の求め方）
   const lastTime = lc.playEndTime ?? lc.stoppedTime ?? lc.droppedTime ?? Date.now();
@@ -442,13 +478,10 @@ function startRafLoop(): void {
     }
     updateRuler();
 
-    // 横スクロール自動追従：右端付近（40px以内）なら現在時刻に追従
+    // 横スクロール自動追従：追従が有効なら現在時刻に追従
     const scroll = document.getElementById('gantt-scroll');
-    if (scroll) {
-      const distFromRight = scroll.scrollWidth - scroll.scrollLeft - scroll.clientWidth;
-      if (distFromRight < 40) {
-        scroll.scrollLeft = scroll.scrollWidth - scroll.clientWidth;
-      }
+    if (scroll && followLatestX) {
+      scroll.scrollLeft = scroll.scrollWidth - scroll.clientWidth;
     }
 
     rafId = requestAnimationFrame(loop);
@@ -535,5 +568,7 @@ document.getElementById('clear-btn')?.addEventListener('click', () => {
   }
   maxContentPx = 0;
   originTime = Date.now();
+  followLatestX = true;
+  followLatestY = true;
   updateRuler();
 });
