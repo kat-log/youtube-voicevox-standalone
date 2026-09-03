@@ -44,6 +44,15 @@ function clamp(value: number, range: { min: number; max: number }): number {
   return Math.max(range.min, Math.min(range.max, value));
 }
 
+/** 保存値を列幅として正規化する。未設定・不正値は既定値に戻す（設定リセット時など） */
+function normalizeWidth(
+  value: unknown,
+  range: { min: number; max: number },
+  fallback: number
+): number {
+  return typeof value === 'number' ? clamp(value, range) : fallback;
+}
+
 /** ガント本体の横幅を #gantt-inner に反映する（固定列の幅は CSS 変数に委ねる） */
 function applyGanttWidth(): void {
   const ganttInner = document.getElementById('gantt-inner');
@@ -64,23 +73,47 @@ function applyGanttWidth(): void {
 }
 
 // ===== ダークモード =====
-chrome.storage.sync.get(['darkMode'], (data) => {
-  const isDark: boolean =
-    data.darkMode !== undefined
-      ? data.darkMode
-      : window.matchMedia('(prefers-color-scheme: dark)').matches;
-  if (isDark) document.body.classList.add('dark-mode');
-});
+function applyDarkMode(value: unknown): void {
+  const isDark =
+    value !== undefined ? Boolean(value) : window.matchMedia('(prefers-color-scheme: dark)').matches;
+  document.body.classList.toggle('dark-mode', isDark);
+}
+
+chrome.storage.sync.get(['darkMode'], (data) => applyDarkMode(data.darkMode));
 
 // ===== 保存済みの列幅を復元 =====
 chrome.storage.sync.get([SPEAKER_WIDTH_KEY, LABEL_WIDTH_KEY], (data) => {
-  if (typeof data[SPEAKER_WIDTH_KEY] === 'number') {
-    speakerWidth = clamp(data[SPEAKER_WIDTH_KEY], SPEAKER_WIDTH_RANGE);
-  }
-  if (typeof data[LABEL_WIDTH_KEY] === 'number') {
-    labelWidth = clamp(data[LABEL_WIDTH_KEY], LABEL_WIDTH_RANGE);
-  }
+  speakerWidth = normalizeWidth(data[SPEAKER_WIDTH_KEY], SPEAKER_WIDTH_RANGE, DEFAULT_SPEAKER_WIDTH);
+  labelWidth = normalizeWidth(data[LABEL_WIDTH_KEY], LABEL_WIDTH_RANGE, DEFAULT_LABEL_WIDTH);
   applyColumnWidths();
+});
+
+// ===== 設定変更への追従 =====
+// 設定のインポートやリセットは storage を直接書き換えるため、
+// このページを開いたままだとリロードするまで反映されなかった。
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== 'sync') return;
+
+  if ('darkMode' in changes) applyDarkMode(changes['darkMode'].newValue);
+
+  // キーの削除（リセット）と未変更を区別するため newValue ではなく `in` で判定する
+  if (SPEAKER_WIDTH_KEY in changes || LABEL_WIDTH_KEY in changes) {
+    if (SPEAKER_WIDTH_KEY in changes) {
+      speakerWidth = normalizeWidth(
+        changes[SPEAKER_WIDTH_KEY].newValue,
+        SPEAKER_WIDTH_RANGE,
+        DEFAULT_SPEAKER_WIDTH
+      );
+    }
+    if (LABEL_WIDTH_KEY in changes) {
+      labelWidth = normalizeWidth(
+        changes[LABEL_WIDTH_KEY].newValue,
+        LABEL_WIDTH_RANGE,
+        DEFAULT_LABEL_WIDTH
+      );
+    }
+    applyColumnWidths();
+  }
 });
 
 // ===== 列幅のドラッグ変更 =====
