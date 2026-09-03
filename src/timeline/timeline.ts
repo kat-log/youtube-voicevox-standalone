@@ -1,5 +1,12 @@
 import '../styles/styles.scss';
 import type { CommentLifecycle, TimelineStatus } from '@/background/lifecycle-tracker';
+import {
+  CENTER_ANIM_MS,
+  easeOutCubic,
+  isOwnScrollPosition,
+  shouldResumeFollow,
+  type ScrollMode,
+} from './follow-state';
 
 // スケール: 10px = 1秒 (0.01 px/ms)
 const SCALE = 0.01;
@@ -24,13 +31,28 @@ const lifecycles = new Map<string, CommentLifecycle>();
 let rafId: number | null = null;
 /**
  * 最新への自動追従（横=右端 / 縦=最下部）。
- * 過去行のクリックより追従が優先されると行に飛べないため、クリック時に解除する。
- * ユーザーが自分で端付近まで戻したら再開する
+ * 位置から推測せず「モード」として持つ。行クリックやユーザーのスクロール操作でのみ
+ * 切り替わり、自分が出した自動スクロールでは変化しない
  */
 let followLatestX = true;
 let followLatestY = true;
-/** 端付近とみなす距離（px）。追従の再開判定に使う */
-const FOLLOW_THRESHOLD_PX = 40;
+/**
+ * 横スクロール位置の書き手はこのモードだけ。
+ * ネイティブの smooth スクロールと RAF 追従が同時に書き込むと必ず追従が勝ってしまうため、
+ * 中央寄せのアニメーションも RAF ループ内で自前に行う
+ */
+let scrollMode: ScrollMode = 'follow';
+/** 'animate' 中の補間パラメータ */
+let animStartLeft = 0;
+let animTargetLeft = 0;
+let animStartAt = 0;
+/**
+ * 自分が最後に書き込んだスクロール位置（丸め後の実値）。
+ * scroll イベントが自分の書き込み由来かユーザー操作かを見分けるために使う。
+ * null は「直近の書き込みは無効」を意味する
+ */
+let lastWrittenLeft: number | null = null;
+let lastWrittenTop: number | null = null;
 let speakerWidth = DEFAULT_SPEAKER_WIDTH;
 let labelWidth = DEFAULT_LABEL_WIDTH;
 /** 固定列を除いたガント本体の必要幅（px）。originTime を 0 とする座標系 */
@@ -81,28 +103,115 @@ function applyGanttWidth(): void {
   }
 }
 
-// ===== 自動追従状態の更新 =====
-// 端付近まで戻した軸だけ追従を再開する。追従中の自動スクロールもここを通るが、
-// その場合は端にいるため true のまま維持される。
-// 変化した軸だけを見るのは、クリックによる横スクロールで縦の追従解除が
-// 巻き戻らないようにするため
+// ===== スクロール位置の書き込み =====
+// 自分の書き込みには「どのフレームで書いたか」の印を付ける。scroll イベントは
+// レンダリング更新時（RAF コールバックより前）に遅れて届くため、位置の一致だけでなく
+// 直近フレームであることも条件にして、自分の自動スクロールをユーザー操作と誤認しない
+const WRITE_TAG_MAX_FRAME_LAG = 1;
+let frameCounter = 0;
+let writtenLeftFrame = -Infinity;
+let writtenTopFrame = -Infinity;
+
+function writeScrollLeft(scroll: HTMLElement, left: number): void {
+  scroll.scrollLeft = left;
+  // 丸め後の実値を保持する（端数・ズームで要求値とずれるため）
+  lastWrittenLeft = scroll.scrollLeft;
+  writtenLeftFrame = frameCounter;
+}
+
+function writeScrollTop(scroll: HTMLElement, top: number): void {
+  scroll.scrollTop = top;
+  lastWrittenTop = scroll.scrollTop;
+  writtenTopFrame = frameCounter;
+}
+
+/** この scroll イベントが自分の書き込み由来か（＝ユーザー操作ではないか） */
+function isOwnScroll(current: number, written: number | null, writtenFrame: number): boolean {
+  if (frameCounter - writtenFrame > WRITE_TAG_MAX_FRAME_LAG) return false;
+  return isOwnScrollPosition(current, written);
+}
+
+// ===== 中央寄せアニメーション =====
+// ネイティブの scrollTo({ behavior: 'smooth' }) は RAF の追従書き込みに中断されるうえ、
+// 動き出しが遅く「右端付近」の判定に引っかかって追従を復活させてしまうため使わない
+function startScrollAnimation(scroll: HTMLElement, targetLeft: number): void {
+  animStartLeft = scroll.scrollLeft;
+  animTargetLeft = targetLeft;
+  animStartAt = performance.now();
+  scrollMode = 'animate';
+}
+
+function cancelScrollAnimation(): void {
+  if (scrollMode === 'animate') scrollMode = 'idle';
+}
+
+// ===== 追従状態の切り替え =====
+function setFollow(x: boolean, y: boolean): void {
+  followLatestX = x;
+  followLatestY = y;
+  if (x) scrollMode = 'follow';
+  else if (scrollMode === 'follow') scrollMode = 'idle';
+  syncFollowButton();
+}
+
+const followBtn = document.getElementById('follow-btn');
+
+/**
+ * 追従の ON/OFF をボタンに反映する。状態変更は必ず setFollow を通すこと。
+ * 表示は横（＝最新時刻への追従）を基準にする。ユーザーの操作で縦だけ最下部に
+ * 戻ることがあり、それを「追従中」と見せると実際の見た目と食い違うため
+ */
+function syncFollowButton(): void {
+  if (!followBtn) return;
+  followBtn.classList.toggle('off', !followLatestX);
+  followBtn.setAttribute('aria-pressed', String(followLatestX));
+  followBtn.textContent = followLatestX ? '⏩ 最新に追従中' : '⏸ 追従オフ';
+  followBtn.title = followLatestX
+    ? 'クリックで追従を止める（過去のコメント行をクリックしても止まります）'
+    : 'クリックで最新への追従を再開する';
+}
+
+followBtn?.addEventListener('click', () => setFollow(!followLatestX, !followLatestX));
+syncFollowButton();
+
+// ===== ユーザー操作による追従の解除・再開 =====
+// 端付近まで自分で戻した軸だけ追従を再開する。判定するのは
+// 「実際に動いた」かつ「自分の書き込みではない」軸だけ。
+// - 自分の書き込みを除くことで、自動スクロールが自分で追従を復活させない
+// - 動いた軸だけを見ることで、中央寄せの横スクロールが縦の追従解除を巻き戻さない
 {
   const scroll = document.getElementById('gantt-scroll');
   if (scroll) {
-    let lastLeft = scroll.scrollLeft;
-    let lastTop = scroll.scrollTop;
+    let lastSeenLeft = scroll.scrollLeft;
+    let lastSeenTop = scroll.scrollTop;
     scroll.addEventListener('scroll', () => {
-      if (scroll.scrollLeft !== lastLeft) {
-        lastLeft = scroll.scrollLeft;
-        followLatestX =
-          scroll.scrollWidth - scroll.scrollLeft - scroll.clientWidth < FOLLOW_THRESHOLD_PX;
-      }
-      if (scroll.scrollTop !== lastTop) {
-        lastTop = scroll.scrollTop;
-        followLatestY =
-          scroll.scrollHeight - scroll.scrollTop - scroll.clientHeight < FOLLOW_THRESHOLD_PX;
-      }
+      const left = scroll.scrollLeft;
+      const top = scroll.scrollTop;
+      const movedX = left !== lastSeenLeft;
+      const movedY = top !== lastSeenTop;
+      lastSeenLeft = left;
+      lastSeenTop = top;
+
+      const userMovedX = movedX && !isOwnScroll(left, lastWrittenLeft, writtenLeftFrame);
+      const userMovedY = movedY && !isOwnScroll(top, lastWrittenTop, writtenTopFrame);
+      if (!userMovedX && !userMovedY) return;
+
+      // ユーザーが触った時点でアニメーションより操作を優先する
+      if (userMovedX) cancelScrollAnimation();
+
+      const nextX = userMovedX
+        ? shouldResumeFollow(scroll.scrollWidth - left - scroll.clientWidth)
+        : followLatestX;
+      const nextY = userMovedY
+        ? shouldResumeFollow(scroll.scrollHeight - top - scroll.clientHeight)
+        : followLatestY;
+      if (nextX !== followLatestX || nextY !== followLatestY) setFollow(nextX, nextY);
     });
+
+    // scroll イベントを待たずに、触られた時点でアニメーションを止める
+    for (const type of ['wheel', 'pointerdown', 'touchstart', 'keydown'] as const) {
+      scroll.addEventListener(type, cancelScrollAnimation, { passive: true });
+    }
   }
 }
 
@@ -310,7 +419,7 @@ function addOrUpdateRow(lc: CommentLifecycle): void {
     // 新規コメントが追加されたとき、縦の追従が有効なら最下部へ
     const scroll = document.getElementById('gantt-scroll');
     if (scroll && followLatestY) {
-      scroll.scrollTop = scroll.scrollHeight;
+      writeScrollTop(scroll, scroll.scrollHeight);
     }
   }
 
@@ -366,9 +475,9 @@ function centerRow(row: HTMLElement): void {
   row.classList.add('selected');
 
   // 追従が有効なままだと毎フレーム右端へ引き戻され、クリックが効かない。
-  // クリックを優先し、ユーザーが端まで戻したときに追従を再開する
-  followLatestX = false;
-  followLatestY = false;
+  // 縦も止める（新着で最下部へ飛ぶと選択行が視界から外れるため）。
+  // 再開はトグルボタン、またはユーザー自身が端まで戻したとき
+  setFollow(false, false);
 
   // 未完了の行はバーが現在時刻まで伸びている（renderSegments と同じ終端の求め方）
   const lastTime = lc.playEndTime ?? lc.stoppedTime ?? lc.droppedTime ?? Date.now();
@@ -382,7 +491,7 @@ function centerRow(row: HTMLElement): void {
   const target = (startPx + endPx) / 2 - visibleWidth / 2;
   const maxScroll = Math.max(scroll.scrollWidth - scroll.clientWidth, 0);
 
-  scroll.scrollTo({ left: Math.max(0, Math.min(target, maxScroll)), behavior: 'smooth' });
+  startScrollAnimation(scroll, Math.max(0, Math.min(target, maxScroll)));
 }
 
 // ===== セグメント描画 =====
@@ -466,6 +575,7 @@ function reRenderAllRows(): void {
 function startRafLoop(): void {
   if (rafId !== null) return;
   function loop() {
+    frameCounter++;
     const now = Date.now();
     for (const [, lc] of lifecycles) {
       // 完了済み・足切り済み・停止済みは再描画不要
@@ -478,10 +588,18 @@ function startRafLoop(): void {
     }
     updateRuler();
 
-    // 横スクロール自動追従：追従が有効なら現在時刻に追従
+    // 横スクロール位置の書き手はここだけ。追従と中央寄せアニメーションが
+    // 同じフレームで競合しないよう、モードで排他にする
     const scroll = document.getElementById('gantt-scroll');
-    if (scroll && followLatestX) {
-      scroll.scrollLeft = scroll.scrollWidth - scroll.clientWidth;
+    if (scroll) {
+      if (scrollMode === 'follow') {
+        writeScrollLeft(scroll, scroll.scrollWidth - scroll.clientWidth);
+      } else if (scrollMode === 'animate') {
+        const progress = (performance.now() - animStartAt) / CENTER_ANIM_MS;
+        const eased = easeOutCubic(progress);
+        writeScrollLeft(scroll, animStartLeft + (animTargetLeft - animStartLeft) * eased);
+        if (progress >= 1) scrollMode = 'idle';
+      }
     }
 
     rafId = requestAnimationFrame(loop);
@@ -568,7 +686,8 @@ document.getElementById('clear-btn')?.addEventListener('click', () => {
   }
   maxContentPx = 0;
   originTime = Date.now();
-  followLatestX = true;
-  followLatestY = true;
+  lastWrittenLeft = null;
+  lastWrittenTop = null;
+  setFollow(true, true);
   updateRuler();
 });
