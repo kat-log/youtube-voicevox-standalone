@@ -30,6 +30,8 @@ const SYNC_KEYS_WITHOUT_API = [
   'roundRobinPanelWidth',
   'popupSectionCollapsed',
   'popupSectionOrder',
+  'timelineSpeakerWidth',
+  'timelineLabelWidth',
 ] as const;
 
 const API_KEYS = ['apiKeyVOICEVOX', 'apiKeyYoutube'] as const;
