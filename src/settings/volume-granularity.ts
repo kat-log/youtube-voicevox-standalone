@@ -27,7 +27,11 @@ function updateDisplay(slider: HTMLInputElement, stepCount: VolumeStepCount): vo
   }
 }
 
-export function initVolumeGranularity(): void {
+/**
+ * storage の値をスライダーへ再適用する。
+ * 設定のインポート／リセットのように storage を直接書き換えた後にも呼ぶ。
+ */
+export function refreshVolumeGranularity(): void {
   const slider = document.getElementById('volumeStepCount') as HTMLInputElement | null;
   if (!slider) return;
 
@@ -36,6 +40,13 @@ export function initVolumeGranularity(): void {
     slider.value = String(VOLUME_STEP_COUNTS.indexOf(stepCount));
     updateDisplay(slider, stepCount);
   });
+}
+
+export function initVolumeGranularity(): void {
+  const slider = document.getElementById('volumeStepCount') as HTMLInputElement | null;
+  if (!slider) return;
+
+  refreshVolumeGranularity();
 
   slider.addEventListener('input', () => {
     const stepCount = stepCountFromSlider(slider.value);

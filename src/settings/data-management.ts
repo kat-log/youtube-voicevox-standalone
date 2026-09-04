@@ -1,6 +1,11 @@
-import { loadSettings } from './settings-loader';
-import { applySectionLayout } from './section-layout';
+import { normalizeVolumeStepCount, quantizeVolume } from '../utils/volume';
 
+/**
+ * エクスポート／インポートの対象となる chrome.storage.sync のキー（APIキーを除く）。
+ *
+ * 設定を追加したらここにも必ず追加すること。
+ * ここに無いキーはエクスポートされず、インポート時にも復元されない。
+ */
 const SYNC_KEYS_WITHOUT_API = [
   'speed',
   'volume',
@@ -44,7 +49,11 @@ type ExportData = {
   local: { stats: unknown };
 };
 
-export function initDataManagement(): void {
+/** インポート／リセット後にページ側の表示を storage の値へ揃えるコールバック */
+let refreshPage: () => void = () => {};
+
+export function initDataManagement(onChanged: () => void): void {
+  refreshPage = onChanged;
   document.getElementById('export-settings-btn')!.addEventListener('click', handleExport);
   document.getElementById('import-settings-btn')!.addEventListener('click', () => {
     (document.getElementById('import-settings-file') as HTMLInputElement).click();
@@ -90,6 +99,38 @@ async function handleExport(): Promise<void> {
   URL.revokeObjectURL(url);
 }
 
+/**
+ * インポートファイルの sync 部分から、storage への書き込み内容と削除キーを決める。
+ *
+ * 初期値のままの設定は storage に保存されず、エクスポートファイルにも現れない。
+ * そのため単純にマージすると「ファイルでは初期値なのに現在値が残る」ズレが起きる。
+ * 管理対象キーはファイルの内容で置き換え、ファイルに無いキーは削除して初期値へ戻す。
+ * ただしAPIキーはエクスポート時に意図的に除外できるため、含まれている場合のみ上書きする。
+ */
+export function planSyncImport(fileSync: Record<string, unknown>): {
+  set: Record<string, unknown>;
+  remove: string[];
+} {
+  const set: Record<string, unknown> = {};
+  const remove: string[] = [];
+
+  for (const key of SYNC_KEYS_WITHOUT_API) {
+    if (fileSync[key] === undefined) remove.push(key);
+    else set[key] = fileSync[key];
+  }
+
+  for (const key of API_KEYS) {
+    if (fileSync[key] !== undefined) set[key] = fileSync[key];
+  }
+
+  // 音量の段階数だけが初期値へ戻るとグリッドから外れた音量が残るため、丸め直す
+  if (typeof set.volume === 'number') {
+    set.volume = quantizeVolume(set.volume, normalizeVolumeStepCount(set.volumeStepCount));
+  }
+
+  return { set, remove };
+}
+
 async function handleImport(event: Event): Promise<void> {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
@@ -115,18 +156,20 @@ async function handleImport(event: Event): Promise<void> {
     (typeof sync['apiKeyVOICEVOX'] === 'string' && sync['apiKeyVOICEVOX'] !== '') ||
     (typeof sync['apiKeyYoutube'] === 'string' && sync['apiKeyYoutube'] !== '');
   const confirmMessage = hasApiKeys
-    ? '⚠️ このファイルにはAPIキーが含まれています。\n\n現在の設定が上書きされます。続行しますか？'
-    : '現在の設定が上書きされます。続行しますか？';
+    ? '⚠️ このファイルにはAPIキーが含まれています。\n\n現在の設定が上書きされ、ファイルに含まれない設定は初期値に戻ります。続行しますか？'
+    : '現在の設定が上書きされ、ファイルに含まれない設定は初期値に戻ります。\n（APIキーはこのファイルに含まれていないため、現在の値を保持します）\n\n続行しますか？';
 
   if (!confirm(confirmMessage)) return;
 
-  await chrome.storage.sync.set(parsed.sync);
+  const { set, remove } = planSyncImport(sync);
+  if (remove.length > 0) await chrome.storage.sync.remove(remove);
+  await chrome.storage.sync.set(set);
+
   if (parsed.local.stats != null) {
     await chrome.storage.local.set({ stats: parsed.local.stats });
   }
 
-  loadSettings();
-  applySectionLayout();
+  refreshPage();
 }
 
 async function handleResetToDefaults(): Promise<void> {
@@ -138,7 +181,7 @@ async function handleResetToDefaults(): Promise<void> {
     return;
 
   await Promise.all([chrome.storage.sync.clear(), chrome.storage.local.clear()]);
-  loadSettings();
+  refreshPage();
 }
 
 function isValidExportFile(obj: unknown): obj is ExportData {
