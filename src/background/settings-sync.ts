@@ -11,6 +11,7 @@ import {
 } from './audio-player';
 import { loadFilterConfigFromStorage } from './comment-filter';
 import { loadRushConfigFromStorage, evaluateRushMode } from './rush-mode';
+import { loadRandomSpeedConfigFromStorage } from './random-speed';
 import { loadAutoCatchUpConfigFromStorage } from './auto-catchup';
 import {
   loadParallelPlaybackConfigFromStorage,
@@ -194,6 +195,9 @@ function applyConfigObjectChanges(changes: Changes): void {
   if ('rushModeConfig' in changes) {
     loadRushConfigFromStorage();
     evaluateRushMode();
+  }
+  if ('randomSpeedConfig' in changes) {
+    loadRandomSpeedConfigFromStorage();
   }
   if ('autoCatchUpConfig' in changes) {
     loadAutoCatchUpConfigFromStorage();

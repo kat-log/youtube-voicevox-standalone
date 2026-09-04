@@ -90,8 +90,12 @@ export function playNextAudio(): void {
     trackPlayStart(item.lifecycleId, audioId);
     lastQueueEmptyLogged = false;
 
+    // キャッシュ済みの音量・速度で再生（速度はラッシュ／ランダム再生速度をここで解決する）
+    const volume = cachedVolume;
+    const speed = resolveEffectiveSpeed(cachedSpeed);
+
     sendStatus('listening');
-    logDebug(`▶ 再生開始 [${audioId}] | 同時再生: ${getState().playingCount}/${maxConcurrent} | キュー: ${formatQueueState()}`);
+    logDebug(`▶ 再生開始 [${audioId}] | 速度: ${speed.toFixed(1)}x | 同時再生: ${getState().playingCount}/${maxConcurrent} | キュー: ${formatQueueState()}`);
 
     // フェイルセーフタイマー（30秒で強制リセット）
     const timeout = setTimeout(() => {
@@ -101,10 +105,6 @@ export function playNextAudio(): void {
       }
     }, 30000);
     setPlayingTimeout(audioId, timeout);
-
-    // キャッシュ済みの音量・速度で再生
-    const volume = cachedVolume;
-    const speed = resolveEffectiveSpeed(cachedSpeed);
 
     if (item.type === 'url') {
       playAudioViaOffscreen(audioId, item.url!, volume, speed);

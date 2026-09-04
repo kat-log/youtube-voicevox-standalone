@@ -301,6 +301,10 @@
       <p id="speed-unsupported-info" class="info-text" style="display: none">
         この音声では再生速度の変更はサポートされていません（等速固定）
       </p>
+      <p id="speed-random-info" class="info-text" style="display: none">
+        おもしろ設定の「ランダム再生速度」がONのため、この設定は使用されません
+        <button type="button" id="openFunSettingsFromSpeed" class="small-btn">おもしろ設定を開く</button>
+      </p>
       </div>
     </div>
 
@@ -369,6 +373,56 @@
 
         <button id="reset-rush-mode" class="small-btn" aria-label="自動倍速モードの設定をリセット">デフォルトに戻す</button>
       </div>
+
+      <div class="toggle-container">
+        <label class="toggle-switch" aria-label="ランダム再生速度">
+          <input type="checkbox" id="randomSpeedEnabled" role="switch" aria-checked="false" />
+          <span class="slider round"></span>
+        </label>
+        <span>ランダム再生速度</span>
+      </div>
+
+      <div id="random-speed-options" class="toggle-detail" style="display: none">
+        <label for="randomSpeedMin">下限:</label>
+        <div class="slider-group">
+          <input
+            type="range"
+            id="randomSpeedMin"
+            min="0.1"
+            max="3.0"
+            step="0.1"
+            value="0.8"
+            aria-label="ランダム再生速度の下限"
+            aria-valuetext="0.8倍速"
+          />
+          <span id="current-random-speed-min">0.8x</span>
+        </div>
+
+        <label for="randomSpeedMax">上限:</label>
+        <div class="slider-group">
+          <input
+            type="range"
+            id="randomSpeedMax"
+            min="0.1"
+            max="3.0"
+            step="0.1"
+            value="1.5"
+            aria-label="ランダム再生速度の上限"
+            aria-valuetext="1.5倍速"
+          />
+          <span id="current-random-speed-max">1.5x</span>
+        </div>
+
+        <p class="info-text">
+          発話ごとにこの範囲から速度を抽選します。ラッシュモード発動中はラッシュ時の速度が優先されます。
+        </p>
+
+        <button id="reset-random-speed" class="small-btn" aria-label="ランダム再生速度の設定をリセット">デフォルトに戻す</button>
+      </div>
+
+      <p id="random-speed-unsupported-info" class="info-text" style="display: none">
+        この音声では再生速度の変更がサポートされていないため、ランダム再生速度は使用できません
+      </p>
 
       <div class="toggle-container">
         <label class="toggle-switch" aria-label="並列再生モード">

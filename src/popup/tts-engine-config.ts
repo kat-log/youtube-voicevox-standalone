@@ -22,35 +22,73 @@ function isRateSupportedVoice(voiceName: string): boolean {
   return name === 'kyoko' || name.startsWith('google');
 }
 
-/** エンジン・音声に応じて速度スライダーの有効/無効を切り替える */
+/**
+ * ランダム再生速度トグルの有効/無効を更新し、更新後の ON/OFF を返す。
+ * 速度が効かない音声ではランダム再生速度も意味を持たないため、そもそも操作させない。
+ */
+function updateRandomSpeedToggleState(rateSupported: boolean): boolean {
+  const toggle = document.getElementById('randomSpeedEnabled') as HTMLInputElement;
+  toggle.disabled = !rateSupported;
+  document.getElementById('random-speed-unsupported-info')!.style.display = rateSupported
+    ? 'none'
+    : 'block';
+
+  // 非対応音声へ切り替わった場合はONのまま残さず、background にもOFFを伝える
+  if (!rateSupported && toggle.checked) {
+    toggle.checked = false;
+    toggle.setAttribute('aria-checked', 'false');
+    document.getElementById('random-speed-options')!.style.display = 'none';
+    chrome.runtime.sendMessage({
+      action: 'updateRandomSpeedConfig',
+      randomSpeedConfig: {
+        enabled: false,
+        minSpeed: parseFloat((document.getElementById('randomSpeedMin') as HTMLInputElement).value),
+        maxSpeed: parseFloat((document.getElementById('randomSpeedMax') as HTMLInputElement).value),
+      },
+    });
+  }
+
+  return toggle.checked;
+}
+
+/**
+ * 速度スライダーの有効/無効を切り替える。
+ * 無効化の理由は2つあり、「音声が非対応」を優先する（非対応ならランダム再生速度も強制OFFになるため）。
+ */
 export function updateSpeedSliderState(): void {
   const engine = (document.getElementById('ttsEngine') as HTMLSelectElement).value;
   const speedSlider = document.getElementById('speed') as HTMLInputElement;
   const resetBtn = document.getElementById('reset-speed') as HTMLButtonElement;
   const info = document.getElementById('speed-unsupported-info')!;
+  const randomInfo = document.getElementById('speed-random-info')!;
 
-  if (engine === 'browser') {
-    const voiceName = (document.getElementById('browserVoice') as HTMLSelectElement).value;
-    if (!isRateSupportedVoice(voiceName)) {
-      speedSlider.disabled = true;
-      resetBtn.disabled = true;
-      speedSlider.value = '1.0';
-      document.getElementById('current-speed')!.textContent = '1.0x';
-      speedSlider.setAttribute('aria-valuetext', '1.0倍速');
-      setRangeFill(speedSlider);
-      info.style.display = 'block';
-      return;
-    }
+  const rateSupported =
+    engine !== 'browser' ||
+    isRateSupportedVoice((document.getElementById('browserVoice') as HTMLSelectElement).value);
+  const randomSpeedEnabled = updateRandomSpeedToggleState(rateSupported);
+
+  if (!rateSupported) {
+    speedSlider.disabled = true;
+    resetBtn.disabled = true;
+    speedSlider.value = '1.0';
+    document.getElementById('current-speed')!.textContent = '1.0x';
+    speedSlider.setAttribute('aria-valuetext', '1.0倍速');
+    setRangeFill(speedSlider);
+    info.style.display = 'block';
+    randomInfo.style.display = 'none';
+    return;
   }
 
+  // ランダム再生速度ON時は値を保存済みのまま表示する（OFFに戻したらそのまま復帰する）
   const speed = getSpeed();
-  speedSlider.disabled = false;
-  resetBtn.disabled = false;
+  speedSlider.disabled = randomSpeedEnabled;
+  resetBtn.disabled = randomSpeedEnabled;
   speedSlider.value = String(speed);
   document.getElementById('current-speed')!.textContent = `${speed.toFixed(1)}x`;
   speedSlider.setAttribute('aria-valuetext', `${speed.toFixed(1)}倍速`);
   setRangeFill(speedSlider);
   info.style.display = 'none';
+  randomInfo.style.display = randomSpeedEnabled ? 'block' : 'none';
 }
 
 /** エンジン・音声に応じて音量スライダーの有効/無効を切り替える */

@@ -5,6 +5,7 @@ import { initMessageHandler } from './message-handler';
 import { initPlaybackControls } from './playback-controls';
 import { initFilterConfig } from './filter-config';
 import { initRushModeConfig } from './rush-mode-config';
+import { initRandomSpeedConfig } from './random-speed-config';
 import { initAutoCatchupConfig } from './auto-catchup-config';
 import { initTtsEngineConfig } from './tts-engine-config';
 import { initParallelPlaybackConfig } from './parallel-playback-config';
@@ -43,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initPlaybackControls();
   initFilterConfig();
   initRushModeConfig();
+  initRandomSpeedConfig();
   initAutoCatchupConfig();
   initTtsEngineConfig();
   initParallelPlaybackConfig();

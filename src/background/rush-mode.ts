@@ -1,6 +1,7 @@
 import type { RushModeConfig } from '@/types/state';
 import { getState, updateState } from './state';
 import { sendStatus, logInfo } from './messaging';
+import { isRandomSpeedEnabled, pickRandomSpeed } from './random-speed';
 
 const DEFAULT_RUSH_CONFIG: RushModeConfig = {
   enabled: false,
@@ -65,13 +66,17 @@ export function evaluateRushMode(): void {
 }
 
 /**
- * ラッシュモード考慮の実効再生速度を返す。
- * isRushActive なら rushSpeed、そうでなければ baseSpeed をそのまま返す。
+ * 実効再生速度を返す。優先順位は ラッシュ > ランダム再生速度 > 基本設定。
+ * ラッシュは「追いつくため」の実用機能なので、遊び機能であるランダム再生速度より常に優先する。
+ * ランダム再生速度はこの関数の呼び出しごと（＝発話ごと）に抽選する。
  */
 export function resolveEffectiveSpeed(baseSpeed: number): number {
   const state = getState();
   if (state.isRushActive && rushConfig.enabled) {
     return rushConfig.rushSpeed;
+  }
+  if (isRandomSpeedEnabled()) {
+    return pickRandomSpeed();
   }
   return baseSpeed;
 }

@@ -97,6 +97,22 @@ function toggleSection(section: HTMLElement): void {
   persistCollapsed(id, isCollapsed);
 }
 
+/**
+ * 指定セクションを展開してその位置までスクロールする。
+ * 別セクションから「◯◯設定を開く」で誘導するときに使う。
+ */
+export function revealSection(id: string): void {
+  const section = getContainer()?.querySelector<HTMLElement>(`[data-section-id="${id}"]`);
+  if (!section) return;
+
+  if (section.classList.contains('collapsed')) {
+    section.classList.remove('collapsed');
+    section.querySelector<HTMLElement>('.section-header')?.setAttribute('aria-expanded', 'true');
+    persistCollapsed(id, false);
+  }
+  section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 /** drop 時に並び順を入れ替え、DOM 反映＋永続化する。 */
 function reorder(fromId: string, toId: string): void {
   const container = getContainer();

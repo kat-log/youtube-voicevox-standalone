@@ -26,6 +26,7 @@ export function loadSettings(): void {
       'localVoicevoxHost',
       'localSpeakerId',
       'rushModeConfig',
+      'randomSpeedConfig',
       'autoCatchUpConfig',
       'parallelPlaybackConfig',
       'parallelSpeakersConfig',
@@ -151,6 +152,32 @@ export function loadSettings(): void {
       document.getElementById('current-rush-return')!.textContent = `${rc.returnThreshold}件`;
       rushReturnSlider.setAttribute('aria-valuetext', `${rc.returnThreshold}件`);
       setRangeFill(rushReturnSlider);
+
+      // ランダム再生速度設定を復元
+      const rsc = data.randomSpeedConfig || {
+        enabled: false,
+        minSpeed: 0.8,
+        maxSpeed: 1.5,
+      };
+      (document.getElementById('randomSpeedEnabled') as HTMLInputElement).checked = rsc.enabled;
+      document
+        .getElementById('randomSpeedEnabled')!
+        .setAttribute('aria-checked', String(rsc.enabled));
+      document.getElementById('random-speed-options')!.style.display = rsc.enabled
+        ? 'block'
+        : 'none';
+
+      const randomSpeedMinSlider = document.getElementById('randomSpeedMin') as HTMLInputElement;
+      randomSpeedMinSlider.value = String(rsc.minSpeed);
+      document.getElementById('current-random-speed-min')!.textContent = `${rsc.minSpeed.toFixed(1)}x`;
+      randomSpeedMinSlider.setAttribute('aria-valuetext', `${rsc.minSpeed.toFixed(1)}倍速`);
+      setRangeFill(randomSpeedMinSlider);
+
+      const randomSpeedMaxSlider = document.getElementById('randomSpeedMax') as HTMLInputElement;
+      randomSpeedMaxSlider.value = String(rsc.maxSpeed);
+      document.getElementById('current-random-speed-max')!.textContent = `${rsc.maxSpeed.toFixed(1)}x`;
+      randomSpeedMaxSlider.setAttribute('aria-valuetext', `${rsc.maxSpeed.toFixed(1)}倍速`);
+      setRangeFill(randomSpeedMaxSlider);
 
       // 自動キャッチアップ設定を復元
       const ac = data.autoCatchUpConfig || {
