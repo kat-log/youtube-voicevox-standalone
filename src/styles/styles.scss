@@ -549,6 +549,23 @@ select:focus {
   margin-top: 8px;
 }
 
+/* アコーディオンのヘッダー行（トグル + 別ページボタン） */
+.accordion-header-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  .accordion-button {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .small-btn {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+}
+
 .accordion-button {
   background-color: var(--bg-primary);
   color: var(--text-secondary);
@@ -859,6 +876,19 @@ body.dark-mode {
     a {
       color: #fbbf24;
     }
+  }
+}
+
+/* Popup: 他ページへのリンク行 */
+.page-links {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+
+  .small-btn {
+    white-space: nowrap;
   }
 }
 
