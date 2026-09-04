@@ -268,16 +268,12 @@ export function startPolling(config: PollingConfig): void {
 
       if (error.isRateLimit) {
         // レート制限: 即座にUIに表示（閾値チェック不要）
-        // eslint-disable-next-line no-console
-        console.warn('YouTube APIレート制限:', error.message);
         logWarn(
           `🚫 レート制限検知（${currentState.consecutiveErrors + 1}回連続）- ポーリング間隔を延長`
         );
         updateState({ isYouTubeRateLimited: true });
         sendStatus('error', error.message);
       } else {
-        // eslint-disable-next-line no-console
-        console.error('YouTube APIリクエストエラー:', error);
         logWarn(
           `YouTube APIエラー（${currentState.consecutiveErrors + 1}回連続）: ${error.message}`
         );

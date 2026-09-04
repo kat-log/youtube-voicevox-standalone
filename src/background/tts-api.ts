@@ -259,8 +259,6 @@ function synthesizeWithRetry(
         ttsProcessingCount--;
         logError(`VOICEVOXエラー（スキップ）: ${error.message} - "${newMessage}"`);
         sendStatus('error', `${error.message} — 生成スキップ`);
-        // eslint-disable-next-line no-console
-        console.error('VoiceVoxエラー:', error);
         scheduleNextProcessing();
       }
     });
@@ -378,8 +376,6 @@ function synthesizeLocalWithRetry(
         insertInOrder(seq, null);
         logError(`ローカルVOICEVOXエラー（スキップ）: ${error.message} - "${newMessage}"`);
         sendStatus('error', `${error.message} — 生成スキップ`);
-        // eslint-disable-next-line no-console
-        console.error('ローカルVOICEVOXエラー:', error);
         scheduleNextProcessing();
       }
     });
