@@ -1,3 +1,10 @@
+# Chrome Web Store 掲載文
+
+下のコードブロックの中身が、Developer Dashboard の「説明」欄にそのまま貼り付ける本文です。
+（コードブロックで囲っているのは、Markdown 表示で `・` の箇条書きの改行が潰れるのを防ぐためです。
+編集するときはコードブロックの内側だけを書き換えてください）
+
+```text
 📢 最新アップデート情報
 
 【v9.11.0】
@@ -176,3 +183,4 @@ VOICEVOXエンジンはAPIキーなしでも動作しますが、キーを設定
 ・音声: VOICEVOX https://voicevox.hiroshiba.jp/
 ・音声取得API: TTS Quest https://tts.quest/
 ・コメント取得: YouTube Data API v3
+```
