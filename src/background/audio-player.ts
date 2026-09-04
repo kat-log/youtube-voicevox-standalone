@@ -96,8 +96,6 @@ export function playNextAudio(): void {
     // フェイルセーフタイマー（30秒で強制リセット）
     const timeout = setTimeout(() => {
       if (getState().playingCount > 0) {
-        // eslint-disable-next-line no-console
-        console.warn(`音声再生タイムアウト [${audioId}]: playingCountをデクリメント`);
         logWarn(`⚠ 音声再生タイムアウト [${audioId}]: 30秒経過で強制終了`);
         handleAudioEndedById(audioId);
       }
@@ -157,8 +155,6 @@ async function playAudioViaOffscreen(audioId: string, audioUrl: string, volume: 
       speed,
     });
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error('Offscreen再生エラー:', (error as Error).message);
     logWarn(`⚠ Offscreen再生エラー: ${(error as Error).message}`);
     handlePlaybackErrorById(audioId);
   }
@@ -187,8 +183,6 @@ function playSpeechSynthesis(
           event.type === 'error'
         ) {
           if (event.type === 'error') {
-            // eslint-disable-next-line no-console
-            console.error('chrome.tts error:', event.errorMessage);
             logWarn(`⚠ ブラウザTTSエラー: ${event.errorMessage || '不明'}`);
           }
           handleAudioEndedById(audioId);
@@ -197,8 +191,6 @@ function playSpeechSynthesis(
     },
     () => {
       if (chrome.runtime.lastError) {
-        // eslint-disable-next-line no-console
-        console.error('chrome.tts.speakエラー:', chrome.runtime.lastError.message);
         logWarn(`⚠ ブラウザTTS再生エラー: ${chrome.runtime.lastError.message}`);
         handlePlaybackErrorById(audioId);
       }

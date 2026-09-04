@@ -1,5 +1,3 @@
-import { loadSettings } from './settings-loader';
-import { applySectionLayout } from './section-layout';
 
 const SYNC_KEYS_WITHOUT_API = [
   'speed',
@@ -44,7 +42,15 @@ type ExportData = {
   local: { stats: unknown };
 };
 
-export function initDataManagement(): void {
+/**
+ * インポート／リセット後に呼ぶ再描画コールバック。
+ * データ管理 UI は設定ページ・ポップアップのどちらにも置けるため、
+ * 「保存値を読み直して画面へ反映する処理」は呼び出し側から注入する。
+ */
+let reloadUi: () => void = () => {};
+
+export function initDataManagement(onStorageReplaced?: () => void): void {
+  if (onStorageReplaced) reloadUi = onStorageReplaced;
   document.getElementById('export-settings-btn')!.addEventListener('click', handleExport);
   document.getElementById('import-settings-btn')!.addEventListener('click', () => {
     (document.getElementById('import-settings-file') as HTMLInputElement).click();
@@ -125,8 +131,7 @@ async function handleImport(event: Event): Promise<void> {
     await chrome.storage.local.set({ stats: parsed.local.stats });
   }
 
-  loadSettings();
-  applySectionLayout();
+  reloadUi();
 }
 
 async function handleResetToDefaults(): Promise<void> {
@@ -138,7 +143,7 @@ async function handleResetToDefaults(): Promise<void> {
     return;
 
   await Promise.all([chrome.storage.sync.clear(), chrome.storage.local.clear()]);
-  loadSettings();
+  reloadUi();
 }
 
 function isValidExportFile(obj: unknown): obj is ExportData {

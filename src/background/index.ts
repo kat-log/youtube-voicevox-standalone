@@ -4,7 +4,7 @@ import { handleAudioEnded, handleAudioEndedById, initPlaybackSettings, updateCac
 import { initTabListeners } from './tab-manager';
 import { startPolling, stopAll } from './lifecycle';
 import { processChatMessages, getStandaloneConfig, setStandaloneConfig } from './lifecycle-internal';
-import { sendStatus, logInfo, logWarn, updateErrorMessage } from './messaging';
+import { sendStatus, logInfo, logWarn, logError, updateErrorMessage } from './messaging';
 import { loadFilterConfigFromStorage, setFilterConfig } from './comment-filter';
 import { setTtsEngine, setBrowserVoice, setLocalVoicevoxHost, setMaxParallelSynthesis, cancelScheduledProcessing, getTtsProcessingCount } from './tts-api';
 import { loadRushConfigFromStorage, setRushConfig, evaluateRushMode } from './rush-mode';
@@ -172,8 +172,7 @@ async function handleStart(config: {
     return { status: 'success' };
   } catch (error) {
     const err = error as Error & { details?: unknown };
-    // eslint-disable-next-line no-console
-    console.error('YouTube APIリクエストエラー:', err);
+    logError(`YouTube APIリクエストエラー: ${err.message}`);
     sendStatus('error', err.message);
     return {
       status: 'error',
@@ -273,8 +272,6 @@ chrome.runtime.onMessage.addListener(
         if (audioId && isTestAudioId(audioId)) {
           handleTestAudioError(audioId);
         } else {
-          // eslint-disable-next-line no-console
-          console.error('Offscreen audio再生エラー', audioId);
           logWarn(`⚠ Offscreen audio再生エラー [${audioId || '不明'}]`);
           if (audioId) {
             handleAudioEndedById(audioId);
@@ -567,8 +564,7 @@ chrome.commands.onCommand.addListener(async (command) => {
     if (typeof data.speed === 'number') updateCachedSpeed(data.speed);
 
     if (mode === 'official' && !data.apiKeyYoutube) {
-      // eslint-disable-next-line no-console
-      console.error('YouTube APIキーが設定されていません。');
+      logWarn('YouTube APIキーが設定されていません。');
       updateErrorMessage('YouTube APIキーが設定されていません。');
       return;
     }
