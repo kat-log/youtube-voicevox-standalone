@@ -13,9 +13,63 @@ if ((window as WindowWithInit).__domChatInitialized) {
 
   let observer: MutationObserver | null = null;
   let active = false;
+  // 拡張機能の再読み込み・更新・無効化で拡張コンテキストが破棄されると、
+  // ページに残った古い content script は chrome API 呼び出しで
+  // "Extension context invalidated." を同期 throw する（＝孤児化）。
+  // 想定内の状態なので例外は握りつぶし、自分自身を停止する。
+  let orphaned = false;
+  let storageListener: Parameters<typeof chrome.storage.onChanged.addListener>[0] | null = null;
+
+  // コンテキスト破棄後は chrome.runtime.id が undefined になる
+  const isContextValid = (): boolean => {
+    try {
+      return chrome.runtime?.id !== undefined;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleOrphaned = (): void => {
+    if (orphaned) return;
+    orphaned = true;
+    active = false;
+    if (observer) {
+      observer.disconnect();
+      observer = null;
+    }
+    if (storageListener) {
+      try {
+        chrome.storage.onChanged.removeListener(storageListener);
+      } catch {
+        // コンテキスト破棄後は removeListener 自体も失敗しうる
+      }
+      storageListener = null;
+    }
+    // 拡張機能を再読み込みしたあと同じタブへ再注入されたとき、
+    // 「すでに実行中」と誤判定して新しいスクリプトが起動しないのを防ぐ
+    (window as WindowWithInit).__domChatInitialized = false;
+  };
+
+  /** chrome API 呼び出しラッパ。孤児化していれば何もせず false を返す */
+  const callChrome = (fn: () => void): boolean => {
+    if (orphaned || !isContextValid()) {
+      handleOrphaned();
+      return false;
+    }
+    try {
+      fn();
+      return true;
+    } catch {
+      // "Extension context invalidated." など。想定内なので握りつぶす
+      handleOrphaned();
+      return false;
+    }
+  };
 
   const sendLog = (message: string): void => {
-    chrome.runtime.sendMessage({ action: 'domChatLog', message }).catch(() => {});
+    callChrome(() => {
+      chrome.runtime.sendMessage({ action: 'domChatLog', message }).catch(() => {});
+    });
   };
 
   // alt が絵文字・絵文字修飾子のみで構成されているか（標準Unicode絵文字の img 判定用）
@@ -119,8 +173,12 @@ if ((window as WindowWithInit).__domChatInitialized) {
 
         if (newMessages.length > 0) {
           sendLog(`新着コメント ${newMessages.length}件 → background へ送信`);
-          chrome.runtime.sendMessage({ action: 'domChatMessages', messages: newMessages }).catch((e) => {
-            sendLog(`送信エラー: ${String(e)}`);
+          callChrome(() => {
+            chrome.runtime
+              .sendMessage({ action: 'domChatMessages', messages: newMessages })
+              .catch((e) => {
+                sendLog(`送信エラー: ${String(e)}`);
+              });
           });
         }
       });
@@ -146,15 +204,18 @@ if ((window as WindowWithInit).__domChatInitialized) {
   sendLog(`dom-chat.ts ロード完了 (URL: ${location.href})`);
 
   // storage 確認して自動起動
-  chrome.storage.session.get(['chatMode', 'domModeActive'], (data) => {
-    sendLog(`ストレージ確認: chatMode=${String(data.chatMode)}, domModeActive=${String(data.domModeActive)}`);
-    if (data.chatMode === 'dom' && data.domModeActive === true) {
-      startObserver();
-    }
+  callChrome(() => {
+    chrome.storage.session.get(['chatMode', 'domModeActive'], (data) => {
+      sendLog(`ストレージ確認: chatMode=${String(data.chatMode)}, domModeActive=${String(data.domModeActive)}`);
+      if (data.chatMode === 'dom' && data.domModeActive === true) {
+        startObserver();
+      }
+    });
   });
 
   // storage 変化を監視
-  chrome.storage.onChanged.addListener((changes, areaName) => {
+  storageListener = (changes, areaName): void => {
+    if (orphaned) return;
     if (areaName !== 'session') return;
     const modeActive = changes.domModeActive;
     const chatMode = changes.chatMode;
@@ -167,8 +228,10 @@ if ((window as WindowWithInit).__domChatInitialized) {
       const newChatMode = chatMode?.newValue as string | undefined;
       if (newChatMode === 'dom' || !newChatMode) {
         if (!newChatMode) {
-          chrome.storage.session.get(['chatMode'], (d) => {
-            if (d.chatMode === 'dom') startObserver();
+          callChrome(() => {
+            chrome.storage.session.get(['chatMode'], (d) => {
+              if (d.chatMode === 'dom') startObserver();
+            });
           });
         } else {
           startObserver();
@@ -177,5 +240,8 @@ if ((window as WindowWithInit).__domChatInitialized) {
     } else if (modeActive?.newValue === false) {
       stopObserver();
     }
+  };
+  callChrome(() => {
+    if (storageListener) chrome.storage.onChanged.addListener(storageListener);
   });
 }
