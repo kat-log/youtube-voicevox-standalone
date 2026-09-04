@@ -67,6 +67,39 @@
         font-weight: 600;
       }
 
+      /* ズーム・単位切り替え（左寄せのツール群） */
+      .tool-group {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .zoom-btn,
+      .zoom-level,
+      .unit-btn {
+        padding: 4px 8px;
+        font-size: 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: var(--bg-card);
+        color: var(--text-primary);
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      .zoom-btn:hover,
+      .zoom-level:hover,
+      .unit-btn:hover {
+        background: var(--border-color);
+      }
+
+      /* 拡大率の数字は幅が変わってもボタンが動かないよう固定幅にする */
+      .zoom-level {
+        min-width: 52px;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+      }
+
       /* 右寄せは先に並ぶ .follow-btn の margin-left: auto が担う */
       .clear-btn {
         padding: 4px 10px;
@@ -417,6 +450,13 @@
   <body>
     <div class="page-header">
       <h1>コメント処理タイムライン</h1>
+      <div class="tool-group" role="group" aria-label="時間軸の拡大率">
+        <button class="zoom-btn" id="zoom-out" title="時間軸を縮小（Ctrl+ホイール / − キー）" aria-label="時間軸を縮小">−</button>
+        <button class="zoom-level" id="zoom-level" title="クリックで既定の拡大率に戻す（0 キー）">100%</button>
+        <button class="zoom-btn" id="zoom-in" title="時間軸を拡大（Ctrl+ホイール / + キー）" aria-label="時間軸を拡大">＋</button>
+        <button class="zoom-btn" id="zoom-fit" title="記録済みの全区間が収まる拡大率にする">⤢ 全体</button>
+      </div>
+      <button class="unit-btn" id="unit-btn" aria-pressed="false">⏱ 秒</button>
       <button class="follow-btn" id="follow-btn" aria-pressed="true">⏩ 最新に追従中</button>
       <button class="clear-btn" id="clear-btn">クリア</button>
     </div>

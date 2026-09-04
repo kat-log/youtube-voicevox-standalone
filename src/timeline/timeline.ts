@@ -7,9 +7,24 @@ import {
   shouldResumeFollow,
   type ScrollMode,
 } from './follow-state';
+import {
+  DEFAULT_TIME_UNIT,
+  formatDuration,
+  formatRulerLabel,
+  normalizeTimeUnit,
+  type TimeUnit,
+} from './format';
+import {
+  DEFAULT_SCALE,
+  anchorMsAt,
+  chooseTickIntervalMs,
+  fitScale,
+  normalizeScale,
+  scrollLeftForAnchor,
+  zoomPercent,
+  zoomScale,
+} from './scale';
 
-// スケール: 10px = 1秒 (0.01 px/ms)
-const SCALE = 0.01;
 // 固定列（話者・コメント）の既定幅。CSS の --speaker-width / --label-width と一致させる
 const DEFAULT_SPEAKER_WIDTH = 120;
 const DEFAULT_LABEL_WIDTH = 240;
@@ -19,13 +34,23 @@ const LABEL_WIDTH_RANGE = { min: 80, max: 800 };
 // 列幅の保存キー
 const SPEAKER_WIDTH_KEY = 'timelineSpeakerWidth';
 const LABEL_WIDTH_KEY = 'timelineLabelWidth';
-// 目盛り間隔: 5秒
-const RULER_INTERVAL_MS = 5000;
-// 目盛りの横幅（px）= 5s * 10px/s = 50px
-const RULER_INTERVAL_PX = RULER_INTERVAL_MS * SCALE;
+// ガント本体の右端に足す余白（px）
+const GANTT_PAD_PX = 20;
+// 目盛りを描く範囲を可視域から広げる余白（px）。スクロール直後の欠けを防ぐ
+const RULER_OVERSCAN_PX = 200;
+// 横軸スケールの保存キー
+const SCALE_KEY = 'timelineScale';
+// 所要時間の表示単位の保存キー
+const TIME_UNIT_KEY = 'timelineTimeUnit';
+// スケール・単位の保存を間引く間隔（ms）。ホイールズームで storage.sync の書き込み上限に当たらないようにする
+const SETTING_SAVE_DEBOUNCE_MS = 500;
 // タイムラインに保持するコメント行の上限
 const MAX_TIMELINE_ROWS = 500;
 
+/** 横軸のスケール（px/ms）。ズームで可変 */
+let scale = DEFAULT_SCALE;
+/** 所要時間の表示単位（ツールチップ） */
+let timeUnit: TimeUnit = DEFAULT_TIME_UNIT;
 let originTime: number = Date.now();
 const lifecycles = new Map<string, CommentLifecycle>();
 let rafId: number | null = null;
@@ -55,8 +80,15 @@ let lastWrittenLeft: number | null = null;
 let lastWrittenTop: number | null = null;
 let speakerWidth = DEFAULT_SPEAKER_WIDTH;
 let labelWidth = DEFAULT_LABEL_WIDTH;
-/** 固定列を除いたガント本体の必要幅（px）。originTime を 0 とする座標系 */
-let maxContentPx = 0;
+/**
+ * 固定列を除いたガント本体が必要とする時間の長さ（ms, originTime 起点）。
+ * px ではなく ms で持つことで、ズームしても幅を計算し直すだけで済む
+ */
+let maxContentMs = 0;
+/** 直前に描いた目盛りの内容の識別子。同じなら描き直さない（RAF から毎フレーム呼ばれる） */
+let lastRulerKey = '';
+/** スケール・表示単位の保存を間引くタイマー */
+let saveTimer: number | null = null;
 
 /** 固定列（話者＋コメント）の合計幅。ガント本体はこの分だけ右にずれる */
 function getFixedColsWidth(): number {
@@ -88,8 +120,9 @@ function normalizeWidth(
 function applyGanttWidth(): void {
   const ganttInner = document.getElementById('gantt-inner');
   if (!ganttInner) return;
+  const contentPx = maxContentMs * scale + GANTT_PAD_PX;
   ganttInner.style.minWidth =
-    `calc(var(--speaker-width) + var(--label-width) + ${maxContentPx}px)`;
+    `calc(var(--speaker-width) + var(--label-width) + ${contentPx}px)`;
 }
 
 // ===== ルーラーとガントのスクロール同期 =====
@@ -224,11 +257,16 @@ function applyDarkMode(value: unknown): void {
 
 chrome.storage.sync.get(['darkMode'], (data) => applyDarkMode(data.darkMode));
 
-// ===== 保存済みの列幅を復元 =====
-chrome.storage.sync.get([SPEAKER_WIDTH_KEY, LABEL_WIDTH_KEY], (data) => {
+// ===== 保存済みの列幅・スケール・表示単位を復元 =====
+chrome.storage.sync.get([SPEAKER_WIDTH_KEY, LABEL_WIDTH_KEY, SCALE_KEY, TIME_UNIT_KEY], (data) => {
   speakerWidth = normalizeWidth(data[SPEAKER_WIDTH_KEY], SPEAKER_WIDTH_RANGE, DEFAULT_SPEAKER_WIDTH);
   labelWidth = normalizeWidth(data[LABEL_WIDTH_KEY], LABEL_WIDTH_RANGE, DEFAULT_LABEL_WIDTH);
+  scale = normalizeScale(data[SCALE_KEY]);
+  timeUnit = normalizeTimeUnit(data[TIME_UNIT_KEY]);
+  syncZoomLabel();
+  syncUnitButton();
   applyColumnWidths();
+  reRenderAllRows();
 });
 
 // ===== 設定変更への追従 =====
@@ -238,6 +276,20 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName !== 'sync') return;
 
   if ('darkMode' in changes) applyDarkMode(changes['darkMode'].newValue);
+
+  // 自分の保存もここに返ってくるため、値が変わったときだけ描画し直す
+  if (SCALE_KEY in changes) {
+    const next = normalizeScale(changes[SCALE_KEY].newValue);
+    if (next !== scale) applyScale(next, null);
+  }
+
+  if (TIME_UNIT_KEY in changes) {
+    const next = normalizeTimeUnit(changes[TIME_UNIT_KEY].newValue);
+    if (next !== timeUnit) {
+      timeUnit = next;
+      syncUnitButton();
+    }
+  }
 
   // キーの削除（リセット）と未変更を区別するため newValue ではなく `in` で判定する
   if (SPEAKER_WIDTH_KEY in changes || LABEL_WIDTH_KEY in changes) {
@@ -258,6 +310,140 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     applyColumnWidths();
   }
 });
+
+// ===== 設定の保存（間引き） =====
+// ホイールズームは短時間に何度も発火する。storage.sync には書き込み回数の上限が
+// あるため、最後の値だけを少し遅らせて書く
+function saveViewSettings(): void {
+  if (saveTimer !== null) clearTimeout(saveTimer);
+  saveTimer = window.setTimeout(() => {
+    saveTimer = null;
+    chrome.storage.sync.set({ [SCALE_KEY]: scale, [TIME_UNIT_KEY]: timeUnit });
+  }, SETTING_SAVE_DEBOUNCE_MS);
+}
+
+// ===== 横軸のズーム =====
+// 表示の同期関数は storage の復元コールバックからも呼ばれる。宣言順に縛られないよう、
+// 要素はモジュール変数に持たず呼び出しのたびに引く（呼ばれるのは操作時だけ）
+function syncZoomLabel(): void {
+  const zoomLabel = document.getElementById('zoom-level');
+  if (!zoomLabel) return;
+  zoomLabel.textContent = `${zoomPercent(scale)}%`;
+  zoomLabel.title = `1秒あたり ${Math.round(scale * 1000 * 10) / 10}px（クリックで既定に戻す）`;
+}
+
+/** 可視の軸領域（固定列を除いたガントの表示幅） */
+function getVisibleAxisWidth(scroll: HTMLElement): number {
+  return Math.max(scroll.clientWidth - getFixedColsWidth(), 1);
+}
+
+/**
+ * スケールを変更する。
+ * anchorOffsetPx は「可視の軸領域の左端からの距離」で、その位置の時刻が動かないように
+ * スクロール位置を取り直す。null なら可視領域の中央を支点にする。
+ * 追従中は右端に貼り付いたままにしたいので、スクロール位置には触らない
+ */
+function applyScale(next: number, anchorOffsetPx: number | null): void {
+  const scroll = document.getElementById('gantt-scroll');
+  if (scroll && !followLatestX) {
+    // 中央寄せアニメーションが残っていると、次のフレームで旧スケールの目標位置に
+    // 引き戻されてしまう
+    cancelScrollAnimation();
+    const offset = anchorOffsetPx ?? getVisibleAxisWidth(scroll) / 2;
+    const anchorMs = anchorMsAt(scroll.scrollLeft, offset, scale);
+    scale = next;
+    applyGanttWidth();
+    // 幅を反映したあとでないと scrollLeft が頭打ちになる
+    const maxScroll = Math.max(scroll.scrollWidth - scroll.clientWidth, 0);
+    const target = scrollLeftForAnchor(anchorMs, offset, scale);
+    writeScrollLeft(scroll, Math.max(0, Math.min(target, maxScroll)));
+  } else {
+    scale = next;
+    applyGanttWidth();
+  }
+
+  syncZoomLabel();
+  updateRuler();
+  reRenderAllRows();
+}
+
+function zoomBy(steps: number, anchorOffsetPx: number | null = null): void {
+  const next = zoomScale(scale, steps);
+  if (next === scale) return;
+  applyScale(next, anchorOffsetPx);
+  saveViewSettings();
+}
+
+document.getElementById('zoom-in')?.addEventListener('click', () => zoomBy(1));
+document.getElementById('zoom-out')?.addEventListener('click', () => zoomBy(-1));
+document.getElementById('zoom-level')?.addEventListener('click', () => {
+  if (scale === DEFAULT_SCALE) return;
+  applyScale(DEFAULT_SCALE, null);
+  saveViewSettings();
+});
+
+// 記録済みの全区間が画面に収まるスケールにする（長い放送の俯瞰用）
+document.getElementById('zoom-fit')?.addEventListener('click', () => {
+  const scroll = document.getElementById('gantt-scroll');
+  if (!scroll || maxContentMs <= 0) return;
+  // 右端の余白の分だけ狭い幅に収める（余白を足しても可視幅を越えない）
+  const next = fitScale(maxContentMs, getVisibleAxisWidth(scroll) - GANTT_PAD_PX);
+  applyScale(next, null);
+  saveViewSettings();
+  // 全体を見るのだから左端（＝最初のコメント）から見せる
+  setFollow(false, followLatestY);
+  writeScrollLeft(scroll, 0);
+});
+
+// Ctrl / ⌘ + ホイールでカーソル位置を支点にズーム（ブラウザのページ拡大は抑止する）
+{
+  const scroll = document.getElementById('gantt-scroll');
+  scroll?.addEventListener(
+    'wheel',
+    (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      const rect = scroll.getBoundingClientRect();
+      const offset = Math.max(0, e.clientX - rect.left - getFixedColsWidth());
+      zoomBy(e.deltaY < 0 ? 1 : -1, offset);
+    },
+    { passive: false }
+  );
+}
+
+// キーボードショートカット（+ / - / 0）。入力欄が無いページなので常時受ける
+document.addEventListener('keydown', (e: KeyboardEvent) => {
+  // 修飾キー付きはブラウザのページ拡大など別の操作なので触らない
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key === '+' || e.key === '=') zoomBy(1);
+  else if (e.key === '-') zoomBy(-1);
+  else if (e.key === '0') {
+    if (scale === DEFAULT_SCALE) return;
+    applyScale(DEFAULT_SCALE, null);
+    saveViewSettings();
+  }
+});
+
+// ===== 所要時間の表示単位 =====
+function syncUnitButton(): void {
+  const unitBtn = document.getElementById('unit-btn');
+  if (!unitBtn) return;
+  unitBtn.textContent = timeUnit === 'sec' ? '⏱ 秒' : '⏱ ms';
+  unitBtn.setAttribute('aria-pressed', String(timeUnit === 'ms'));
+  unitBtn.title =
+    timeUnit === 'sec'
+      ? 'ツールチップの所要時間を秒で表示中（クリックでミリ秒に切り替え）'
+      : 'ツールチップの所要時間をミリ秒で表示中（クリックで秒に切り替え）';
+}
+
+document.getElementById('unit-btn')?.addEventListener('click', () => {
+  timeUnit = timeUnit === 'sec' ? 'ms' : 'sec';
+  syncUnitButton();
+  saveViewSettings();
+});
+
+syncZoomLabel();
+syncUnitButton();
 
 // ===== 列幅のドラッグ変更 =====
 setupColumnResizer('resizer-speaker', SPEAKER_WIDTH_RANGE, () => speakerWidth, (w) => {
@@ -361,7 +547,6 @@ function setCounter(id: string, value: number): void {
 function updateRuler(): void {
   const ruler = document.getElementById('ruler');
   if (!ruler) return;
-  ruler.innerHTML = '';
 
   const ganttScroll = document.getElementById('gantt-scroll');
   const fixed = getFixedColsWidth();
@@ -370,20 +555,48 @@ function updateRuler(): void {
     (ganttScroll ? ganttScroll.clientWidth : window.innerWidth) - fixed,
     0
   );
-  const elapsedWidth = (Date.now() - originTime) * SCALE + 100;
-  const axisWidth = Math.max(visibleAxisWidth, maxContentPx, elapsedWidth);
+  const elapsedWidth = (Date.now() - originTime) * scale + 100;
+  const axisWidth = Math.max(visibleAxisWidth, maxContentMs * scale + GANTT_PAD_PX, elapsedWidth);
+
+  // 目盛り間隔はスケールから決める。拡大すれば細かく、縮小すれば粗くなり、
+  // ラベルが重ならない最小の「きりの良い」間隔が選ばれる
+  const intervalMs = chooseTickIntervalMs(scale);
+  const intervalPx = intervalMs * scale;
+
+  // 拡大すると軸全体では目盛りが数万本になり得るので、可視範囲（＋余白）だけ描く。
+  // ルーラーは軸座標（0 = originTime）で、ガントと同じ scrollLeft でスクロールする
+  const scrollLeft = ganttScroll ? ganttScroll.scrollLeft : 0;
+  const firstIndex = Math.max(0, Math.floor((scrollLeft - RULER_OVERSCAN_PX) / intervalPx));
+  const lastIndex = Math.min(
+    Math.ceil(axisWidth / intervalPx),
+    Math.ceil((scrollLeft + visibleAxisWidth + RULER_OVERSCAN_PX) / intervalPx)
+  );
+
+  const key = `${originTime}:${intervalMs}:${Math.round(axisWidth)}:${firstIndex}:${lastIndex}`;
+  if (key === lastRulerKey) return;
+  lastRulerKey = key;
 
   ruler.style.width = `${axisWidth}px`;
+  ruler.textContent = '';
 
-  const tickCount = Math.ceil(axisWidth / RULER_INTERVAL_PX) + 1;
-  for (let i = 0; i < tickCount; i++) {
-    const leftPx = i * RULER_INTERVAL_PX;
+  const fragment = document.createDocumentFragment();
+  for (let i = firstIndex; i <= lastIndex; i++) {
     const tick = document.createElement('div');
     tick.className = 'ruler-tick';
-    tick.style.left = `${leftPx}px`;
-    tick.innerHTML = `<div class="ruler-tick-line"></div><div class="ruler-tick-label">${i * 5}s</div>`;
-    ruler.appendChild(tick);
+    tick.style.left = `${i * intervalPx}px`;
+
+    const line = document.createElement('div');
+    line.className = 'ruler-tick-line';
+    tick.appendChild(line);
+
+    const label = document.createElement('div');
+    label.className = 'ruler-tick-label';
+    label.textContent = formatRulerLabel(i * intervalMs, intervalMs);
+    tick.appendChild(label);
+
+    fragment.appendChild(tick);
   }
+  ruler.appendChild(fragment);
 }
 
 // ===== 古い行の削除 =====
@@ -481,8 +694,8 @@ function centerRow(row: HTMLElement): void {
 
   // 未完了の行はバーが現在時刻まで伸びている（renderSegments と同じ終端の求め方）
   const lastTime = lc.playEndTime ?? lc.stoppedTime ?? lc.droppedTime ?? Date.now();
-  const startPx = (lc.fetchTime - originTime) * SCALE;
-  const endPx = (lastTime - originTime) * SCALE;
+  const startPx = (lc.fetchTime - originTime) * scale;
+  const endPx = (lastTime - originTime) * scale;
 
   // 固定列は左端に貼り付いてスクロール領域を覆うため、それを除いた可視幅の
   // 中央にバーの中点が来るよう scrollLeft を決める
@@ -540,9 +753,9 @@ function renderSegments(row: HTMLElement, lc: CommentLifecycle, now: number): vo
   }
 
   for (const stage of stages) {
-    const startPx = (stage.start - originTime) * SCALE;
+    const startPx = (stage.start - originTime) * scale;
     const endMs = stage.end ?? now;
-    const widthPx = Math.max(2, (endMs - stage.start) * SCALE);
+    const widthPx = Math.max(2, (endMs - stage.start) * scale);
 
     const seg = document.createElement('div');
     seg.className = `segment ${stage.cls}`;
@@ -552,11 +765,12 @@ function renderSegments(row: HTMLElement, lc: CommentLifecycle, now: number): vo
     track.appendChild(seg);
   }
 
-  // ガント本体の必要幅を更新（横スクロール用）
+  // ガント本体の必要幅を更新（横スクロール用）。幅は px ではなく ms で覚えておき、
+  // 実際の px はスケールを掛けて求める
   if (stages.length > 0) {
-    const endPx = ((stages[stages.length - 1].end ?? now) - originTime) * SCALE + 20;
-    if (endPx > maxContentPx) {
-      maxContentPx = endPx;
+    const endMs = (stages[stages.length - 1].end ?? now) - originTime;
+    if (endMs > maxContentMs) {
+      maxContentMs = endMs;
       applyGanttWidth();
     }
   }
@@ -618,7 +832,7 @@ function showTooltip(e: MouseEvent, lc: CommentLifecycle): void {
   const synthWait = lc.synthStartTime
     ? lc.synthStartTime - lc.fetchTime
     : (lc.droppedTime ?? lc.stoppedTime ?? now) - lc.fetchTime;
-  lines.push(`音声生成待ち: ${synthWait}ms`);
+  lines.push(`音声生成待ち: ${formatDuration(synthWait, timeUnit)}`);
   if (lc.droppedTime && !lc.synthStartTime) {
     lines.push(`⚠️ 足切り済み（キュー上限により破棄）`);
   }
@@ -627,21 +841,21 @@ function showTooltip(e: MouseEvent, lc: CommentLifecycle): void {
     const synthActive = lc.synthEndTime
       ? lc.synthEndTime - lc.synthStartTime
       : (lc.stoppedTime ?? now) - lc.synthStartTime;
-    lines.push(`音声生成中: ${synthActive}ms`);
+    lines.push(`音声生成中: ${formatDuration(synthActive, timeUnit)}`);
   }
 
   if (lc.synthEndTime) {
     const playWait = lc.playStartTime
       ? lc.playStartTime - lc.synthEndTime
       : (lc.stoppedTime ?? now) - lc.synthEndTime;
-    lines.push(`読み上げ待ち: ${playWait}ms`);
+    lines.push(`読み上げ待ち: ${formatDuration(playWait, timeUnit)}`);
   }
 
   if (lc.playStartTime) {
     const playActive = lc.playEndTime
       ? lc.playEndTime - lc.playStartTime
       : (lc.stoppedTime ?? now) - lc.playStartTime;
-    lines.push(`読み上げ中: ${playActive}ms`);
+    lines.push(`読み上げ中: ${formatDuration(playActive, timeUnit)}`);
   }
 
   if (lc.stoppedTime) {
@@ -684,7 +898,7 @@ document.getElementById('clear-btn')?.addEventListener('click', () => {
     ganttInner.innerHTML = '<div class="empty-msg" id="empty-msg">読み上げを開始するとコメントが表示されます</div>';
     ganttInner.style.minWidth = '';
   }
-  maxContentPx = 0;
+  maxContentMs = 0;
   originTime = Date.now();
   lastWrittenLeft = null;
   lastWrittenTop = null;

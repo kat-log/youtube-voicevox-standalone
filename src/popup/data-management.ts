@@ -32,6 +32,8 @@ const SYNC_KEYS_WITHOUT_API = [
   'popupSectionOrder',
   'timelineSpeakerWidth',
   'timelineLabelWidth',
+  'timelineScale',
+  'timelineTimeUnit',
 ] as const;
 
 const API_KEYS = ['apiKeyVOICEVOX', 'apiKeyYoutube'] as const;
