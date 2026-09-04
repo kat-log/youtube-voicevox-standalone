@@ -102,18 +102,25 @@ export function toggleEngineUI(engine: string): void {
 
   // ブラウザTTSでは並列再生不可のためUI全体を無効化
   const isBrowser = engine === 'browser';
-  const parallelAlwaysToggle = document.getElementById('parallelAlwaysEnabled') as HTMLInputElement;
-  const parallelAutoToggle = document.getElementById('parallelAutoEnabled') as HTMLInputElement;
-  parallelAlwaysToggle.disabled = isBrowser;
-  parallelAutoToggle.disabled = isBrowser;
+  for (const id of ['parallelAlwaysEnabled', 'parallelAutoEnabled', 'parallelAutoExtraEnabled']) {
+    (document.getElementById(id) as HTMLInputElement).disabled = isBrowser;
+  }
 
   // スライダーも無効化
-  const thresholdSlider = document.getElementById('parallelAutoTriggerThreshold') as HTMLInputElement;
-  thresholdSlider.disabled = isBrowser;
-  setRangeFill(thresholdSlider);
+  for (const id of [
+    'parallelAutoTriggerThreshold',
+    'parallelAutoExtraThreshold',
+    'parallelAutoExtraConcurrent',
+  ]) {
+    const slider = document.getElementById(id) as HTMLInputElement;
+    slider.disabled = isBrowser;
+    setRangeFill(slider);
+  }
 
   // リセットボタンも無効化
-  (document.getElementById('reset-parallel-auto') as HTMLButtonElement).disabled = isBrowser;
+  for (const id of ['reset-parallel-auto', 'reset-parallel-auto-extra']) {
+    (document.getElementById(id) as HTMLButtonElement).disabled = isBrowser;
+  }
 
   document.getElementById('parallel-unsupported-info')!.style.display = isBrowser ? 'block' : 'none';
 

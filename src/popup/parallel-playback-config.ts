@@ -87,17 +87,29 @@ export function updateParallelSpeakersToggleState(): void {
   }
 }
 
+/**
+ * 並列再生（親トグル）配下の詳細表示を、各トグルのON/OFFから再計算する。
+ * 親がOFFの間は詳細も隠すが、親をONに戻したときは子トグルの状態どおりに復元する。
+ */
+function syncParallelChildDetails(): void {
+  const alwaysEnabled = (document.getElementById('parallelAlwaysEnabled') as HTMLInputElement).checked;
+  const autoEnabled = (document.getElementById('parallelAutoEnabled') as HTMLInputElement).checked;
+  const autoExtraEnabled = (document.getElementById('parallelAutoExtraEnabled') as HTMLInputElement).checked;
+
+  document.getElementById('parallel-auto-options')!.style.display =
+    alwaysEnabled && autoEnabled ? 'block' : 'none';
+  document.getElementById('parallel-auto-extra-options')!.style.display =
+    alwaysEnabled && autoExtraEnabled ? 'block' : 'none';
+}
+
 export function initParallelPlaybackConfig(): void {
   // 並列再生トグル
   document.getElementById('parallelAlwaysEnabled')!.addEventListener('change', (event) => {
     const target = event.target as HTMLInputElement;
     target.setAttribute('aria-checked', String(target.checked));
     document.getElementById('parallel-always-options')!.style.display = target.checked ? 'block' : 'none';
-    // 親トグルOFF時、子の詳細も非表示にする
-    if (!target.checked) {
-      document.getElementById('parallel-auto-options')!.style.display = 'none';
-      document.getElementById('parallel-auto-extra-options')!.style.display = 'none';
-    }
+    // 子の詳細は各トグルの状態から復元する（親OFF→ONで詳細が消えたままになるのを防ぐ）
+    syncParallelChildDetails();
     // NOTE: 並列再生ON時の持ち回り制 auto-ON を廃止 (#133)
     // 同時再生数は専用ページから設定可能なため不要
     sendParallelPlaybackConfig();
