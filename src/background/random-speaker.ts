@@ -147,8 +147,6 @@ function fetchApiSpeakerIds(): void {
       applyAllowedFilter();
     })
     .catch((err) => {
-      // eslint-disable-next-line no-console
-      console.error('Failed to fetch speaker list for random mode:', err);
       logWarn(`⚠ ランダム話者リスト取得失敗: ${(err as Error).message}`);
     })
     .finally(() => {
@@ -169,8 +167,6 @@ function fetchLocalSpeakerIds(): void {
       applyAllowedFilter();
     })
     .catch((err) => {
-      // eslint-disable-next-line no-console
-      console.error('Failed to fetch local speaker list for random mode:', err);
       logWarn(`⚠ ローカル話者リスト取得失敗: ${(err as Error).message}`);
     })
     .finally(() => {
