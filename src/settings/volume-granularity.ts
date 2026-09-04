@@ -28,7 +28,7 @@ function updateDisplay(slider: HTMLInputElement, stepCount: VolumeStepCount): vo
 }
 
 /**
- * storage の値をスライダーへ再適用する。
+ * 保存値を読み直してスライダー表示を更新する（イベント再登録なし）。
  * 設定のインポート／リセットのように storage を直接書き換えた後にも呼ぶ。
  */
 export function refreshVolumeGranularity(): void {

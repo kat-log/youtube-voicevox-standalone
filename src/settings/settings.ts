@@ -2,19 +2,7 @@ import '../styles/styles.scss';
 import { initDataManagement } from './data-management';
 import { initVolumeGranularity, refreshVolumeGranularity } from './volume-granularity';
 
-chrome.storage.sync.get(['darkMode'], (data) => {
-  const isDark =
-    data.darkMode !== undefined
-      ? data.darkMode
-      : window.matchMedia('(prefers-color-scheme: dark)').matches;
-  if (isDark) {
-    document.body.classList.add('dark-mode');
-  }
-});
-
-/** 設定のインポート／リセット後に、このページ自身の表示を storage の値へ揃える */
-function refreshSettingsPage(): void {
-  refreshVolumeGranularity();
+function applyDarkMode(): void {
   chrome.storage.sync.get(['darkMode'], (data) => {
     const isDark =
       data.darkMode !== undefined
@@ -24,7 +12,14 @@ function refreshSettingsPage(): void {
   });
 }
 
+applyDarkMode();
+
 document.addEventListener('DOMContentLoaded', () => {
-  initDataManagement(refreshSettingsPage);
+  // インポート／リセット後は、この設定ページに存在する UI だけを再描画する
+  // （ポップアップ用の loadSettings() はここでは要素が無く TypeError になる）
+  initDataManagement(() => {
+    applyDarkMode();
+    refreshVolumeGranularity();
+  });
   initVolumeGranularity();
 });
