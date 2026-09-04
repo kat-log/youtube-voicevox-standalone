@@ -82,7 +82,7 @@ export function initMessageHandler(): void {
     chrome.tabs.create({ url: chrome.runtime.getURL('timeline/timeline.html') });
   });
 
-  // 専用ページを開く
+  // ログページを開く
   document.getElementById('open-log-page')?.addEventListener('click', () => {
     chrome.tabs.create({ url: chrome.runtime.getURL('log/log.html') });
   });

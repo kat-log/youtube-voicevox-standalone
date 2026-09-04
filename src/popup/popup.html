@@ -627,34 +627,39 @@
       <span class="stats-open-arrow">→</span>
     </div>
 
+    <!-- 他ページへのリンク -->
+    <div class="page-links">
+      <button
+        type="button"
+        id="open-timeline-page"
+        class="small-btn"
+        aria-label="コメント処理タイムラインページを開く"
+        title="コメント処理タイムラインを開く"
+      >
+        タイムライン
+      </button>
+      <button
+        type="button"
+        id="open-settings-page"
+        class="small-btn settings-icon-btn"
+        aria-label="設定ページを開く"
+        title="設定を開く"
+      >⚙</button>
+    </div>
+
     <!-- ログセクション -->
     <div class="accordion">
-      <div style="display: flex; justify-content: space-between; align-items: center">
-        <button class="accordion-button" style="flex: 1; margin-right: 10px">ログ表示</button>
-        <button
-          id="open-timeline-page"
-          class="small-btn"
-          style="margin-left: 6px"
-          aria-label="タイムラインページを開く"
-        >
-          タイムライン
-        </button>
-        <button
-          id="open-log-page"
-          class="small-btn"
-          style="margin-left: 6px"
-          aria-label="専用ページで開く"
-        >
-          専用ページで開く
-        </button>
+      <div class="accordion-header-row">
+        <button class="accordion-button">ログ表示</button>
         <button
           type="button"
-          id="open-settings-page"
-          class="small-btn settings-icon-btn"
-          style="margin-left: 6px"
-          aria-label="設定を開く"
-          title="設定"
-        >⚙</button>
+          id="open-log-page"
+          class="small-btn"
+          aria-label="ログページを開く"
+          title="ログを別ページで開く"
+        >
+          ログページを開く
+        </button>
       </div>
       <div class="accordion-content">
         <pre id="debug"></pre>
