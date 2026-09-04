@@ -37,6 +37,9 @@
   --tooltip-bg: #ffffff;
   --tooltip-text: #1e293b;
   --tooltip-border: #e2e8f0;
+  --btn-secondary-bg: #e2e8f0;
+  --btn-secondary-bg-hover: #cbd5e1;
+  --btn-secondary-text: #475569;
 }
 
 /* 全体設定 */
@@ -328,12 +331,12 @@ input[type='range'] {
 .small-btn {
   font-size: 12px;
   padding: 4px 10px;
-  background-color: #e2e8f0;
-  color: #475569;
+  background-color: var(--btn-secondary-bg);
+  color: var(--btn-secondary-text);
   border-radius: 5px;
 
   &:hover {
-    background-color: #cbd5e1;
+    background-color: var(--btn-secondary-bg-hover);
   }
 }
 
@@ -867,6 +870,9 @@ body.dark-mode {
   --tooltip-bg: #1e293b;
   --tooltip-text: #f1f5f9;
   --tooltip-border: #334155;
+  --btn-secondary-bg: #334155;
+  --btn-secondary-bg-hover: #475569;
+  --btn-secondary-text: #e2e8f0;
 
   .api-key-banner {
     background-color: #422006;
