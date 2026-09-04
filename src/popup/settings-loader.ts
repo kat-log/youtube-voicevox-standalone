@@ -75,11 +75,10 @@ export function loadSettings(): void {
       } else {
         isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       }
-      if (isDark) {
-        document.body.classList.add('dark-mode');
-        darkModeCheckbox.checked = true;
-        darkModeCheckbox.setAttribute('aria-checked', 'true');
-      }
+      // 設定インポート後の再読み込みでも切り替わるよう、ON/OFF 両方を反映する
+      document.body.classList.toggle('dark-mode', isDark);
+      darkModeCheckbox.checked = isDark;
+      darkModeCheckbox.setAttribute('aria-checked', String(isDark));
 
       // フィルタ設定を復元
       const fc = data.filterConfig || {
@@ -255,6 +254,8 @@ export function loadSettings(): void {
         .then((response) => response.json())
         .then((speakers: (string | null)[]) => {
           const select = document.getElementById('speaker') as HTMLSelectElement;
+          // 設定インポート後の再読み込みで選択肢が二重にならないよう作り直す
+          select.innerHTML = '';
           speakers.forEach((speaker, index) => {
             if (speaker) {
               const option = document.createElement('option');
@@ -272,14 +273,12 @@ export function loadSettings(): void {
           const randomCheckbox = document.getElementById('randomSpeakerEnabled') as HTMLInputElement;
           randomCheckbox.checked = randomEnabled;
           randomCheckbox.setAttribute('aria-checked', String(randomEnabled));
-          if (randomEnabled) {
-            // 現在のエンジンに応じた話者ドロップダウンを無効化・ラベル表示
-            updateSpeakerDropdownForRandomMode(engine, true);
-            // 話者選択リンクと要約を表示
-            const configLink = document.getElementById('random-speaker-config-link');
-            if (configLink) configLink.style.display = 'block';
-            updateRandomSpeakerSummary();
-          }
+          // 現在のエンジンに応じた話者ドロップダウンの無効化・ラベル表示を切り替える
+          updateSpeakerDropdownForRandomMode(engine, randomEnabled);
+          // 話者選択リンクと要約の表示を切り替える（設定インポート後の再読み込みでOFFにも戻す）
+          const configLink = document.getElementById('random-speaker-config-link');
+          if (configLink) configLink.style.display = randomEnabled ? 'block' : 'none';
+          if (randomEnabled) updateRandomSpeakerSummary();
 
           // 持ち回り制トグルの有効/無効を設定
           updateParallelSpeakersToggleState();

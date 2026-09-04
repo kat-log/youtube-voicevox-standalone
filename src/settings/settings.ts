@@ -1,5 +1,5 @@
 import '../styles/styles.scss';
-import { initDataManagement } from '../popup/data-management';
+import { initDataManagement } from './data-management';
 import { initVolumeGranularity, refreshVolumeGranularity } from './volume-granularity';
 
 function applyDarkMode(): void {
