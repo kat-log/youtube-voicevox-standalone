@@ -1,4 +1,4 @@
-import type { ExtensionStatus, TtsEngine, RushModeConfig, AutoCatchUpConfig, ParallelPlaybackConfig, ParallelSpeakersConfig } from './state';
+import type { ExtensionStatus, TtsEngine, RushModeConfig, RandomSpeedConfig, AutoCatchUpConfig, ParallelPlaybackConfig, ParallelSpeakersConfig } from './state';
 import type { FilterConfig } from '@/background/comment-filter';
 
 // ログレベル
@@ -91,6 +91,11 @@ export interface UpdateLocalVoicevoxHostMessage {
 export interface UpdateRushModeConfigMessage {
   action: 'updateRushModeConfig';
   rushModeConfig: RushModeConfig;
+}
+
+export interface UpdateRandomSpeedConfigMessage {
+  action: 'updateRandomSpeedConfig';
+  randomSpeedConfig: RandomSpeedConfig;
 }
 
 export interface UpdateAutoCatchUpConfigMessage {
@@ -224,6 +229,7 @@ export type IncomingMessage =
   | UpdateQueueSpeedMessage
   | UpdateFilterConfigMessage
   | UpdateRushModeConfigMessage
+  | UpdateRandomSpeedConfigMessage
   | UpdateAutoCatchUpConfigMessage
   | UpdateParallelPlaybackConfigMessage
   | UpdateParallelSpeakersConfigMessage

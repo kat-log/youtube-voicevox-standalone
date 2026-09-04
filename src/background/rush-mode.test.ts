@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   getState,
   resetState,
@@ -13,6 +13,7 @@ import {
   getRushConfig,
   setRushConfig,
 } from './rush-mode';
+import { DEFAULT_RANDOM_SPEED_CONFIG, setRandomSpeedConfig } from './random-speed';
 
 vi.mock('./messaging', () => ({
   sendStatus: vi.fn(),
@@ -165,6 +166,39 @@ describe('rush-mode', () => {
         rushSpeed: 2.0,
       });
       expect(resolveEffectiveSpeed(1.0)).toBe(1.0);
+    });
+  });
+
+  describe('resolveEffectiveSpeed（ランダム再生速度との優先順位）', () => {
+    afterEach(() => {
+      setRandomSpeedConfig({ ...DEFAULT_RANDOM_SPEED_CONFIG });
+      vi.restoreAllMocks();
+    });
+
+    it('ラッシュ非アクティブでランダムONなら抽選値を返す', () => {
+      setRandomSpeedConfig({ enabled: true, minSpeed: 0.5, maxSpeed: 2.0 });
+      vi.spyOn(Math, 'random').mockReturnValue(0);
+      expect(resolveEffectiveSpeed(1.0)).toBe(0.5);
+    });
+
+    it('ラッシュアクティブ中はランダムONでも rushSpeed が優先される', () => {
+      setRandomSpeedConfig({ enabled: true, minSpeed: 0.5, maxSpeed: 2.0 });
+      vi.spyOn(Math, 'random').mockReturnValue(0);
+      updateState({ isRushActive: true });
+      expect(resolveEffectiveSpeed(1.0)).toBe(2.0);
+    });
+
+    it('ランダムOFFなら baseSpeed のまま', () => {
+      setRandomSpeedConfig({ enabled: false, minSpeed: 0.5, maxSpeed: 2.0 });
+      expect(resolveEffectiveSpeed(1.3)).toBe(1.3);
+    });
+
+    it('発話ごとに抽選するため呼び出しごとに値が変わりうる', () => {
+      setRandomSpeedConfig({ enabled: true, minSpeed: 0.5, maxSpeed: 2.0 });
+      const random = vi.spyOn(Math, 'random');
+      random.mockReturnValueOnce(0).mockReturnValueOnce(1);
+      expect(resolveEffectiveSpeed(1.0)).toBe(0.5);
+      expect(resolveEffectiveSpeed(1.0)).toBe(2.0);
     });
   });
 });

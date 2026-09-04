@@ -7,6 +7,12 @@ export interface RushModeConfig {
   rushSpeed: number;
 }
 
+export interface RandomSpeedConfig {
+  enabled: boolean;
+  minSpeed: number;
+  maxSpeed: number;
+}
+
 export interface AutoCatchUpConfig {
   enabled: boolean;
   threshold: number;

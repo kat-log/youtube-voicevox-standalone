@@ -8,6 +8,7 @@ import { sendStatus, logInfo, logWarn, logError, updateErrorMessage } from './me
 import { loadFilterConfigFromStorage, setFilterConfig } from './comment-filter';
 import { setTtsEngine, setBrowserVoice, setLocalVoicevoxHost, setMaxParallelSynthesis, cancelScheduledProcessing, getTtsProcessingCount } from './tts-api';
 import { loadRushConfigFromStorage, setRushConfig, evaluateRushMode } from './rush-mode';
+import { loadRandomSpeedConfigFromStorage, setRandomSpeedConfig } from './random-speed';
 import { loadAutoCatchUpConfigFromStorage, setAutoCatchUpConfig } from './auto-catchup';
 import { loadParallelPlaybackConfigFromStorage, setParallelPlaybackConfig, loadParallelSpeakersConfigFromStorage, setParallelSpeakersConfig } from './parallel-playback';
 import { loadRandomSpeakerConfigFromStorage, setRandomSpeakerEnabled, setRandomSpeakerEngine, setAllowedSpeakerIds, isRandomSpeakerEnabled, getRandomSpeakerStorageKey } from './random-speaker';
@@ -30,6 +31,9 @@ loadFilterConfigFromStorage();
 
 // ラッシュモード設定をストレージから読み込み
 loadRushConfigFromStorage();
+
+// ランダム再生速度設定をストレージから読み込み
+loadRandomSpeedConfigFromStorage();
 
 // 自動キャッチアップ設定をストレージから読み込み
 loadAutoCatchUpConfigFromStorage();
@@ -329,6 +333,14 @@ chrome.runtime.onMessage.addListener(
         setRushConfig(config);
         chrome.storage.sync.set({ rushModeConfig: config });
         evaluateRushMode();
+        sendResponse({ status: 'success' });
+        return true;
+      }
+
+      case 'updateRandomSpeedConfig': {
+        const config = request.randomSpeedConfig;
+        setRandomSpeedConfig(config);
+        chrome.storage.sync.set({ randomSpeedConfig: config });
         sendResponse({ status: 'success' });
         return true;
       }

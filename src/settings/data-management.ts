@@ -26,6 +26,7 @@ const SYNC_KEYS_WITHOUT_API = [
   'randomSpeakerAllowedIdsBrowser',
   'filterConfig',
   'rushModeConfig',
+  'randomSpeedConfig',
   'autoCatchUpConfig',
   'parallelPlaybackConfig',
   'parallelSpeakersConfig',
