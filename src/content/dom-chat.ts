@@ -82,11 +82,13 @@ if ((window as WindowWithInit).__domChatInitialized) {
   // - yt-live-chat-membership-item-renderer: メンバー加入・メンバー継続メッセージ
   // 金額表示や「メンバーになりました」等の定型文はヘッダー側にあり #message には入らないため、
   // 本文なしのスパチャや加入アナウンスは extractText が空文字を返して自動的にスキップされる。
-  const TARGET_RENDERERS = [
-    'yt-live-chat-text-message-renderer',
-    'yt-live-chat-paid-message-renderer',
-    'yt-live-chat-membership-item-renderer',
-  ];
+  // ログの内訳表示に使うラベルを兼ねる
+  const RENDERER_LABELS: Record<string, string> = {
+    'yt-live-chat-text-message-renderer': '通常',
+    'yt-live-chat-paid-message-renderer': 'スパチャ',
+    'yt-live-chat-membership-item-renderer': 'メンバーシップ',
+  };
+  const TARGET_RENDERERS = Object.keys(RENDERER_LABELS);
   const TARGET_SELECTOR = TARGET_RENDERERS.join(',');
 
   // メンバーシップギフトの購入アナウンスは内部に paid-message renderer を持つが、
@@ -97,6 +99,15 @@ if ((window as WindowWithInit).__domChatInitialized) {
 
   const isTargetRenderer = (el: Element): boolean =>
     TARGET_RENDERERS.includes(el.tagName?.toLowerCase() ?? '');
+
+  // 種別ごとの件数をログ用に集計する（例: "通常2・スパチャ1"）
+  const countUp = (counts: Map<string, number>, label: string): void => {
+    counts.set(label, (counts.get(label) ?? 0) + 1);
+  };
+  const formatCounts = (counts: Map<string, number>): string =>
+    Array.from(counts.entries())
+      .map(([label, count]) => `${label}${count}`)
+      .join('・');
 
   const extractText = (renderer: Element): string => {
     const messageEl = renderer.querySelector('#message');
@@ -172,6 +183,9 @@ if ((window as WindowWithInit).__domChatInitialized) {
 
         const batchBaseTime = Date.now();
         const newMessages: Array<{ text: string; timestampMs: number }> = [];
+        // 動作確認用: 送信した／読み上げ対象外だったコメントの種別内訳
+        const sentCounts = new Map<string, number>();
+        const skippedCounts = new Map<string, number>();
 
         for (const mutation of mutations) {
           for (const node of mutation.addedNodes) {
@@ -180,10 +194,17 @@ if ((window as WindowWithInit).__domChatInitialized) {
             const checkRenderer = (el: Element): void => {
               if (existing.has(el)) return;
               existing.add(el);
-              if (el.closest(GIFT_ANNOUNCEMENT_SELECTOR)) return;
+              const label = RENDERER_LABELS[el.tagName.toLowerCase()] ?? '不明';
+              if (el.closest(GIFT_ANNOUNCEMENT_SELECTOR)) {
+                countUp(skippedCounts, 'メンバーギフト');
+                return;
+              }
               const text = extractText(el);
               if (text) {
                 newMessages.push({ text, timestampMs: batchBaseTime + newMessages.length });
+                countUp(sentCounts, label);
+              } else {
+                countUp(skippedCounts, label);
               }
             };
 
@@ -194,8 +215,12 @@ if ((window as WindowWithInit).__domChatInitialized) {
           }
         }
 
+        if (skippedCounts.size > 0) {
+          sendLog(`読み上げ対象外: ${formatCounts(skippedCounts)}（本文なし・アナウンスのみ）`);
+        }
+
         if (newMessages.length > 0) {
-          sendLog(`新着コメント ${newMessages.length}件 → background へ送信`);
+          sendLog(`新着コメント ${newMessages.length}件（${formatCounts(sentCounts)}） → background へ送信`);
           callChrome(() => {
             chrome.runtime
               .sendMessage({ action: 'domChatMessages', messages: newMessages })
