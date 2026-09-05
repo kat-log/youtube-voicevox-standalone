@@ -72,9 +72,11 @@ export function initPlaybackControls(): void {
     const ytSection = document.getElementById('youtube-api-key-section');
     const saInfo = document.getElementById('standalone-mode-info');
     const domInfo = document.getElementById('dom-mode-info');
+    const officialInfo = document.getElementById('official-mode-info');
     if (ytSection) ytSection.style.display = mode === 'official' ? 'block' : 'none';
     if (saInfo) saInfo.style.display = mode === 'standalone' ? 'block' : 'none';
     if (domInfo) domInfo.style.display = mode === 'dom' ? 'block' : 'none';
+    if (officialInfo) officialInfo.style.display = mode === 'official' ? 'block' : 'none';
     validateInputs();
   });
 

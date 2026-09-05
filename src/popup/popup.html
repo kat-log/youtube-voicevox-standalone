@@ -51,7 +51,10 @@
         <option value="official">YouTube Data API v3（公式・要APIキー）</option>
       </select>
       <p id="dom-mode-info" class="info-text" style="display: none">
-        YouTubeのチャット表示をそのまま取得します。アーカイブ配信のタイムライン同期が正確です。APIキー不要。YouTubeでチャット欄を表示した状態でご使用ください。
+        YouTubeのチャット表示をそのまま取得します。アーカイブ配信のタイムライン同期が正確です。APIキー不要。YouTubeでチャット欄を表示した状態でご使用ください。スーパーチャットとメンバーシップのコメント本文も読み上げます（金額や加入アナウンスなどの定型文は読み上げません）。
+      </p>
+      <p id="official-mode-info" class="info-text" style="display: none">
+        ⚠ この方式ではスーパーチャットとメンバーシップのコメントは読み上げられません。読み上げたい場合はDOMモードをご使用ください。
       </p>
 
       <div id="youtube-api-key-section">
