@@ -1,6 +1,6 @@
 // DOMベース チャット取得 Content Script
 // chrome.scripting.executeScript で live_chat iframe 含む全フレームに注入される
-// MutationObserver で yt-live-chat-text-message-renderer の追加を監視し、
+// MutationObserver で通常コメント・スーパーチャット・メンバーシップの renderer 追加を監視し、
 // テキストを background に送信する。
 
 // 多重実行防止（executeScript + manifest 両方から注入された場合）
@@ -76,6 +76,28 @@ if ((window as WindowWithInit).__domChatInitialized) {
   const UNICODE_EMOJI_ONLY_REGEX =
     /^[\uFE0F\u200D\p{Emoji_Presentation}\p{Extended_Pictographic}\u{1F3FB}-\u{1F3FF}]+$/u;
 
+  // 読み上げ対象の renderer。いずれも視聴者が書いた本文は #message に入る。
+  // - yt-live-chat-text-message-renderer: 通常コメント（メンバーの通常コメントを含む）
+  // - yt-live-chat-paid-message-renderer: スーパーチャット
+  // - yt-live-chat-membership-item-renderer: メンバー加入・メンバー継続メッセージ
+  // 金額表示や「メンバーになりました」等の定型文はヘッダー側にあり #message には入らないため、
+  // 本文なしのスパチャや加入アナウンスは extractText が空文字を返して自動的にスキップされる。
+  const TARGET_RENDERERS = [
+    'yt-live-chat-text-message-renderer',
+    'yt-live-chat-paid-message-renderer',
+    'yt-live-chat-membership-item-renderer',
+  ];
+  const TARGET_SELECTOR = TARGET_RENDERERS.join(',');
+
+  // メンバーシップギフトの購入アナウンスは内部に paid-message renderer を持つが、
+  // 視聴者の発言ではないので対象外にする
+  const GIFT_ANNOUNCEMENT_SELECTOR =
+    'yt-live-chat-sponsorships-gift-purchase-announcement-renderer,' +
+    'ytd-sponsorships-live-chat-gift-purchase-announcement-renderer';
+
+  const isTargetRenderer = (el: Element): boolean =>
+    TARGET_RENDERERS.includes(el.tagName?.toLowerCase() ?? '');
+
   const extractText = (renderer: Element): string => {
     const messageEl = renderer.querySelector('#message');
     if (!messageEl) return '';
@@ -142,7 +164,7 @@ if ((window as WindowWithInit).__domChatInitialized) {
 
       // 開始時点で表示済みのメッセージを記録（重複送信防止）
       const existing = new Set<Element>(
-        Array.from(items.querySelectorAll('yt-live-chat-text-message-renderer'))
+        Array.from(items.querySelectorAll(TARGET_SELECTOR))
       );
 
       observer = new MutationObserver((mutations) => {
@@ -158,16 +180,17 @@ if ((window as WindowWithInit).__domChatInitialized) {
             const checkRenderer = (el: Element): void => {
               if (existing.has(el)) return;
               existing.add(el);
+              if (el.closest(GIFT_ANNOUNCEMENT_SELECTOR)) return;
               const text = extractText(el);
               if (text) {
                 newMessages.push({ text, timestampMs: batchBaseTime + newMessages.length });
               }
             };
 
-            if (node.tagName?.toLowerCase() === 'yt-live-chat-text-message-renderer') {
+            if (isTargetRenderer(node)) {
               checkRenderer(node);
             }
-            node.querySelectorAll('yt-live-chat-text-message-renderer').forEach(checkRenderer);
+            node.querySelectorAll(TARGET_SELECTOR).forEach(checkRenderer);
           }
         }
 

@@ -320,8 +320,10 @@ export function loadSettings(): void {
       (document.getElementById('chatMode') as HTMLSelectElement).value = chatMode;
       const ytSection = document.getElementById('youtube-api-key-section');
       const domInfo = document.getElementById('dom-mode-info');
+      const officialInfo = document.getElementById('official-mode-info');
       if (ytSection) ytSection.style.display = chatMode === 'official' ? 'block' : 'none';
       if (domInfo) domInfo.style.display = chatMode === 'dom' ? 'block' : 'none';
+      if (officialInfo) officialInfo.style.display = chatMode === 'official' ? 'block' : 'none';
 
       // OSに応じてツールチップのテキストを更新
       updateShortcutTooltips();
@@ -399,7 +401,9 @@ async function applyArchiveRestrictions(): Promise<void> {
     chrome.storage.sync.set({ chatMode: 'dom' });
     const ytSection = document.getElementById('youtube-api-key-section');
     const domInfo = document.getElementById('dom-mode-info');
+    const officialInfo = document.getElementById('official-mode-info');
     if (ytSection) ytSection.style.display = 'none';
     if (domInfo) domInfo.style.display = 'block';
+    if (officialInfo) officialInfo.style.display = 'none';
   }
 }
