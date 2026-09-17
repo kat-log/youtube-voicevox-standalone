@@ -10,7 +10,7 @@ YouTube ライブチャットを VOICEVOX で読み上げる Chrome 拡張（Man
 |------|------|
 | ビルドツール | Vite + TypeScript |
 | 出力先 | `dist/` |
-| エントリーポイント | background, domChat, popup, log, onboarding, stats, speakerSelection, speakerConfig, testSpeak, offscreen, hub |
+| エントリーポイント | background, domChat, popup, log, onboarding, stats, speakerSelection, speakerConfig, testSpeak, offscreen, timeline, settings, hub（正は `vite.config.ts` の `rollupOptions.input`） |
 | パス alias | `@/` → `src/` |
 
 ## ファイル配置ルール
