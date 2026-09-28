@@ -4,9 +4,9 @@ YouTube のライブチャットを、音声合成ソフト「VOICEVOX」のず�
 
 🛒 **[Chrome ウェブストアでインストール](https://chromewebstore.google.com/detail/gdakacmdogbakjhalfjkclkagdojhooi?hl=ja)** ｜ 🌐 **[紹介ページ（LP）](https://kat-log.github.io/youtube-voicevox-standalone/)**
 
-[![プロモーション動画（87秒）｜クリックでYouTubeが開きます](docs/img/promo-thumbnail.jpg)](https://youtu.be/Fjkku5TQyDE)
+[![プロモーション動画（90秒）｜クリックでYouTubeが開きます](docs/img/promo-thumbnail.jpg)](https://youtu.be/ikbRv7NPcjY)
 
-▶ **[プロモーション動画を見る（YouTube・87秒）](https://youtu.be/Fjkku5TQyDE)**
+▶ **[プロモーション動画を見る（YouTube・90秒）](https://youtu.be/ikbRv7NPcjY)**
 
 ## 📋 概要
 
