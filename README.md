@@ -4,6 +4,10 @@ YouTube のライブチャットを、音声合成ソフト「VOICEVOX」のず�
 
 🛒 **[Chrome ウェブストアでインストール](https://chromewebstore.google.com/detail/gdakacmdogbakjhalfjkclkagdojhooi?hl=ja)** ｜ 🌐 **[紹介ページ（LP）](https://kat-log.github.io/youtube-voicevox-standalone/)**
 
+[![プロモーション動画（87秒）｜クリックでYouTubeが開きます](docs/img/promo-thumbnail.jpg)](https://youtu.be/Fjkku5TQyDE)
+
+▶ **[プロモーション動画を見る（YouTube・87秒）](https://youtu.be/Fjkku5TQyDE)**
+
 ## 📋 概要
 
 YouTube のライブ配信に流れるコメントを自動で取得し、音声で読み上げます。画面を見ながら別の作業をしていても、コメントを聞き逃さずに楽しめます。

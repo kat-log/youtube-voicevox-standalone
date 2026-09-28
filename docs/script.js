@@ -109,3 +109,19 @@
       : '';
   }, { passive: true });
 })();
+
+// ── Promo video: load the YouTube player only when clicked ──
+(function () {
+  var btn = document.getElementById('promoVideo');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    var id = btn.getAttribute('data-video-id');
+    var iframe = document.createElement('iframe');
+    iframe.src = 'https://www.youtube-nocookie.com/embed/' + id + '?autoplay=1&rel=0';
+    iframe.title = 'YouTubeライブチャット ずんだもんボイス読み上げ プロモーション動画';
+    iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+    iframe.allowFullscreen = true;
+    iframe.referrerPolicy = 'strict-origin-when-cross-origin';
+    btn.replaceWith(iframe);
+  });
+})();
