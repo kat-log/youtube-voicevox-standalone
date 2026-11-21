@@ -49,6 +49,8 @@ chrome.storage.sync.get(['ttsEngine', 'localVoicevoxHost'], (data) => {
   }
 
   fetchSpeakers(host);
+  // プリセット表示はエンジン依存のため、エンジン確定後に描画する
+  loadRandomPresets();
 });
 
 function fetchSpeakers(localHost: string): void {
@@ -395,16 +397,64 @@ function batchToggleStyle(checked: boolean): void {
 // --- Preset management ---
 const MAX_PRESETS = 10;
 
+const ENGINE_LABELS: Record<TtsEngine, string> = {
+  voicevox: 'VOICEVOX（Web API）',
+  'local-voicevox': 'ローカル VOICEVOX',
+  browser: 'ブラウザ内蔵音声',
+};
+
+const ENGINE_STORAGE_KEYS: Record<TtsEngine, string> = {
+  voicevox: 'randomSpeakerAllowedIds',
+  'local-voicevox': 'randomSpeakerAllowedIdsLocal',
+  browser: 'randomSpeakerAllowedIdsBrowser',
+};
+
+function getPresetIdsForEngine(preset: RandomSpeakerPreset, engine: TtsEngine): string[] | null {
+  if (engine === 'voicevox') return preset.allowedIds.voicevox;
+  if (engine === 'local-voicevox') return preset.allowedIds.localVoicevox;
+  return preset.allowedIds.browser;
+}
+
+function buildAllowedIdsForEngine(
+  engine: TtsEngine,
+  ids: string[] | null,
+): RandomSpeakerPreset['allowedIds'] {
+  return {
+    voicevox: engine === 'voicevox' ? ids : null,
+    localVoicevox: engine === 'local-voicevox' ? ids : null,
+    browser: engine === 'browser' ? ids : null,
+  };
+}
+
+/**
+ * プリセットが指定エンジンで使えるか。
+ * engine 付き（新形式）はそのエンジンのみ。
+ * 旧形式は全エンジン分をまとめて保存していたため、null（未設定と区別不能）でない
+ * 選択を持つエンジンのみ対象とする。全エンジン null の場合は「全話者」として全エンジンで可。
+ */
+function isPresetApplicable(preset: RandomSpeakerPreset, engine: TtsEngine): boolean {
+  if (preset.engine) return preset.engine === engine;
+  const { voicevox, localVoicevox, browser } = preset.allowedIds;
+  if (voicevox === null && localVoicevox === null && browser === null) return true;
+  return getPresetIdsForEngine(preset, engine) !== null;
+}
+
+/** 非対応プリセットの表示用に、保存元エンジン名を返す */
+function getPresetEngineLabel(preset: RandomSpeakerPreset): string {
+  if (preset.engine) return ENGINE_LABELS[preset.engine];
+  const engines = (Object.keys(ENGINE_LABELS) as TtsEngine[]).filter(
+    (e) => getPresetIdsForEngine(preset, e) !== null,
+  );
+  return engines.map((e) => ENGINE_LABELS[e]).join('・');
+}
+
 function getPresetSpeakerCountText(preset: RandomSpeakerPreset): string {
-  let ids: string[] | null;
-  if (currentEngine === 'voicevox') {
-    ids = preset.allowedIds.voicevox;
-  } else if (currentEngine === 'local-voicevox') {
-    ids = preset.allowedIds.localVoicevox;
-  } else {
-    ids = preset.allowedIds.browser;
+  if (!isPresetApplicable(preset, currentEngine)) {
+    return `${getPresetEngineLabel(preset)}用（現在のエンジンでは使えません）`;
   }
-  return ids === null ? '全話者' : `${ids.length}話者を選択`;
+  const ids = getPresetIdsForEngine(preset, currentEngine);
+  const unit = currentEngine === 'browser' ? '音声' : '話者';
+  return ids === null ? `全${unit}` : `${ids.length}${unit}を選択`;
 }
 let dragStartId: string | null = null;
 
@@ -430,8 +480,9 @@ function renderPresetList(presets: RandomSpeakerPreset[]): void {
   }
 
   for (const preset of presets) {
+    const applicable = isPresetApplicable(preset, currentEngine);
     const item = document.createElement('div');
-    item.className = 'preset-item';
+    item.className = applicable ? 'preset-item' : 'preset-item inapplicable';
     item.setAttribute('draggable', 'true');
     item.dataset.presetId = preset.id;
 
@@ -510,12 +561,18 @@ function renderPresetList(presets: RandomSpeakerPreset[]): void {
     const loadBtn = document.createElement('button');
     loadBtn.className = 'preset-load-btn';
     loadBtn.textContent = '呼び出す';
-    loadBtn.title = 'このプリセットの設定を読み込む';
+    loadBtn.title = applicable
+      ? 'このプリセットの設定を読み込む'
+      : '別のエンジン用のプリセットのため呼び出せません';
+    loadBtn.disabled = !applicable;
     loadBtn.addEventListener('click', () => applyRandomPreset(preset));
 
     const overwriteBtn = document.createElement('button');
     overwriteBtn.textContent = '上書き';
-    overwriteBtn.title = '現在の選択でこのプリセットを更新';
+    overwriteBtn.title = applicable
+      ? '現在の選択でこのプリセットを更新'
+      : '別のエンジン用のプリセットのため上書きできません';
+    overwriteBtn.disabled = !applicable;
     overwriteBtn.addEventListener('click', () => overwriteRandomPreset(preset.id));
 
     const copyBtn = document.createElement('button');
@@ -572,26 +629,20 @@ function renderPresetList(presets: RandomSpeakerPreset[]): void {
 }
 
 function saveCurrentAsPreset(name: string): void {
-  const keys = [
-    'randomSpeakerAllowedIds',
-    'randomSpeakerAllowedIdsLocal',
-    'randomSpeakerAllowedIdsBrowser',
-  ];
-  chrome.storage.sync.get(keys, (data) => {
+  const engine = currentEngine;
+  const key = ENGINE_STORAGE_KEYS[engine];
+  chrome.storage.sync.get([key], (data) => {
     const preset: RandomSpeakerPreset = {
       id: crypto.randomUUID(),
       name,
-      allowedIds: {
-        voicevox: (data.randomSpeakerAllowedIds as string[] | undefined) ?? null,
-        localVoicevox: (data.randomSpeakerAllowedIdsLocal as string[] | undefined) ?? null,
-        browser: (data.randomSpeakerAllowedIdsBrowser as string[] | undefined) ?? null,
-      },
+      engine,
+      allowedIds: buildAllowedIdsForEngine(engine, (data[key] as string[] | undefined) ?? null),
     };
 
     const errorEl = document.getElementById('presetError')!;
     const jsonSize = JSON.stringify(preset).length;
     if (jsonSize > 7000) {
-      errorEl.textContent = '選択話者数が多すぎます。各エンジンの選択数を減らしてください。';
+      errorEl.textContent = '選択話者数が多すぎます。選択数を減らしてください。';
       errorEl.style.display = 'block';
       return;
     }
@@ -614,33 +665,13 @@ function saveCurrentAsPreset(name: string): void {
 }
 
 function applyRandomPreset(preset: RandomSpeakerPreset): void {
-  const storageUpdate: Record<string, string[] | null> = {
-    randomSpeakerAllowedIds: preset.allowedIds.voicevox,
-    randomSpeakerAllowedIdsLocal: preset.allowedIds.localVoicevox,
-    randomSpeakerAllowedIdsBrowser: preset.allowedIds.browser,
-  };
-
-  // null値のキーは削除、非null値のキーは設定
-  const toSet: Record<string, string[]> = {};
-  const toRemove: string[] = [];
-  for (const [key, val] of Object.entries(storageUpdate)) {
-    if (val === null) {
-      toRemove.push(key);
-    } else {
-      toSet[key] = val;
-    }
-  }
+  // 現在エンジンの分だけを反映する（他エンジンの選択状態には触れない）
+  if (!isPresetApplicable(preset, currentEngine)) return;
+  const engine = currentEngine;
+  const key = ENGINE_STORAGE_KEYS[engine];
+  const engineAllowedIds = getPresetIdsForEngine(preset, engine);
 
   const doApply = () => {
-    // 現在エンジンの選択状態をUIに反映
-    const engineKey =
-      currentEngine === 'local-voicevox'
-        ? 'randomSpeakerAllowedIdsLocal'
-        : currentEngine === 'browser'
-          ? 'randomSpeakerAllowedIdsBrowser'
-          : 'randomSpeakerAllowedIds';
-    const engineAllowedIds = storageUpdate[engineKey];
-
     if (engineAllowedIds === null) {
       checkedIds = new Set(allSpeakers.map((s) => s.id));
     } else {
@@ -653,20 +684,14 @@ function applyRandomPreset(preset: RandomSpeakerPreset): void {
     chrome.runtime.sendMessage({
       action: 'updateRandomSpeakerAllowedIds',
       ids: engineAllowedIds,
-      engine: currentEngine,
+      engine,
     });
   };
 
-  if (toRemove.length > 0) {
-    chrome.storage.sync.remove(toRemove, () => {
-      if (Object.keys(toSet).length > 0) {
-        chrome.storage.sync.set(toSet, doApply);
-      } else {
-        doApply();
-      }
-    });
+  if (engineAllowedIds === null) {
+    chrome.storage.sync.remove(key, doApply);
   } else {
-    chrome.storage.sync.set(toSet, doApply);
+    chrome.storage.sync.set({ [key]: engineAllowedIds }, doApply);
   }
 }
 
@@ -703,20 +728,16 @@ function renameRandomPreset(id: string, newName: string): void {
 }
 
 function overwriteRandomPreset(id: string): void {
-  const keys = [
-    'randomSpeakerAllowedIds',
-    'randomSpeakerAllowedIdsLocal',
-    'randomSpeakerAllowedIdsBrowser',
-  ];
-  chrome.storage.sync.get(keys, (data) => {
-    const newAllowedIds: RandomSpeakerPreset['allowedIds'] = {
-      voicevox: (data.randomSpeakerAllowedIds as string[] | undefined) ?? null,
-      localVoicevox: (data.randomSpeakerAllowedIdsLocal as string[] | undefined) ?? null,
-      browser: (data.randomSpeakerAllowedIdsBrowser as string[] | undefined) ?? null,
-    };
+  const engine = currentEngine;
+  const key = ENGINE_STORAGE_KEYS[engine];
+  chrome.storage.sync.get([key], (data) => {
+    const newAllowedIds = buildAllowedIdsForEngine(
+      engine,
+      (data[key] as string[] | undefined) ?? null,
+    );
     const errorEl = document.getElementById('presetError')!;
     if (JSON.stringify(newAllowedIds).length > 7000) {
-      errorEl.textContent = '選択話者数が多すぎます。各エンジンの選択数を減らしてください。';
+      errorEl.textContent = '選択話者数が多すぎます。選択数を減らしてください。';
       errorEl.style.display = 'block';
       return;
     }
@@ -724,7 +745,7 @@ function overwriteRandomPreset(id: string): void {
       const presets = (d2.randomSpeakerPresets as RandomSpeakerPreset[] | undefined) ?? [];
       const idx = presets.findIndex((p) => p.id === id);
       if (idx < 0) return;
-      presets[idx] = { ...presets[idx], allowedIds: newAllowedIds };
+      presets[idx] = { ...presets[idx], engine, allowedIds: newAllowedIds };
       chrome.storage.sync.set({ randomSpeakerPresets: presets }, () => loadRandomPresets());
     });
   });
@@ -763,8 +784,6 @@ document.getElementById('presetNameInput')!.addEventListener('keydown', (e) => {
   }
 });
 
-// 初期ロード
-loadRandomPresets();
 
 function applyFilters(): void {
   const query = (document.getElementById('searchInput') as HTMLInputElement).value.toLowerCase();

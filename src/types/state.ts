@@ -36,6 +36,8 @@ export interface ParallelSpeakersConfig {
 export interface RandomSpeakerPreset {
   id: string;
   name: string;
+  /** プリセットを保存したエンジン。旧形式（未設定）は allowedIds の中身から推定する */
+  engine?: TtsEngine;
   allowedIds: {
     voicevox: string[] | null;
     localVoicevox: string[] | null;
