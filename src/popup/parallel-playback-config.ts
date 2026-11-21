@@ -1,5 +1,6 @@
 import { setRangeFill } from './slider-utils';
 import type { ParallelSpeakersConfig } from '@/types/state';
+import { updateSpeakerDropdownForRandomMode } from './random-speaker-config';
 
 function sendParallelPlaybackConfig(): void {
   const alwaysEnabled = (document.getElementById('parallelAlwaysEnabled') as HTMLInputElement).checked;
@@ -214,11 +215,8 @@ export function initParallelPlaybackConfig(): void {
         randomToggle.setAttribute('aria-checked', 'false');
         // メインの話者ドロップダウンを再有効化
         const engine = (document.getElementById('ttsEngine') as HTMLSelectElement).value;
-        if (engine === 'local-voicevox') {
-          (document.getElementById('localSpeaker') as HTMLSelectElement).disabled = false;
-        } else {
-          (document.getElementById('speaker') as HTMLSelectElement).disabled = false;
-        }
+        // （disabled を外すだけだとダミーの「ランダム話者モード中」option が選択されたまま残る）
+        updateSpeakerDropdownForRandomMode(engine, false);
         // ランダム話者の設定リンクを非表示
         const configLink = document.getElementById('random-speaker-config-link');
         if (configLink) configLink.style.display = 'none';

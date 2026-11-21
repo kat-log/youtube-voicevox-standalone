@@ -6,7 +6,7 @@ import { startPolling, stopAll } from './lifecycle';
 import { processChatMessages, getStandaloneConfig, setStandaloneConfig } from './lifecycle-internal';
 import { sendStatus, logInfo, logWarn, logError, updateErrorMessage } from './messaging';
 import { loadFilterConfigFromStorage, setFilterConfig } from './comment-filter';
-import { setTtsEngine, setBrowserVoice, setLocalVoicevoxHost, setMaxParallelSynthesis, cancelScheduledProcessing, getTtsProcessingCount } from './tts-api';
+import { setTtsEngine, setBrowserVoice, setLocalVoicevoxHost, getLocalVoicevoxHost, setMaxParallelSynthesis, cancelScheduledProcessing, getTtsProcessingCount } from './tts-api';
 import { loadRushConfigFromStorage, setRushConfig, evaluateRushMode } from './rush-mode';
 import { loadRandomSpeedConfigFromStorage, setRandomSpeedConfig } from './random-speed';
 import { loadAutoCatchUpConfigFromStorage, setAutoCatchUpConfig } from './auto-catchup';
@@ -15,10 +15,9 @@ import { loadRandomSpeakerConfigFromStorage, setRandomSpeakerEnabled, setRandomS
 import { initSpeakerNames, initLocalSpeakerNames, setSpeakerNameEngine } from './speaker-names';
 import { handleTestSpeak, isTestAudioId, handleTestAudioEnded, handleTestAudioError } from './test-speak';
 import { fetchWithTimeout } from '@/utils/fetchWithTimeout';
-import type { TtsEngine } from '@/types/state';
 import type { IncomingMessage } from '@/types/messages';
 import { getAllLifecycles } from './lifecycle-tracker';
-import { initSettingsSync } from './settings-sync';
+import { initSettingsSync, loadTtsEngineConfigFromStorage } from './settings-sync';
 
 // ポップアップ・ログページから session storage にアクセスできるようにする
 chrome.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' });
@@ -57,21 +56,7 @@ initSettingsSync();
 initSpeakerNames();
 
 // TTSエンジン設定をストレージから読み込み
-chrome.storage.sync.get(['ttsEngine', 'browserVoice', 'localVoicevoxHost', 'parallelSynthesisCount'], (data) => {
-  const engine = data.ttsEngine as TtsEngine | undefined;
-  if (engine) {
-    setTtsEngine(engine);
-    setSpeakerNameEngine(engine);
-  }
-  if (data.browserVoice) setBrowserVoice(data.browserVoice as string);
-  if (data.localVoicevoxHost) {
-    setLocalVoicevoxHost(data.localVoicevoxHost as string);
-    if (engine === 'local-voicevox') {
-      initLocalSpeakerNames(data.localVoicevoxHost as string);
-    }
-  }
-  setMaxParallelSynthesis((data.parallelSynthesisCount as number | undefined) ?? 3);
-});
+void loadTtsEngineConfigFromStorage();
 
 // 共通の読み上げ開始フロー（onMessageとonCommandで共有）
 async function handleStart(config: {
@@ -412,12 +397,11 @@ chrome.runtime.onMessage.addListener(
         setSpeakerNameEngine(engine);
         chrome.storage.sync.set({ ttsEngine: engine });
         // ランダム話者のソースエンジンも切替
-        chrome.storage.sync.get(['localVoicevoxHost'], (data) => {
-          setRandomSpeakerEngine(engine, data.localVoicevoxHost);
-          if (engine === 'local-voicevox' && data.localVoicevoxHost) {
-            initLocalSpeakerNames(data.localVoicevoxHost);
-          }
-        });
+        // ホスト未保存（デフォルトのまま）でもローカル話者名を取得できるよう、キャッシュ済みの値を使う
+        setRandomSpeakerEngine(engine, getLocalVoicevoxHost());
+        if (engine === 'local-voicevox') {
+          initLocalSpeakerNames(getLocalVoicevoxHost());
+        }
         sendResponse({ status: 'success' });
         return true;
       }

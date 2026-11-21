@@ -302,3 +302,57 @@ describe('applySyncStorageChanges: 話者ID', () => {
     expect(getStandaloneConfig()?.speakerId).toBeUndefined();
   });
 });
+
+describe('loadTtsEngineConfigFromStorage: 起動時のエンジン設定', () => {
+  const localSpeakers = [{ name: 'ローカル話者', styles: [{ id: 3, name: 'ノーマル' }] }];
+  const webSpeakers = ['Web0', 'Web1', 'Web2', 'Web話者3'];
+
+  beforeEach(() => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        const body = url.startsWith('http://localhost:50021/speakers') ? localSpeakers : webSpeakers;
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(body) } as Response);
+      })
+    );
+  });
+
+  it('ttsEngine・ホストが未保存でも既定のローカルVOICEVOXとして話者名を解決する', async () => {
+    const { loadTtsEngineConfigFromStorage } = await import('./settings-sync');
+    const { getTtsEngine, getLocalVoicevoxHost } = await import('./tts-api');
+    const { getSpeakerName } = await import('./speaker-names');
+
+    await loadTtsEngineConfigFromStorage();
+    await flush();
+
+    expect(getTtsEngine()).toBe('local-voicevox');
+    expect(getLocalVoicevoxHost()).toBe('http://localhost:50021');
+    // Web API の話者名（Web話者3）ではなく、ローカルエンジンの話者名になる
+    expect(getSpeakerName('3')).toBe('ローカル話者 (ノーマル)');
+  });
+
+  it('ブラウザ内蔵音声ではローカル話者リストを取りに行かない', async () => {
+    const { loadTtsEngineConfigFromStorage } = await import('./settings-sync');
+    const { getTtsEngine, getBrowserVoice } = await import('./tts-api');
+
+    syncStore.ttsEngine = 'browser';
+    syncStore.browserVoice = 'Kyoko';
+    await loadTtsEngineConfigFromStorage();
+    await flush();
+
+    expect(getTtsEngine()).toBe('browser');
+    expect(getBrowserVoice()).toBe('Kyoko');
+    const calls = (fetch as unknown as { mock: { calls: string[][] } }).mock.calls;
+    expect(calls.some(([url]) => url.includes('/speakers') && url.startsWith('http://localhost'))).toBe(false);
+  });
+
+  it('不正な ttsEngine はデフォルトに戻す', async () => {
+    const { loadTtsEngineConfigFromStorage } = await import('./settings-sync');
+    const { getTtsEngine } = await import('./tts-api');
+
+    syncStore.ttsEngine = 'unknown-engine';
+    await loadTtsEngineConfigFromStorage();
+
+    expect(getTtsEngine()).toBe('local-voicevox');
+  });
+});
