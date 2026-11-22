@@ -91,8 +91,10 @@ export function playNextAudio(): void {
     lastQueueEmptyLogged = false;
 
     // キャッシュ済みの音量・速度で再生（速度はラッシュ／ランダム再生速度をここで解決する）
+    // 速度を変えられないブラウザ音声ではラッシュ／ランダム再生速度も効かないため等速として扱う
     const volume = cachedVolume;
-    const speed = resolveEffectiveSpeed(cachedSpeed);
+    const rateSupported = item.type !== 'speech' || isRateSupportedVoice(item.voiceName);
+    const speed = rateSupported ? resolveEffectiveSpeed(cachedSpeed) : 1.0;
 
     sendStatus('listening');
     logDebug(`▶ 再生開始 [${audioId}] | 速度: ${speed.toFixed(1)}x | 同時再生: ${getState().playingCount}/${maxConcurrent} | キュー: ${formatQueueState()}`);
@@ -160,7 +162,12 @@ async function playAudioViaOffscreen(audioId: string, audioUrl: string, volume: 
   }
 }
 
-// ブラウザTTS: chrome.tts APIで再生
+/**
+ * ブラウザTTS: chrome.tts APIで再生
+ * enqueue: true にして、テスト再生（同じく enqueue）と chrome.tts の中で順番に再生させる。
+ * enqueue なしで speak すると再生中の発話が打ち切られ、読み上げ途中のコメントが失われるため。
+ * （配信側は playingCount で1件ずつしか speak しないので、配信同士が溜まることはない）
+ */
 function playSpeechSynthesis(
   audioId: string,
   text: string,
@@ -173,6 +180,7 @@ function playSpeechSynthesis(
     {
       voiceName: voiceName || undefined,
       lang: 'ja-JP',
+      enqueue: true,
       rate: isRateSupportedVoice(voiceName) ? correctTtsRate(speed) : 1.0,
       volume: isRateSupportedVoice(voiceName) ? volume : 1.0,
       onEvent: (event) => {

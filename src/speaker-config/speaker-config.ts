@@ -9,6 +9,24 @@ let savedEnabled = false; // 持ち回り制の有効/無効（このページ�
 let savedSpeakerIds: string[] = [];
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
+/**
+ * ブラウザ内蔵音声は並列再生できず、持ち回り話者も読み上げに使われないため、このページの設定は効かない。
+ * 保存済みの設定（VOICEVOX 用）を誤って上書きしないよう、閲覧のみにする。
+ */
+function isUnsupportedEngine(): boolean {
+  return currentEngine === 'browser';
+}
+
+function applyUnsupportedEngineUI(): void {
+  document.getElementById('browser-unsupported-note')!.style.display = 'block';
+  document.getElementById('speaker-assignments')!.style.display = 'none';
+  document.getElementById('test-text-form')!.style.display = 'none';
+  const countSlider = document.getElementById('speakerCount') as HTMLInputElement;
+  countSlider.disabled = true;
+  (document.getElementById('rrPresetNameInput') as HTMLInputElement).disabled = true;
+  (document.getElementById('rrSavePresetBtn') as HTMLButtonElement).disabled = true;
+}
+
 // テスト再生結果リスナーを初期化
 initTestSpeakResultListener();
 
@@ -58,6 +76,14 @@ chrome.storage.sync.get(
     countSlider.value = String(psc.roundRobinSpeakerCount);
     document.getElementById('current-count')!.textContent = String(psc.roundRobinSpeakerCount);
     countSlider.setAttribute('aria-valuetext', String(psc.roundRobinSpeakerCount));
+
+    // プリセット一覧は「使えるか」がエンジン依存のため、エンジン確定後に描画する
+    loadRoundRobinPresets();
+
+    if (isUnsupportedEngine()) {
+      applyUnsupportedEngineUI();
+      return;
+    }
 
     // ランダム話者モードの判定
     const randomEnabled = data.randomSpeakerEnabled || false;
@@ -261,7 +287,7 @@ function loadRoundRobinPresets(): void {
     const presets = (data.roundRobinPresets as RoundRobinPreset[] | undefined) ?? [];
     renderRoundRobinPresetList(presets);
     const saveBtn = document.getElementById('rrSavePresetBtn') as HTMLButtonElement;
-    saveBtn.disabled = presets.length >= RR_MAX_PRESETS;
+    saveBtn.disabled = presets.length >= RR_MAX_PRESETS || isUnsupportedEngine();
   });
 }
 
@@ -364,6 +390,11 @@ function renderRoundRobinPresetList(presets: RoundRobinPreset[]): void {
     const overwriteBtn = document.createElement('button');
     overwriteBtn.textContent = '上書き';
     overwriteBtn.title = '現在の設定でこのプリセットを更新';
+    if (isUnsupportedEngine()) {
+      loadBtn.disabled = true;
+      overwriteBtn.disabled = true;
+      loadBtn.title = overwriteBtn.title = 'ブラウザ内蔵音声では使えません';
+    }
     overwriteBtn.addEventListener('click', () => overwriteRoundRobinPreset(preset.id));
 
     const copyBtn = document.createElement('button');
@@ -556,9 +587,6 @@ document.getElementById('rrPresetNameInput')!.addEventListener('keydown', (e) =>
     document.getElementById('rrSavePresetBtn')!.click();
   }
 });
-
-// 初期ロード
-loadRoundRobinPresets();
 
 // --- Resizable panel ---
 const PANEL_WIDTH_KEY = 'roundRobinPanelWidth';

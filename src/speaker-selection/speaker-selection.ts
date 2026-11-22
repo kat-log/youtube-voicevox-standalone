@@ -8,10 +8,16 @@ import {
   type ParsedSpeaker,
 } from '@/utils/speaker-parser';
 import { createTestSpeakButton, initTestSpeakResultListener } from '@/utils/test-speak-ui';
+import { getDefaultBrowserVoiceNames } from '@/utils/browser-voices';
 
 let allSpeakers: ParsedSpeaker[] = [];
 let currentEngine: TtsEngine = 'voicevox';
 let checkedIds = new Set<string>();
+/**
+ * 許可リスト未設定（＝保存値なし）のときに選ばれる話者。
+ * ブラウザ音声は日本語のみ（なければ全音声）、それ以外は全話者。background の既定候補と一致させる。
+ */
+let defaultSpeakerIds: string[] = [];
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
 // テスト再生結果リスナーを初期化
@@ -74,6 +80,7 @@ function fetchSpeakers(localHost: string): void {
           fullName: `${v.voiceName} (${v.lang || '?'})`,
         })),
       ];
+      defaultSpeakerIds = getDefaultBrowserVoiceNames(voices);
       loadAllowedAndRender();
     });
   } else if (currentEngine === 'local-voicevox') {
@@ -85,6 +92,7 @@ function fetchSpeakers(localHost: string): void {
           return;
         }
         allSpeakers = parseLocalSpeakers(response.speakers);
+        defaultSpeakerIds = allSpeakers.map((s) => s.id);
         loadAllowedAndRender();
       }
     );
@@ -99,6 +107,7 @@ function fetchSpeakers(localHost: string): void {
         allSpeakers = response.speakers
           .map((name, index) => (name !== null ? parseSpeakerName(String(index), name) : null))
           .filter((s): s is ParsedSpeaker => s !== null);
+        defaultSpeakerIds = allSpeakers.map((s) => s.id);
         loadAllowedAndRender();
       }
     );
@@ -116,8 +125,8 @@ function loadAllowedAndRender(): void {
     if (saved) {
       checkedIds = new Set(saved);
     } else {
-      // 未設定 = 全話者
-      checkedIds = new Set(allSpeakers.map((s) => s.id));
+      // 未設定 = 既定の候補（ブラウザ音声は日本語のみ、それ以外は全話者）
+      checkedIds = new Set(defaultSpeakerIds);
     }
     render();
   });
@@ -296,8 +305,11 @@ function updateSummary(): void {
 function autoSave(): void {
   if (autoSaveTimer) clearTimeout(autoSaveTimer);
   autoSaveTimer = setTimeout(() => {
-    const isAll = checkedIds.size >= allSpeakers.length;
-    const ids = isAll ? null : Array.from(checkedIds);
+    // 既定の候補とまったく同じ選択なら「未設定」として保存する
+    const isDefault =
+      checkedIds.size === defaultSpeakerIds.length &&
+      defaultSpeakerIds.every((id) => checkedIds.has(id));
+    const ids = isDefault ? null : Array.from(checkedIds);
 
     chrome.runtime.sendMessage({
       action: 'updateRandomSpeakerAllowedIds',
@@ -454,7 +466,8 @@ function getPresetSpeakerCountText(preset: RandomSpeakerPreset): string {
   }
   const ids = getPresetIdsForEngine(preset, currentEngine);
   const unit = currentEngine === 'browser' ? '音声' : '話者';
-  return ids === null ? `全${unit}` : `${ids.length}${unit}を選択`;
+  if (ids === null) return currentEngine === 'browser' ? '日本語の全音声' : `全${unit}`;
+  return `${ids.length}${unit}を選択`;
 }
 let dragStartId: string | null = null;
 
@@ -673,7 +686,7 @@ function applyRandomPreset(preset: RandomSpeakerPreset): void {
 
   const doApply = () => {
     if (engineAllowedIds === null) {
-      checkedIds = new Set(allSpeakers.map((s) => s.id));
+      checkedIds = new Set(defaultSpeakerIds);
     } else {
       checkedIds = new Set(engineAllowedIds);
     }
