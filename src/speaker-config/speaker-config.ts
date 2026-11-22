@@ -2,11 +2,16 @@ import '../styles/styles.scss';
 import type { TtsEngine, ParallelSpeakersConfig, RoundRobinPreset } from '@/types/state';
 import { RANDOM_SPEAKER_SENTINEL } from '@/types/state';
 import { initTestSpeakResultListener } from '@/utils/test-speak-ui';
+import {
+  getSpeakerIdsForEngine,
+  withSpeakerIdsForEngine,
+  isRoundRobinPresetApplicable,
+  isRoundRobinSupportedEngine,
+} from '@/utils/round-robin';
 
 let speakerOptions: Array<{ value: string; label: string }> = [];
 let currentEngine: TtsEngine = 'voicevox';
-let savedEnabled = false; // 持ち回り制の有効/無効（このページでは変更しない）
-let savedSpeakerIds: string[] = [];
+let savedSpeakerIds: string[] = []; // 現在のエンジン用の持ち回り話者ID
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
 /**
@@ -14,8 +19,20 @@ let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
  * 保存済みの設定（VOICEVOX 用）を誤って上書きしないよう、閲覧のみにする。
  */
 function isUnsupportedEngine(): boolean {
-  return currentEngine === 'browser';
+  return !isRoundRobinSupportedEngine(currentEngine);
 }
+
+const ENGINE_LABELS: Record<TtsEngine, string> = {
+  voicevox: 'VOICEVOX（Web API）',
+  'local-voicevox': 'ローカル VOICEVOX',
+  browser: 'ブラウザ内蔵音声',
+};
+
+const DEFAULT_PSC: ParallelSpeakersConfig = {
+  enabled: false,
+  speakerIds: [],
+  roundRobinSpeakerCount: 3,
+};
 
 function applyUnsupportedEngineUI(): void {
   document.getElementById('browser-unsupported-note')!.style.display = 'block';
@@ -69,8 +86,8 @@ chrome.storage.sync.get(
       speakerIds: [],
       roundRobinSpeakerCount: 3,
     };
-    savedEnabled = psc.enabled;
-    savedSpeakerIds = psc.speakerIds;
+    // Web API とローカルでは話者IDの体系が異なる場合があるため、現在のエンジン用の値を使う
+    savedSpeakerIds = getSpeakerIdsForEngine(psc, currentEngine);
 
     const countSlider = document.getElementById('speakerCount') as HTMLInputElement;
     countSlider.value = String(psc.roundRobinSpeakerCount);
@@ -250,21 +267,25 @@ function autoSave(): void {
       speakerIds.push(select.value);
     });
 
-    const config: ParallelSpeakersConfig = {
-      enabled: savedEnabled,
-      speakerIds,
-      roundRobinSpeakerCount,
-    };
+    // 有効/無効（ポップアップで切り替える）と他エンジンの話者は最新の保存値を引き継ぐ
+    chrome.storage.sync.get(['parallelSpeakersConfig'], (data) => {
+      const base: ParallelSpeakersConfig = { ...DEFAULT_PSC, ...data.parallelSpeakersConfig };
+      const config = withSpeakerIdsForEngine(
+        { ...base, roundRobinSpeakerCount },
+        currentEngine,
+        speakerIds,
+      );
 
-    chrome.runtime.sendMessage(
-      {
-        action: 'updateParallelSpeakersConfig',
-        parallelSpeakersConfig: config,
-      },
-      () => {
-        savedSpeakerIds = speakerIds;
-      }
-    );
+      chrome.runtime.sendMessage(
+        {
+          action: 'updateParallelSpeakersConfig',
+          parallelSpeakersConfig: config,
+        },
+        () => {
+          savedSpeakerIds = speakerIds;
+        }
+      );
+    });
   }, 300);
 }
 
@@ -304,8 +325,9 @@ function renderRoundRobinPresetList(presets: RoundRobinPreset[]): void {
   }
 
   for (const preset of presets) {
+    const applicable = isRoundRobinPresetApplicable(preset, currentEngine);
     const item = document.createElement('div');
-    item.className = 'preset-item';
+    item.className = applicable ? 'preset-item' : 'preset-item inapplicable';
     item.setAttribute('draggable', 'true');
     item.dataset.presetId = preset.id;
 
@@ -390,10 +412,15 @@ function renderRoundRobinPresetList(presets: RoundRobinPreset[]): void {
     const overwriteBtn = document.createElement('button');
     overwriteBtn.textContent = '上書き';
     overwriteBtn.title = '現在の設定でこのプリセットを更新';
-    if (isUnsupportedEngine()) {
+    if (!applicable) {
       loadBtn.disabled = true;
       overwriteBtn.disabled = true;
-      loadBtn.title = overwriteBtn.title = 'ブラウザ内蔵音声では使えません';
+      if (isUnsupportedEngine()) {
+        loadBtn.title = overwriteBtn.title = 'ブラウザ内蔵音声では使えません';
+      } else {
+        loadBtn.title = '別のエンジン用のプリセットのため呼び出せません';
+        overwriteBtn.title = '別のエンジン用のプリセットのため上書きできません';
+      }
     }
     overwriteBtn.addEventListener('click', () => overwriteRoundRobinPreset(preset.id));
 
@@ -413,7 +440,10 @@ function renderRoundRobinPresetList(presets: RoundRobinPreset[]): void {
 
     const metaEl = document.createElement('div');
     metaEl.className = 'preset-item-meta';
-    metaEl.textContent = `${preset.roundRobinSpeakerCount}話者`;
+    metaEl.textContent =
+      preset.engine && !applicable
+        ? `${preset.roundRobinSpeakerCount}話者・${ENGINE_LABELS[preset.engine]}用（現在のエンジンでは使えません）`
+        : `${preset.roundRobinSpeakerCount}話者`;
 
     item.appendChild(topRow);
     item.appendChild(metaEl);
@@ -462,6 +492,7 @@ function saveCurrentAsRoundRobinPreset(name: string): void {
   const preset: RoundRobinPreset = {
     id: crypto.randomUUID(),
     name,
+    engine: currentEngine,
     speakerIds,
     roundRobinSpeakerCount,
   };
@@ -485,6 +516,8 @@ function saveCurrentAsRoundRobinPreset(name: string): void {
 }
 
 function applyRoundRobinPreset(preset: RoundRobinPreset): void {
+  // 別エンジン用のプリセットは話者IDの体系が違う可能性があるため適用しない
+  if (!isRoundRobinPresetApplicable(preset, currentEngine)) return;
   const slider = document.getElementById('speakerCount') as HTMLInputElement;
   slider.value = String(preset.roundRobinSpeakerCount);
   document.getElementById('current-count')!.textContent = String(preset.roundRobinSpeakerCount);
@@ -550,7 +583,8 @@ function overwriteRoundRobinPreset(id: string): void {
     const presets = (data.roundRobinPresets as RoundRobinPreset[] | undefined) ?? [];
     const idx = presets.findIndex((p) => p.id === id);
     if (idx < 0) return;
-    presets[idx] = { ...presets[idx], speakerIds, roundRobinSpeakerCount };
+    // 上書きした時点で現在のエンジン用として確定させる（旧形式のプリセットもここで engine が付く）
+    presets[idx] = { ...presets[idx], engine: currentEngine, speakerIds, roundRobinSpeakerCount };
     chrome.storage.sync.set({ roundRobinPresets: presets }, () => loadRoundRobinPresets());
   });
 }
