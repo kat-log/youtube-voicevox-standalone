@@ -1,12 +1,15 @@
 import { stripRandomSentinel, type TtsEngine } from '@/types/state';
 import { logWarn } from './messaging';
 import { fetchWithTimeout } from '@/utils/fetchWithTimeout';
+import { getDefaultBrowserVoiceNames } from '@/utils/browser-voices';
 
 export const DEFAULT_TTS_ENGINE: TtsEngine = 'local-voicevox';
 export const DEFAULT_LOCAL_VOICEVOX_HOST = 'http://localhost:50021';
 
 let randomSpeakerEnabled = false;
 let allSpeakerIds: string[] = [];
+/** 許可リスト未設定（null）のときに使う候補。ブラウザ音声は日本語のみ、それ以外は全話者 */
+let defaultSpeakerIds: string[] = [];
 let cachedSpeakerIds: string[] = [];
 let allowedSpeakerIds: Set<string> | null = null;
 let isFetching = false;
@@ -45,6 +48,7 @@ export function setRandomSpeakerEngine(engine: TtsEngine, host?: string): void {
   if (engineChanged || hostChanged) {
     // エンジンまたはホスト変更時はキャッシュをクリア
     allSpeakerIds = [];
+    defaultSpeakerIds = [];
     cachedSpeakerIds = [];
     // エンジンに応じた allowlist を読み込む
     const storageKey = getRandomSpeakerStorageKey(engine);
@@ -70,14 +74,21 @@ export function setAllowedSpeakerIds(ids: string[] | null): void {
 
 function applyAllowedFilter(): void {
   if (allowedSpeakerIds === null) {
-    cachedSpeakerIds = [...allSpeakerIds];
+    cachedSpeakerIds = [...defaultSpeakerIds];
   } else {
     cachedSpeakerIds = allSpeakerIds.filter((id) => allowedSpeakerIds!.has(id));
   }
-  // フィルタ結果が空なら全話者にフォールバック
-  if (cachedSpeakerIds.length === 0 && allSpeakerIds.length > 0) {
-    cachedSpeakerIds = [...allSpeakerIds];
+  // フィルタ結果が空なら既定の候補（なければ全話者）にフォールバック
+  if (cachedSpeakerIds.length === 0) {
+    cachedSpeakerIds = defaultSpeakerIds.length > 0 ? [...defaultSpeakerIds] : [...allSpeakerIds];
   }
+}
+
+/** 話者リストを取得し終えたときに、全話者と既定の候補をまとめて設定する */
+function setSpeakerList(all: string[], defaults: string[] = all): void {
+  allSpeakerIds = all;
+  defaultSpeakerIds = defaults;
+  applyAllowedFilter();
 }
 
 /**
@@ -106,6 +117,7 @@ export function loadRandomSpeakerConfigFromStorage(): void {
       // エンジン／ホストが変わったら話者リストのキャッシュは無効
       if (engineChanged || (engine === 'local-voicevox' && hostChanged)) {
         allSpeakerIds = [];
+        defaultSpeakerIds = [];
         cachedSpeakerIds = [];
       }
 
@@ -141,10 +153,11 @@ function fetchApiSpeakerIds(): void {
   fetchWithTimeout('https://static.tts.quest/voicevox_speakers.json', 10_000)
     .then((res) => res.json())
     .then((speakers: (string | null)[]) => {
-      allSpeakerIds = speakers
-        .map((name, index) => (name !== null ? String(index) : null))
-        .filter((id): id is string => id !== null);
-      applyAllowedFilter();
+      setSpeakerList(
+        speakers
+          .map((name, index) => (name !== null ? String(index) : null))
+          .filter((id): id is string => id !== null)
+      );
     })
     .catch((err) => {
       logWarn(`⚠ ランダム話者リスト取得失敗: ${(err as Error).message}`);
@@ -161,10 +174,9 @@ function fetchLocalSpeakerIds(): void {
       return res.json();
     })
     .then((speakers: Array<{ name: string; styles: Array<{ id: number; name: string }> }>) => {
-      allSpeakerIds = speakers.flatMap((speaker) =>
-        speaker.styles.map((style) => String(style.id))
+      setSpeakerList(
+        speakers.flatMap((speaker) => speaker.styles.map((style) => String(style.id)))
       );
-      applyAllowedFilter();
     })
     .catch((err) => {
       logWarn(`⚠ ローカル話者リスト取得失敗: ${(err as Error).message}`);
@@ -176,10 +188,10 @@ function fetchLocalSpeakerIds(): void {
 
 function fetchBrowserVoiceNames(): void {
   chrome.tts.getVoices((voices) => {
-    allSpeakerIds = voices
-      .filter((v) => v.voiceName)
-      .map((v) => v.voiceName!);
-    applyAllowedFilter();
+    setSpeakerList(
+      voices.filter((v) => v.voiceName).map((v) => v.voiceName!),
+      getDefaultBrowserVoiceNames(voices)
+    );
     isFetching = false;
   });
 }

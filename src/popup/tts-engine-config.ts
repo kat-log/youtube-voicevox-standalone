@@ -22,50 +22,87 @@ function isRateSupportedVoice(voiceName: string): boolean {
   return name === 'kyoko' || name.startsWith('google');
 }
 
+/** ブラウザ内蔵音声でランダム話者モードが ON か */
+function isBrowserRandomSpeakerMode(): boolean {
+  const engine = (document.getElementById('ttsEngine') as HTMLSelectElement).value;
+  const randomEnabled = (document.getElementById('randomSpeakerEnabled') as HTMLInputElement | null)
+    ?.checked ?? false;
+  return engine === 'browser' && randomEnabled;
+}
+
 /**
- * ランダム再生速度トグルの有効/無効を更新し、更新後の ON/OFF を返す。
- * 速度が効かない音声ではランダム再生速度も意味を持たないため、そもそも操作させない。
+ * 現在のエンジン・音声で速度・音量の変更が効くかを返す。
+ * ランダム話者モード中のドロップダウンはダミー値（'__random__'）なので判定に使わない。
+ * その場合は対応とみなし、実際の可否は background が再生時に音声ごとに判定する。
  */
-function updateRandomSpeedToggleState(rateSupported: boolean): boolean {
-  const toggle = document.getElementById('randomSpeedEnabled') as HTMLInputElement;
+function isRateSupportedForCurrentSelection(): boolean {
+  const engine = (document.getElementById('ttsEngine') as HTMLSelectElement).value;
+  if (engine !== 'browser') return true;
+  if (isBrowserRandomSpeakerMode()) return true;
+  return isRateSupportedVoice((document.getElementById('browserVoice') as HTMLSelectElement).value);
+}
+
+/**
+ * 速度に関わるトグル（ランダム再生速度・ラッシュモード）の有効/無効を切り替える。
+ * 非対応音声ではグレーアウトするだけで、保存済みの ON/OFF は書き換えない
+ * （対応音声に戻したら元の設定のまま使えるようにするため）。
+ * background 側は非対応音声では rate を等速に固定するため、ON のままでも実害はない。
+ */
+function updateSpeedDependentToggle(
+  toggleId: string,
+  optionsId: string,
+  infoId: string,
+  controlIds: string[],
+  rateSupported: boolean,
+): void {
+  const toggle = document.getElementById(toggleId) as HTMLInputElement;
   toggle.disabled = !rateSupported;
-  document.getElementById('random-speed-unsupported-info')!.style.display = rateSupported
-    ? 'none'
-    : 'block';
-
-  // 非対応音声へ切り替わった場合はONのまま残さず、background にもOFFを伝える
-  if (!rateSupported && toggle.checked) {
-    toggle.checked = false;
-    toggle.setAttribute('aria-checked', 'false');
-    document.getElementById('random-speed-options')!.style.display = 'none';
-    chrome.runtime.sendMessage({
-      action: 'updateRandomSpeedConfig',
-      randomSpeedConfig: {
-        enabled: false,
-        minSpeed: parseFloat((document.getElementById('randomSpeedMin') as HTMLInputElement).value),
-        maxSpeed: parseFloat((document.getElementById('randomSpeedMax') as HTMLInputElement).value),
-      },
-    });
+  document.getElementById(infoId)!.style.display = rateSupported ? 'none' : 'block';
+  document.getElementById(optionsId)!.style.display = rateSupported && toggle.checked ? 'block' : 'none';
+  for (const id of controlIds) {
+    const el = document.getElementById(id) as HTMLInputElement | HTMLButtonElement | null;
+    if (!el) continue;
+    el.disabled = !rateSupported;
+    if (el instanceof HTMLInputElement && el.type === 'range') setRangeFill(el);
   }
+}
 
-  return toggle.checked;
+/**
+ * ランダム再生速度・ラッシュモードの有効/無効を更新し、ランダム再生速度が実際に効いているかを返す。
+ */
+function updateSpeedDependentToggles(rateSupported: boolean): boolean {
+  updateSpeedDependentToggle(
+    'randomSpeedEnabled',
+    'random-speed-options',
+    'random-speed-unsupported-info',
+    ['randomSpeedMin', 'randomSpeedMax', 'reset-random-speed'],
+    rateSupported,
+  );
+  updateSpeedDependentToggle(
+    'rushModeEnabled',
+    'rush-mode-options',
+    'rush-unsupported-info',
+    ['rushActivateThreshold', 'rushSpeed', 'rushReturnThreshold', 'reset-rush-mode'],
+    rateSupported,
+  );
+  return rateSupported && (document.getElementById('randomSpeedEnabled') as HTMLInputElement).checked;
 }
 
 /**
  * 速度スライダーの有効/無効を切り替える。
- * 無効化の理由は2つあり、「音声が非対応」を優先する（非対応ならランダム再生速度も強制OFFになるため）。
+ * 無効化の理由は2つあり、「音声が非対応」を優先する（非対応ならランダム再生速度も効かないため）。
  */
 export function updateSpeedSliderState(): void {
-  const engine = (document.getElementById('ttsEngine') as HTMLSelectElement).value;
   const speedSlider = document.getElementById('speed') as HTMLInputElement;
   const resetBtn = document.getElementById('reset-speed') as HTMLButtonElement;
   const info = document.getElementById('speed-unsupported-info')!;
   const randomInfo = document.getElementById('speed-random-info')!;
 
-  const rateSupported =
-    engine !== 'browser' ||
-    isRateSupportedVoice((document.getElementById('browserVoice') as HTMLSelectElement).value);
-  const randomSpeedEnabled = updateRandomSpeedToggleState(rateSupported);
+  const rateSupported = isRateSupportedForCurrentSelection();
+  const randomSpeedEnabled = updateSpeedDependentToggles(rateSupported);
+  document.getElementById('rate-random-speaker-info')!.style.display = isBrowserRandomSpeakerMode()
+    ? 'block'
+    : 'none';
 
   if (!rateSupported) {
     speedSlider.disabled = true;
@@ -93,21 +130,17 @@ export function updateSpeedSliderState(): void {
 
 /** エンジン・音声に応じて音量スライダーの有効/無効を切り替える */
 export function updateVolumeSliderState(): void {
-  const engine = (document.getElementById('ttsEngine') as HTMLSelectElement).value;
   const volumeSlider = document.getElementById('volume') as HTMLInputElement;
   const info = document.getElementById('volume-unsupported-info')!;
 
-  if (engine === 'browser') {
-    const voiceName = (document.getElementById('browserVoice') as HTMLSelectElement).value;
-    if (!isRateSupportedVoice(voiceName)) {
-      volumeSlider.disabled = true;
-      volumeSlider.value = '1';
-      document.getElementById('current-volume')!.textContent = formatVolume(1, getVolumeStepCount());
-      volumeSlider.setAttribute('aria-valuetext', '音量100%');
-      setRangeFill(volumeSlider);
-      info.style.display = 'block';
-      return;
-    }
+  if (!isRateSupportedForCurrentSelection()) {
+    volumeSlider.disabled = true;
+    volumeSlider.value = '1';
+    document.getElementById('current-volume')!.textContent = formatVolume(1, getVolumeStepCount());
+    volumeSlider.setAttribute('aria-valuetext', '音量100%');
+    setRangeFill(volumeSlider);
+    info.style.display = 'block';
+    return;
   }
 
   const volume = getVolume();
@@ -290,6 +323,12 @@ export function initTtsEngineConfig(): void {
     const voiceName = (event.target as HTMLSelectElement).value;
     chrome.storage.sync.set({ browserVoice: voiceName });
     chrome.runtime.sendMessage({ action: 'updateBrowserVoice', voiceName });
+    updateSpeedSliderState();
+    updateVolumeSliderState();
+  });
+
+  // ランダム話者モードの切替で速度・音量の判定対象（実在の音声／音声ごとの判定）が変わる
+  document.getElementById('randomSpeakerEnabled')!.addEventListener('change', () => {
     updateSpeedSliderState();
     updateVolumeSliderState();
   });

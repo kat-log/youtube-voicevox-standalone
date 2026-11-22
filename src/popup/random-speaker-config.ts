@@ -24,7 +24,8 @@ export function updateRandomSpeakerSummary(): void {
     if (ids) {
       summary.textContent = `${ids.length}${unit}を選択中`;
     } else {
-      summary.textContent = `全${unit}から選択`;
+      // ブラウザ音声の未設定は日本語音声のみが候補（background の既定候補と同じ）
+      summary.textContent = engine === 'browser' ? '日本語の全音声から選択' : `全${unit}から選択`;
     }
   });
 }

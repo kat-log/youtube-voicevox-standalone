@@ -55,6 +55,8 @@ export async function handleTestSpeak(
           {
             voiceName: voiceName || undefined,
             lang: 'ja-JP',
+            // 配信の読み上げ中でも打ち切らず、今の発話が終わってから再生する（配信側も enqueue）
+            enqueue: true,
             rate: isRateSupportedVoice(voiceName || undefined)
               ? correctTtsRate(speed)
               : 1.0,
