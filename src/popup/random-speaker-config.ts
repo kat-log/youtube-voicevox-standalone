@@ -1,4 +1,5 @@
 import { RANDOM_SPEAKER_SENTINEL } from '@/types/state';
+import { getSpeakerSelectId } from './speaker-storage';
 
 function sendRandomSpeakerConfig(): void {
   const enabled = (document.getElementById('randomSpeakerEnabled') as HTMLInputElement).checked;
@@ -46,14 +47,15 @@ export function getSelectedRealSpeakerId(select: HTMLSelectElement | null): stri
 
 /** ランダムモードON/OFFに応じて、話者ドロップダウンにダミーoptionを挿入/削除して表示を切り替える */
 export function updateSpeakerDropdownForRandomMode(engine: string, randomEnabled: boolean): void {
-  const selectId =
-    engine === 'local-voicevox' ? 'localSpeaker'
-    : engine === 'browser' ? 'browserVoice'
-    : 'speaker';
+  const selectId = getSpeakerSelectId(engine);
   const select = document.getElementById(selectId) as HTMLSelectElement | null;
   if (!select) return;
 
   if (randomEnabled) {
+    // OFF に戻したとき元の選択へ復帰できるよう、実在の選択値を覚えておく
+    if (select.value && select.value !== RANDOM_OPTION_VALUE) {
+      select.dataset.realValue = select.value;
+    }
     if (!select.querySelector(`option[value="${RANDOM_OPTION_VALUE}"]`)) {
       const opt = document.createElement('option');
       opt.value = RANDOM_OPTION_VALUE;
@@ -63,8 +65,29 @@ export function updateSpeakerDropdownForRandomMode(engine: string, randomEnabled
     select.value = RANDOM_OPTION_VALUE;
     select.disabled = true;
   } else {
+    const wasRandom = select.value === RANDOM_OPTION_VALUE;
     select.querySelector(`option[value="${RANDOM_OPTION_VALUE}"]`)?.remove();
     select.disabled = false;
+    // ダミーoptionを消すと先頭の話者が選ばれてしまうため、ランダム前の選択に戻す
+    const realValue = select.dataset.realValue;
+    if (wasRandom && realValue && Array.from(select.options).some((o) => o.value === realValue)) {
+      select.value = realValue;
+    }
+  }
+}
+
+/**
+ * 話者ドロップダウンの選択肢を作り直した後に呼ぶ。
+ * innerHTML の再構築でダミーoptionが消えるため、ランダムモード中ならダミー表示を付け直す。
+ * （以前はランダム状態の復元が Web API 話者リストの取得完了時にしか行われず、
+ *   取得順によってはローカル／ブラウザのドロップダウンが「無効なのに実在話者を表示」になっていた）
+ */
+export function reapplyRandomModeForEngine(engine: string): void {
+  const currentEngine = (document.getElementById('ttsEngine') as HTMLSelectElement | null)?.value;
+  const randomEnabled =
+    (document.getElementById('randomSpeakerEnabled') as HTMLInputElement | null)?.checked ?? false;
+  if (currentEngine === engine && randomEnabled) {
+    updateSpeakerDropdownForRandomMode(engine, true);
   }
 }
 

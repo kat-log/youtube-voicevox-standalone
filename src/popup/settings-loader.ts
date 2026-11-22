@@ -6,7 +6,7 @@ import { stripRandomSentinel } from '@/types/state';
 import { updateStatsLink } from './message-handler';
 import { toggleEngineUI, populateBrowserVoices, fetchLocalSpeakers, updateVoicevoxBalanceVisibility } from './tts-engine-config';
 import { updateParallelSpeakersToggleState, updateSpeakerCountSummary } from './parallel-playback-config';
-import { updateRandomSpeakerSummary, updateSpeakerDropdownForRandomMode } from './random-speaker-config';
+import { updateRandomSpeakerSummary, reapplyRandomModeForEngine } from './random-speaker-config';
 
 export function loadSettings(): void {
   chrome.storage.sync.get(
@@ -236,10 +236,23 @@ export function loadSettings(): void {
       autoExtraConcurrentSlider.setAttribute('aria-valuetext', String(autoExtraConcurrent));
       setRangeFill(autoExtraConcurrentSlider);
 
+      // ランダム話者モードの復元
+      // Web API の話者リスト取得（ネットワーク）に依存させない。ローカル／ブラウザ利用時に
+      // static.tts.quest へ届かないとランダムモードが復元されない不具合があったため、ここで行う。
+      // ドロップダウンのダミー表示は toggleEngineUI と各話者リストの再構築後に反映される。
+      const randomEnabled = data.randomSpeakerEnabled || false;
+      const randomCheckbox = document.getElementById('randomSpeakerEnabled') as HTMLInputElement;
+      randomCheckbox.checked = randomEnabled;
+      randomCheckbox.setAttribute('aria-checked', String(randomEnabled));
+      // 話者選択リンクと要約の表示を切り替える（設定インポート後の再読み込みでOFFにも戻す）
+      const configLink = document.getElementById('random-speaker-config-link');
+      if (configLink) configLink.style.display = randomEnabled ? 'block' : 'none';
+
       // TTSエンジン設定を復元
       const engine = data.ttsEngine || 'local-voicevox';
       (document.getElementById('ttsEngine') as HTMLSelectElement).value = engine;
       toggleEngineUI(engine);
+      if (randomEnabled) updateRandomSpeakerSummary();
 
       // ブラウザ音声リストを取得
       populateBrowserVoices(data.browserVoice);
@@ -295,17 +308,8 @@ export function loadSettings(): void {
           // 過去バージョンでセンチネル値が保存されている場合があるため除去する
           select.value = stripRandomSentinel(data.speakerId) || '1';
 
-          // ランダム話者モードの復元
-          const randomEnabled = data.randomSpeakerEnabled || false;
-          const randomCheckbox = document.getElementById('randomSpeakerEnabled') as HTMLInputElement;
-          randomCheckbox.checked = randomEnabled;
-          randomCheckbox.setAttribute('aria-checked', String(randomEnabled));
-          // 現在のエンジンに応じた話者ドロップダウンの無効化・ラベル表示を切り替える
-          updateSpeakerDropdownForRandomMode(engine, randomEnabled);
-          // 話者選択リンクと要約の表示を切り替える（設定インポート後の再読み込みでOFFにも戻す）
-          const configLink = document.getElementById('random-speaker-config-link');
-          if (configLink) configLink.style.display = randomEnabled ? 'block' : 'none';
-          if (randomEnabled) updateRandomSpeakerSummary();
+          // 選択肢を作り直したのでランダムモードのダミー表示を付け直す
+          reapplyRandomModeForEngine('voicevox');
 
           // 持ち回り制トグルの有効/無効を設定
           updateParallelSpeakersToggleState();

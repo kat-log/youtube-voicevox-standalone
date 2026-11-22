@@ -187,6 +187,34 @@ function applyTtsEngineChanges(changes: Changes): void {
   }
 }
 
+/**
+ * 起動時に TTS エンジン関連の設定を storage から読み込む。
+ * ttsEngine / localVoicevoxHost が未保存（＝デフォルトのまま）でも、
+ * 各モジュールのキャッシュを popup と同じデフォルト値に揃える。
+ * （以前は未保存時に何も設定せず、話者名キャッシュが 'voicevox' のまま残り、
+ *   既定のローカルVOICEVOXのログに Web API 側の話者名が出ていた）
+ */
+export async function loadTtsEngineConfigFromStorage(): Promise<void> {
+  const data = await chrome.storage.sync.get([
+    'ttsEngine',
+    'browserVoice',
+    'localVoicevoxHost',
+    'parallelSynthesisCount',
+  ]);
+  const raw = data.ttsEngine as TtsEngine | undefined;
+  const engine = raw && VALID_TTS_ENGINES.includes(raw) ? raw : DEFAULT_TTS_ENGINE;
+  const host = (data.localVoicevoxHost as string | undefined) || DEFAULT_LOCAL_VOICEVOX_HOST;
+
+  setTtsEngine(engine);
+  setSpeakerNameEngine(engine);
+  setBrowserVoice((data.browserVoice as string | undefined) ?? null);
+  setLocalVoicevoxHost(host);
+  if (engine === 'local-voicevox') {
+    initLocalSpeakerNames(host);
+  }
+  setMaxParallelSynthesis(toNumber(data.parallelSynthesisCount, DEFAULT_PARALLEL_SYNTHESIS));
+}
+
 // オブジェクト形式の設定（storage から読み直してデフォルトとマージする）
 function applyConfigObjectChanges(changes: Changes): void {
   if ('filterConfig' in changes) {

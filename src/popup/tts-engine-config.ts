@@ -2,7 +2,7 @@ import { setRangeFill } from './slider-utils';
 import { getSpeed, getVolume, getVolumeStepCount } from './playback-controls';
 import { formatVolume } from '../utils/volume';
 import { updateParallelSpeakersToggleState } from './parallel-playback-config';
-import { updateSpeakerDropdownForRandomMode } from './random-speaker-config';
+import { updateSpeakerDropdownForRandomMode, reapplyRandomModeForEngine } from './random-speaker-config';
 
 // VOICEVOX残高確認行の表示/非表示
 export function updateVoicevoxBalanceVisibility(): void {
@@ -224,6 +224,8 @@ export function populateBrowserVoices(savedVoice?: string): void {
     }
     updateSpeedSliderState();
     updateVolumeSliderState();
+    // 選択肢を作り直したのでランダムモードのダミー表示を付け直す（速度判定は実在の音声で済ませた後）
+    reapplyRandomModeForEngine('browser');
   });
 }
 
@@ -261,6 +263,9 @@ export function fetchLocalSpeakers(host: string, savedSpeakerId?: string): void 
           chrome.storage.sync.set({ localSpeakerId: firstValue });
         }
       }
+
+      // 選択肢を作り直したのでランダムモードのダミー表示を付け直す
+      reapplyRandomModeForEngine('local-voicevox');
 
       // ローカルVOICEVOXが現在のエンジンなら持ち回り制トグルの有効/無効を更新
       const currentEngine = (document.getElementById('ttsEngine') as HTMLSelectElement).value;
@@ -348,6 +353,8 @@ export function initTtsEngineConfig(): void {
   document.getElementById('localSpeaker')!.addEventListener('change', (event) => {
     const speakerId = (event.target as HTMLSelectElement).value;
     chrome.storage.sync.set({ localSpeakerId: speakerId });
+    // Web API の話者変更と同様に、生成待ちキューの話者も切り替える
+    chrome.runtime.sendMessage({ action: 'updateSpeaker', speakerId });
   });
 
   // 並列音声生成数の変更

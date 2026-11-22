@@ -1,6 +1,7 @@
 import { setRangeFill } from './slider-utils';
 import { validateInputs } from './status-ui';
 import { getSelectedRealSpeakerId } from './random-speaker-config';
+import { buildSpeakerStoragePatch } from './speaker-storage';
 import {
   DEFAULT_VOLUME_STEP_COUNT,
   formatVolume,
@@ -91,11 +92,10 @@ export function initPlaybackControls(): void {
     const engine = (document.getElementById('ttsEngine') as HTMLSelectElement).value;
     // ランダムモード中はドロップダウンにダミー値が入っているため、実在する話者IDに解決する
     // （ランダム選択は background 側で行う。センチネル値を保存・送信してはいけない）
-    const speakerId = getSelectedRealSpeakerId(
-      document.getElementById(
-        engine === 'local-voicevox' ? 'localSpeaker' : 'speaker'
-      ) as HTMLSelectElement | null
-    );
+    const speakerSelect = document.getElementById(
+      engine === 'local-voicevox' ? 'localSpeaker' : 'speaker'
+    ) as HTMLSelectElement | null;
+    const speakerId = getSelectedRealSpeakerId(speakerSelect);
     const chatMode = ((document.getElementById('chatMode') as HTMLSelectElement)?.value ?? 'dom') as 'official' | 'standalone' | 'dom';
 
     if (chatMode === 'official' && !apiKeyYoutube) {
@@ -115,7 +115,8 @@ export function initPlaybackControls(): void {
           (document.getElementById('latestOnlyCount') as HTMLInputElement).value,
           10
         ),
-        speakerId: speakerId,
+        // 話者IDはエンジンごとのキーへ保存（ランダムモード中は保存しない）
+        ...buildSpeakerStoragePatch(engine, speakerSelect?.value ?? ''),
         chatMode: chatMode,
       },
       function () {
