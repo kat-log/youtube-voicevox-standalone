@@ -3,6 +3,7 @@ import { RANDOM_SPEAKER_SENTINEL, stripRandomSentinel } from '@/types/state';
 import { getState } from './state';
 import { getTtsEngine } from './tts-api';
 import { getRandomSpeakerId, ensureRandomSpeakerCache } from './random-speaker';
+import { getSpeakerIdsForEngine } from '@/utils/round-robin';
 
 const DEFAULT_CONFIG: ParallelPlaybackConfig = {
   alwaysEnabled: false,
@@ -80,11 +81,21 @@ export function getParallelSpeakersConfig(): ParallelSpeakersConfig {
   return speakersConfig;
 }
 
-export function setParallelSpeakersConfig(newConfig: ParallelSpeakersConfig): void {
-  speakersConfig = newConfig;
-  if (newConfig.enabled && newConfig.speakerIds.includes(RANDOM_SPEAKER_SENTINEL)) {
+/** 現在のエンジンで使う持ち回り話者ID（Web API とローカルで別々に保存されている） */
+function getCurrentEngineSpeakerIds(): string[] {
+  return getSpeakerIdsForEngine(speakersConfig, getTtsEngine());
+}
+
+/** 持ち回り話者に「ランダム」が含まれていれば、ランダム話者リストを先に取得しておく */
+function prefetchRandomIfNeeded(): void {
+  if (speakersConfig.enabled && getCurrentEngineSpeakerIds().includes(RANDOM_SPEAKER_SENTINEL)) {
     ensureRandomSpeakerCache();
   }
+}
+
+export function setParallelSpeakersConfig(newConfig: ParallelSpeakersConfig): void {
+  speakersConfig = newConfig;
+  prefetchRandomIfNeeded();
 }
 
 export function loadParallelSpeakersConfigFromStorage(): void {
@@ -92,9 +103,7 @@ export function loadParallelSpeakersConfigFromStorage(): void {
     speakersConfig = data.parallelSpeakersConfig
       ? { ...DEFAULT_SPEAKERS_CONFIG, ...data.parallelSpeakersConfig }
       : { ...DEFAULT_SPEAKERS_CONFIG };
-    if (speakersConfig.enabled && speakersConfig.speakerIds.includes(RANDOM_SPEAKER_SENTINEL)) {
-      ensureRandomSpeakerCache();
-    }
+    prefetchRandomIfNeeded();
   });
 }
 
@@ -122,7 +131,7 @@ export function getParallelSpeakerId(originalSpeakerId: string | undefined): str
   parallelSlotCounter++;
 
   if (slot === 0) return originalSpeakerId;
-  const speakerId = speakersConfig.speakerIds[slot - 1];
+  const speakerId = getCurrentEngineSpeakerIds()[slot - 1];
   if (speakerId === RANDOM_SPEAKER_SENTINEL) {
     return getRandomSpeakerId() || stripRandomSentinel(originalSpeakerId);
   }

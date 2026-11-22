@@ -29,7 +29,18 @@ export interface ParallelPlaybackConfig {
 
 export interface ParallelSpeakersConfig {
   enabled: boolean;
-  speakerIds: string[]; // [話者2のID, 話者3のID, ...]
+  /**
+   * 旧形式の話者ID [話者2のID, 話者3のID, ...]（エンジン共通）。
+   * エンジン別の値（speakerIdsByEngine）が未保存のエンジンではこれを使う。
+   * 旧バージョンとの互換のため、保存時は最後に保存したエンジンの値も入れておく。
+   * 読み書きは src/utils/round-robin.ts のヘルパー経由で行うこと。
+   */
+  speakerIds: string[];
+  /** エンジン別の話者ID。Web API とローカルでは話者IDの体系が異なる場合があるため分けて持つ */
+  speakerIdsByEngine?: {
+    voicevox?: string[];
+    localVoicevox?: string[];
+  };
   roundRobinSpeakerCount: number; // 持ち回り話者数（並列再生OFF時に使用、デフォルト3）
 }
 
@@ -48,6 +59,8 @@ export interface RandomSpeakerPreset {
 export interface RoundRobinPreset {
   id: string;
   name: string;
+  /** プリセットを保存したエンジン。旧形式（未設定）は VOICEVOX 系の両エンジンで使える扱い */
+  engine?: TtsEngine;
   speakerIds: string[];
   roundRobinSpeakerCount: number;
 }
