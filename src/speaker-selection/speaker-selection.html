@@ -37,7 +37,7 @@
         margin-bottom: 16px;
         align-items: center;
       }
-      .toolbar button.toolbar-btn {
+      button.toolbar-btn {
         height: 30px;
         padding: 0 12px;
         margin: 0;
@@ -51,7 +51,7 @@
         white-space: nowrap;
         box-sizing: border-box;
       }
-      .toolbar button.toolbar-btn:hover {
+      button.toolbar-btn:hover {
         background: var(--border-color);
       }
       .toolbar input.toolbar-search {
@@ -73,7 +73,11 @@
         border-color: var(--accent-color);
       }
       .toolbar-select {
-        padding: 6px 10px;
+        width: auto;
+        min-width: 160px;
+        height: 30px;
+        margin: 0;
+        padding: 0 10px;
         border: 1px solid var(--border-color);
         border-radius: 6px;
         background: var(--bg-section);
@@ -216,26 +220,6 @@
       }
 
       /* Test speak */
-      .test-text-form label {
-        display: block;
-        font-weight: 600;
-        font-size: 13px;
-        margin-bottom: 6px;
-      }
-      .test-text-input {
-        width: 100%;
-        padding: 8px 12px;
-        border: 1px solid var(--border-color);
-        border-radius: 6px;
-        background: var(--bg-section);
-        color: var(--text-primary);
-        font-size: 14px;
-        box-sizing: border-box;
-        outline: none;
-      }
-      .test-text-input:focus {
-        border-color: var(--accent-color);
-      }
       .play-btn {
         padding: 4px 10px;
         border: 1px solid var(--border-color);
@@ -259,24 +243,59 @@
         min-width: 50px;
       }
 
-      /* Footer */
-      .page-footer {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
+      .toolbar-label {
+        display: inline-block;
+        margin: 0;
+        font-size: 13px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .style-filter-row {
+        margin-bottom: 10px;
+      }
+
+      /* List header: bulk actions + selection status (above the speaker list) */
+      .list-header {
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
-        justify-content: center;
-        gap: 16px;
-        padding: 12px 20px;
-        background: var(--bg-primary);
-        border-top: 1px solid var(--border-color);
-        z-index: 10;
+        gap: 8px 12px;
+        margin-bottom: 8px;
+      }
+      .list-header-actions {
+        display: flex;
+        gap: 6px;
+      }
+      .list-header-actions button.toolbar-btn {
+        min-width: 96px;
+      }
+      .selection-status {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px 10px;
+        margin-left: auto;
       }
       .summary-text {
         font-size: 13px;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+      .applied-preset {
+        font-size: 12px;
+        padding: 2px 8px;
+        border-radius: 10px;
+        border: 1px solid var(--border-color);
         color: var(--text-secondary);
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .applied-preset.active {
+        border-color: var(--accent-color);
+        background: var(--accent-color);
+        color: #fff;
       }
 
       /* Loading */
@@ -382,6 +401,45 @@
       .preset-item.inapplicable {
         opacity: 0.5;
         background: var(--bg-section);
+      }
+      .preset-item.active {
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 1px var(--accent-color) inset;
+      }
+      .preset-active-badge {
+        flex-shrink: 0;
+        font-size: 10px;
+        padding: 1px 6px;
+        border-radius: 8px;
+        background: var(--accent-color);
+        color: #fff;
+        white-space: nowrap;
+      }
+      .preset-detail summary {
+        font-size: 11px;
+        color: var(--text-secondary);
+        cursor: pointer;
+        user-select: none;
+      }
+      .preset-detail summary:hover {
+        color: var(--text-primary);
+      }
+      .preset-detail-list {
+        margin: 4px 0 0;
+        padding: 6px 8px;
+        list-style: none;
+        border-radius: 4px;
+        background: var(--bg-section);
+        font-size: 11px;
+        line-height: 1.6;
+        max-height: 200px;
+        overflow-y: auto;
+      }
+      .preset-detail-char {
+        font-weight: 600;
+      }
+      .preset-detail-styles {
+        color: var(--text-secondary);
       }
       .preset-item-top {
         display: flex;
@@ -505,33 +563,41 @@
       </div>
 
       <div class="toolbar">
-        <button type="button" class="toolbar-btn" id="selectAllBtn">すべて選択</button>
-        <button type="button" class="toolbar-btn" id="deselectAllBtn">すべて解除</button>
-        <button type="button" class="toolbar-btn" id="expandAllBtn">すべて開く</button>
-        <button type="button" class="toolbar-btn" id="collapseAllBtn">すべて閉じる</button>
+        <label class="toolbar-label" for="testText">テスト再生テキスト:</label>
+        <input
+          type="text"
+          class="toolbar-search"
+          id="testText"
+          value="こんにちは、テスト再生です"
+          placeholder="読み上げたいテキストを入力"
+        />
         <input type="text" class="toolbar-search" id="searchInput" placeholder="話者を検索..." />
-        <select class="toolbar-select" id="styleFilter">
-          <option value="">全スタイル</option>
-        </select>
-      </div>
-
-      <div class="style-batch" id="styleBatch">
-        <span class="style-batch-label" id="styleBatchLabel"></span>
-        <button type="button" class="toolbar-btn" id="styleBatchSelect">選択</button>
-        <button type="button" class="toolbar-btn" id="styleBatchDeselect">解除</button>
       </div>
 
       <div class="main-layout">
         <div class="speaker-area">
-          <div class="test-text-form" style="margin-bottom: 12px;">
-            <label for="testText">テスト再生テキスト:</label>
-            <input
-              type="text"
-              class="test-text-input"
-              id="testText"
-              value="こんにちは、テスト再生です"
-              placeholder="読み上げたいテキストを入力"
-            />
+          <div class="toolbar style-filter-row">
+            <label class="toolbar-label" for="styleFilter">スタイル:</label>
+            <select class="toolbar-select" id="styleFilter">
+              <option value="">全スタイル</option>
+            </select>
+          </div>
+
+          <div class="style-batch" id="styleBatch">
+            <span class="style-batch-label" id="styleBatchLabel"></span>
+            <button type="button" class="toolbar-btn" id="styleBatchSelect">選択</button>
+            <button type="button" class="toolbar-btn" id="styleBatchDeselect">解除</button>
+          </div>
+
+          <div class="list-header">
+            <div class="list-header-actions">
+              <button type="button" class="toolbar-btn" id="toggleSelectBtn">すべて選択</button>
+              <button type="button" class="toolbar-btn" id="toggleExpandBtn">すべて開く</button>
+            </div>
+            <div class="selection-status">
+              <span class="summary-text" id="summaryText">0 / 0 話者選択中</span>
+              <span class="applied-preset" id="appliedPreset"></span>
+            </div>
           </div>
 
           <div id="speakerList">
@@ -552,9 +618,6 @@
       </div>
     </div>
 
-    <div class="page-footer">
-      <span class="summary-text" id="summaryText">0 / 0 話者選択中</span>
-    </div>
 
     <script type="module" src="./speaker-selection.ts"></script>
   </body>
