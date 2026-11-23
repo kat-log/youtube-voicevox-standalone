@@ -19,6 +19,12 @@ let checkedIds = new Set<string>();
  */
 let defaultSpeakerIds: string[] = [];
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
+/** 話者リストと選択状態の読み込みが完了したか（プリセット一致判定に使う） */
+let speakersLoaded = false;
+/** 直近に読み込んだプリセット一覧（一致判定・内容表示用） */
+let cachedPresets: RandomSpeakerPreset[] = [];
+/** 内容を展開中のプリセット ID（再描画しても開閉状態を保つ） */
+const openPresetDetails = new Set<string>();
 
 // テスト再生結果リスナーを初期化
 initTestSpeakResultListener();
@@ -128,7 +134,10 @@ function loadAllowedAndRender(): void {
       // 未設定 = 既定の候補（ブラウザ音声は日本語のみ、それ以外は全話者）
       checkedIds = new Set(defaultSpeakerIds);
     }
+    speakersLoaded = true;
     render();
+    // 話者名が判明したのでプリセットの内容表示・一致判定を更新する
+    renderPresetList(cachedPresets);
   });
 }
 
@@ -140,6 +149,10 @@ function showError(msg: string): void {
 // --- Render ---
 function render(): void {
   const container = document.getElementById('speakerList')!;
+  // 再描画（プリセット呼び出し等）でも開いていたグループは開いたままにする
+  const openChars = new Set(
+    Array.from(container.querySelectorAll<HTMLElement>('.char-group.open')).map((g) => g.dataset.character),
+  );
   container.innerHTML = '';
 
   const groups = groupByCharacter(allSpeakers);
@@ -147,6 +160,7 @@ function render(): void {
 
   // Style filter dropdown
   const styleFilter = document.getElementById('styleFilter') as HTMLSelectElement;
+  const prevStyle = styleFilter.value;
   styleFilter.innerHTML = '<option value="">全スタイル</option>';
   for (const style of styles) {
     const opt = document.createElement('option');
@@ -154,11 +168,12 @@ function render(): void {
     opt.textContent = style;
     styleFilter.appendChild(opt);
   }
+  if (styles.includes(prevStyle)) styleFilter.value = prevStyle;
 
   // Render character groups
   for (const [charName, speakers] of groups) {
     const group = document.createElement('div');
-    group.className = 'char-group';
+    group.className = openChars.has(charName) ? 'char-group open' : 'char-group';
     group.dataset.character = charName;
 
     // Header
@@ -204,6 +219,7 @@ function render(): void {
     header.addEventListener('click', (e) => {
       if ((e.target as HTMLElement).classList.contains('char-checkbox')) return;
       group.classList.toggle('open');
+      updateExpandToggleLabel();
     });
 
     // Styles list
@@ -258,6 +274,8 @@ function render(): void {
     container.appendChild(group);
   }
 
+  // 検索・スタイル絞り込みを再描画後も維持する
+  applyFilters();
   updateSummary();
 }
 
@@ -300,6 +318,8 @@ function updateSummary(): void {
   const el = document.getElementById('summaryText')!;
   const unit = currentEngine === 'browser' ? '音声' : '話者';
   el.textContent = `${checkedIds.size} / ${allSpeakers.length} ${unit}選択中`;
+  updateSelectToggleLabel();
+  updatePresetActiveState();
 }
 
 function autoSave(): void {
@@ -319,24 +339,27 @@ function autoSave(): void {
   }, 300);
 }
 
-// --- Select All / Deselect All ---
-document.getElementById('selectAllBtn')!.addEventListener('click', () => {
-  const visibleCheckboxes = getVisibleStyleCheckboxes();
-  for (const cb of visibleCheckboxes) {
-    cb.checked = true;
-    updateCheckedId(cb.dataset.id!, true);
-  }
-  refreshAllCharCheckboxes();
-  autoSave();
-});
+// --- Select All / Deselect All (toggle) ---
+/** 表示中の話者がすべて選択済みか */
+function areAllVisibleChecked(): boolean {
+  const visible = getVisibleStyleCheckboxes();
+  return visible.length > 0 && visible.every((cb) => cb.checked);
+}
 
-document.getElementById('deselectAllBtn')!.addEventListener('click', () => {
-  const visibleCheckboxes = getVisibleStyleCheckboxes();
-  for (const cb of visibleCheckboxes) {
-    cb.checked = false;
-    updateCheckedId(cb.dataset.id!, false);
+function updateSelectToggleLabel(): void {
+  const btn = document.getElementById('toggleSelectBtn');
+  if (!btn) return;
+  btn.textContent = areAllVisibleChecked() ? 'すべて解除' : 'すべて選択';
+}
+
+document.getElementById('toggleSelectBtn')!.addEventListener('click', () => {
+  const next = !areAllVisibleChecked();
+  for (const cb of getVisibleStyleCheckboxes()) {
+    cb.checked = next;
+    updateCheckedId(cb.dataset.id!, next);
   }
   refreshAllCharCheckboxes();
+  updateSelectToggleLabel();
   autoSave();
 });
 
@@ -357,12 +380,30 @@ function refreshAllCharCheckboxes(): void {
   }
 }
 
-// --- Expand / Collapse all ---
-document.getElementById('expandAllBtn')!.addEventListener('click', () => {
-  document.querySelectorAll<HTMLElement>('.char-group:not(.hidden)').forEach((g) => g.classList.add('open'));
-});
-document.getElementById('collapseAllBtn')!.addEventListener('click', () => {
-  document.querySelectorAll<HTMLElement>('.char-group').forEach((g) => g.classList.remove('open'));
+// --- Expand / Collapse all (toggle) ---
+function getVisibleGroups(): HTMLElement[] {
+  return Array.from(document.querySelectorAll<HTMLElement>('.char-group:not(.hidden)'));
+}
+
+/** 表示中のグループがすべて開いているか */
+function areAllVisibleOpen(): boolean {
+  const groups = getVisibleGroups();
+  return groups.length > 0 && groups.every((g) => g.classList.contains('open'));
+}
+
+function updateExpandToggleLabel(): void {
+  const btn = document.getElementById('toggleExpandBtn');
+  if (!btn) return;
+  btn.textContent = areAllVisibleOpen() ? 'すべて閉じる' : 'すべて開く';
+}
+
+document.getElementById('toggleExpandBtn')!.addEventListener('click', () => {
+  if (areAllVisibleOpen()) {
+    document.querySelectorAll<HTMLElement>('.char-group').forEach((g) => g.classList.remove('open'));
+  } else {
+    getVisibleGroups().forEach((g) => g.classList.add('open'));
+  }
+  updateExpandToggleLabel();
 });
 
 // --- Search filter ---
@@ -469,11 +510,127 @@ function getPresetSpeakerCountText(preset: RandomSpeakerPreset): string {
   if (ids === null) return currentEngine === 'browser' ? '日本語の全音声' : `全${unit}`;
   return `${ids.length}${unit}を選択`;
 }
+
+/** プリセットが現在のエンジンで選ぶ話者 ID 一覧（null = 既定の候補） */
+function getEffectivePresetIds(preset: RandomSpeakerPreset): string[] {
+  return getPresetIdsForEngine(preset, currentEngine) ?? defaultSpeakerIds;
+}
+
+/** 現在の選択状態がプリセットと完全に一致するか */
+function isPresetActive(preset: RandomSpeakerPreset): boolean {
+  if (!speakersLoaded || !isPresetApplicable(preset, currentEngine)) return false;
+  const ids = new Set(getEffectivePresetIds(preset));
+  return ids.size === checkedIds.size && [...ids].every((id) => checkedIds.has(id));
+}
+
+/** プリセット一覧の「適用中」表示と、左ペインの適用中プリセット表示を更新する */
+function updatePresetActiveState(): void {
+  const activeNames: string[] = [];
+  for (const preset of cachedPresets) {
+    const active = isPresetActive(preset);
+    if (active) activeNames.push(preset.name);
+    const item = document.querySelector<HTMLElement>(
+      `.preset-item[data-preset-id="${CSS.escape(preset.id)}"]`,
+    );
+    if (!item) continue;
+    item.classList.toggle('active', active);
+    const badge = item.querySelector<HTMLElement>('.preset-active-badge');
+    if (badge) badge.style.display = active ? '' : 'none';
+  }
+
+  const el = document.getElementById('appliedPreset');
+  if (!el) return;
+  if (!speakersLoaded) {
+    el.textContent = '';
+    el.style.display = 'none';
+    return;
+  }
+  el.style.display = '';
+  if (activeNames.length > 0) {
+    const text = `適用中: ${activeNames.map((n) => `「${n}」`).join('・')}`;
+    el.textContent = text;
+    el.title = text;
+    el.classList.add('active');
+  } else {
+    el.textContent = 'プリセット未適用（カスタム選択）';
+    el.title = 'どのお気に入りプリセットとも一致していません';
+    el.classList.remove('active');
+  }
+}
+
+/** プリセットの内容（キャラクターごとのスタイル一覧）を表示する要素を作る */
+function createPresetDetail(preset: RandomSpeakerPreset): HTMLDetailsElement {
+  const details = document.createElement('details');
+  details.className = 'preset-detail';
+  details.open = openPresetDetails.has(preset.id);
+  details.addEventListener('toggle', () => {
+    if (details.open) openPresetDetails.add(preset.id);
+    else openPresetDetails.delete(preset.id);
+  });
+
+  const summary = document.createElement('summary');
+  summary.textContent = '内容を見る';
+  details.appendChild(summary);
+
+  const list = document.createElement('ul');
+  list.className = 'preset-detail-list';
+
+  if (!speakersLoaded) {
+    const li = document.createElement('li');
+    li.textContent = '話者リストを取得中...';
+    list.appendChild(li);
+    details.appendChild(list);
+    return details;
+  }
+
+  const ids = new Set(getEffectivePresetIds(preset));
+  const selected = allSpeakers.filter((s) => ids.has(s.id));
+  const knownIds = new Set(allSpeakers.map((s) => s.id));
+  const unknownIds = [...ids].filter((id) => !knownIds.has(id));
+
+  if (selected.length === 0 && unknownIds.length === 0) {
+    const li = document.createElement('li');
+    li.textContent = '（話者が選択されていません）';
+    list.appendChild(li);
+  }
+
+  for (const [charName, speakers] of groupByCharacter(selected)) {
+    const li = document.createElement('li');
+    const charEl = document.createElement('span');
+    charEl.className = 'preset-detail-char';
+    charEl.textContent = charName;
+    li.appendChild(charEl);
+    const styleNames = speakers.map((s) => s.style).filter(Boolean);
+    if (styleNames.length > 0) {
+      const stylesEl = document.createElement('span');
+      stylesEl.className = 'preset-detail-styles';
+      stylesEl.textContent = `: ${styleNames.join('、')}`;
+      li.appendChild(stylesEl);
+    } else if (currentEngine === 'browser') {
+      const stylesEl = document.createElement('span');
+      stylesEl.className = 'preset-detail-styles';
+      stylesEl.textContent = `: ${speakers.map((s) => s.fullName).join('、')}`;
+      li.appendChild(stylesEl);
+    }
+    list.appendChild(li);
+  }
+
+  if (unknownIds.length > 0) {
+    const li = document.createElement('li');
+    li.className = 'preset-detail-styles';
+    li.textContent = `現在の話者一覧にない ID: ${unknownIds.join(', ')}`;
+    list.appendChild(li);
+  }
+
+  details.appendChild(list);
+  return details;
+}
 let dragStartId: string | null = null;
 
 function loadRandomPresets(): void {
   chrome.storage.sync.get(['randomSpeakerPresets'], (data) => {
     const presets = (data.randomSpeakerPresets as RandomSpeakerPreset[] | undefined) ?? [];
+    cachedPresets = presets;
     renderPresetList(presets);
     const saveBtn = document.getElementById('savePresetBtn') as HTMLButtonElement;
     saveBtn.disabled = presets.length >= MAX_PRESETS;
@@ -489,6 +646,7 @@ function renderPresetList(presets: RandomSpeakerPreset[]): void {
     empty.className = 'preset-empty';
     empty.textContent = 'プリセットがありません';
     container.appendChild(empty);
+    updatePresetActiveState();
     return;
   }
 
@@ -545,7 +703,7 @@ function renderPresetList(presets: RandomSpeakerPreset[]): void {
         topRow.removeChild(input);
         topRow.removeChild(confirmBtn);
         topRow.removeChild(cancelBtn);
-        topRow.appendChild(nameEl);
+        topRow.insertBefore(nameEl, activeBadge);
         topRow.appendChild(renameBtn);
       };
 
@@ -556,15 +714,22 @@ function renderPresetList(presets: RandomSpeakerPreset[]): void {
         if (e.key === 'Escape') doCancel();
       });
 
-      topRow.appendChild(input);
+      topRow.insertBefore(input, activeBadge);
       topRow.appendChild(confirmBtn);
       topRow.appendChild(cancelBtn);
       input.focus();
       input.select();
     });
 
+    const activeBadge = document.createElement('span');
+    activeBadge.className = 'preset-active-badge';
+    activeBadge.textContent = '適用中';
+    activeBadge.title = '現在の選択状態がこのプリセットと一致しています';
+    activeBadge.style.display = 'none';
+
     topRow.appendChild(handle);
     topRow.appendChild(nameEl);
+    topRow.appendChild(activeBadge);
     topRow.appendChild(renameBtn);
 
     // 下段: アクションボタン
@@ -608,6 +773,7 @@ function renderPresetList(presets: RandomSpeakerPreset[]): void {
 
     item.appendChild(topRow);
     item.appendChild(metaEl);
+    if (applicable) item.appendChild(createPresetDetail(preset));
     item.appendChild(actions);
 
     // ドラッグ&ドロップ
@@ -639,6 +805,7 @@ function renderPresetList(presets: RandomSpeakerPreset[]): void {
 
     container.appendChild(item);
   }
+  updatePresetActiveState();
 }
 
 function saveCurrentAsPreset(name: string): void {
@@ -835,6 +1002,8 @@ function applyFilters(): void {
       updateCharCheckbox(charCheckbox, speakers);
     }
   }
+  updateSelectToggleLabel();
+  updateExpandToggleLabel();
 }
 
 // --- Resizable panel ---
