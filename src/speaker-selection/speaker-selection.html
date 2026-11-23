@@ -250,6 +250,38 @@
         font-weight: 600;
         white-space: nowrap;
       }
+      .test-speak-box {
+        padding: 10px 12px;
+        margin-bottom: 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background: var(--bg-section);
+      }
+      .test-speak-row {
+        margin-bottom: 6px;
+      }
+      .test-speak-row input.toolbar-search {
+        background: var(--bg-primary);
+      }
+      .test-speak-row input.toolbar-search.needs-text {
+        border-color: #e74c3c;
+      }
+      .test-speak-hint {
+        margin: 0;
+        font-size: 12px;
+        line-height: 1.6;
+        color: var(--text-secondary);
+      }
+      .hint-btn {
+        display: inline-block;
+        padding: 0 6px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        font-size: 11px;
+        white-space: nowrap;
+      }
       .style-filter-row,
       .search-row {
         margin-bottom: 10px;
@@ -563,19 +595,25 @@
         <p id="engine-label">読み込み中...</p>
       </div>
 
-      <div class="toolbar">
-        <label class="toolbar-label" for="testText">テスト再生テキスト:</label>
-        <input
-          type="text"
-          class="toolbar-search"
-          id="testText"
-          value="こんにちは、テスト再生です"
-          placeholder="読み上げたいテキストを入力"
-        />
-      </div>
-
       <div class="main-layout">
         <div class="speaker-area">
+          <div class="test-speak-box">
+            <div class="toolbar test-speak-row">
+              <label class="toolbar-label" for="testText">テスト再生テキスト:</label>
+              <input
+                type="text"
+                class="toolbar-search"
+                id="testText"
+                value="こんにちは、テスト再生です"
+                placeholder="読み上げたいテキストを入力"
+              />
+            </div>
+            <p class="test-speak-hint">
+              キャラ名をクリックしてスタイル一覧を開き、各スタイルの <span class="hint-btn">▶ 試聴</span>
+              ボタンを押すと、このテキストをその声で読み上げます。
+            </p>
+          </div>
+
           <div class="toolbar style-filter-row">
             <label class="toolbar-label" for="styleFilter">スタイル:</label>
             <select class="toolbar-select" id="styleFilter">
