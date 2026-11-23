@@ -15,6 +15,7 @@ import { loadRandomSpeakerConfigFromStorage, setRandomSpeakerEnabled, setRandomS
 import { initSpeakerNames, initLocalSpeakerNames, setSpeakerNameEngine } from './speaker-names';
 import { handleTestSpeak, isTestAudioId, handleTestAudioEnded, handleTestAudioError } from './test-speak';
 import { fetchWithTimeout } from '@/utils/fetchWithTimeout';
+import { pickStyleIcon, type SpeakerInfoResponse } from '@/utils/speaker-icon';
 import type { IncomingMessage } from '@/types/messages';
 import { getAllLifecycles } from './lifecycle-tracker';
 import { initSettingsSync, loadTtsEngineConfigFromStorage } from './settings-sync';
@@ -462,6 +463,28 @@ chrome.runtime.onMessage.addListener(
           })
           .then((speakers) => {
             sendResponse({ status: 'success', speakers });
+          })
+          .catch((error: Error) => {
+            sendResponse({ status: 'error', message: error.message });
+          });
+        return true;
+      }
+
+      case 'getLocalSpeakerIcon': {
+        // 画像は同梱せず、ユーザーのローカル VOICEVOX から実行時に取得したものだけを返す。
+        // resource_format=url を指定し、立ち絵・サンプル音声の base64 を丸ごと受け取らないようにする
+        // （未対応の古いエンジンは base64 を返すので pickStyleIcon で data URL に変換する）。
+        const { host, speakerUuid, styleId } = request;
+        const url = `${host}/speaker_info?speaker_uuid=${encodeURIComponent(speakerUuid)}&resource_format=url`;
+        fetchWithTimeout(url, 10_000)
+          .then((res) => {
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.json() as Promise<SpeakerInfoResponse>;
+          })
+          .then((info) => {
+            const icon = pickStyleIcon(info, styleId);
+            if (!icon) throw new Error('icon not found');
+            sendResponse({ status: 'success', icon });
           })
           .catch((error: Error) => {
             sendResponse({ status: 'error', message: error.message });

@@ -170,6 +170,16 @@
         accent-color: var(--accent-color);
         cursor: pointer;
       }
+      /* ローカル VOICEVOX から実行時に取得したアイコン（同梱しない） */
+      .char-icon {
+        width: 24px;
+        height: 24px;
+        flex: 0 0 24px;
+        border-radius: 4px;
+        object-fit: cover;
+        background: var(--border-color);
+        pointer-events: none;
+      }
       .char-name {
         flex: 1;
         font-weight: 600;
