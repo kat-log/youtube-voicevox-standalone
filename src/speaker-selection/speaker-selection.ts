@@ -30,8 +30,19 @@ const openPresetDetails = new Set<string>();
 initTestSpeakResultListener();
 
 function getTestText(): string {
-  return (document.getElementById('testText') as HTMLInputElement).value.trim();
+  const input = document.getElementById('testText') as HTMLInputElement;
+  const text = input.value.trim();
+  if (!text) {
+    // 空のまま再生ボタンを押しても無反応にならないよう、入力欄へ誘導する
+    input.classList.add('needs-text');
+    input.focus();
+  }
+  return text;
 }
+
+document.getElementById('testText')!.addEventListener('input', (e) => {
+  (e.target as HTMLInputElement).classList.remove('needs-text');
+});
 
 // --- Dark mode ---
 chrome.storage.sync.get(['darkMode'], (data) => {
@@ -260,6 +271,8 @@ function render(): void {
       idSpan.textContent = `ID:${speaker.id}`;
 
       const { playBtn, playStatus } = createTestSpeakButton(speaker.id, getTestText);
+      playBtn.textContent = '\u25B6 試聴';
+      playBtn.title = `「テスト再生テキスト」を${speaker.style || speaker.fullName}の声で読み上げ`;
 
       item.appendChild(cb);
       item.appendChild(label);
