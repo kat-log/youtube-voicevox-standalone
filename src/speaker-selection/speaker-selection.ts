@@ -9,6 +9,7 @@ import {
 } from '@/utils/speaker-parser';
 import { createTestSpeakButton, initTestSpeakResultListener } from '@/utils/test-speak-ui';
 import { getDefaultBrowserVoiceNames } from '@/utils/browser-voices';
+import { createCachedLimitedLoader } from '@/utils/speaker-icon';
 
 let allSpeakers: ParsedSpeaker[] = [];
 let currentEngine: TtsEngine = 'voicevox';
@@ -25,6 +26,59 @@ let speakersLoaded = false;
 let cachedPresets: RandomSpeakerPreset[] = [];
 /** 内容を展開中のプリセット ID（再描画しても開閉状態を保つ） */
 const openPresetDetails = new Set<string>();
+
+/** アイコン取得の同時リクエスト数（キャラ数ぶん一気にエンジンへ飛ばさない） */
+const ICON_FETCH_CONCURRENCY = 3;
+/**
+ * キャラ名 → アイコン取得に使う speaker_uuid と代表スタイル ID。
+ * ローカル VOICEVOX のときだけ埋まる（他エンジンは画像なし）。
+ */
+let characterIconKeys = new Map<string, { uuid: string; styleId?: number }>();
+/** speaker_uuid → アイコン src のローダー（ページ内キャッシュ付き。失敗も null でキャッシュ） */
+let loadCharacterIcon: ((uuid: string) => Promise<string | null>) | null = null;
+
+function setupIconLoader(host: string): void {
+  loadCharacterIcon = createCachedLimitedLoader<string>(
+    (uuid) =>
+      new Promise((resolve) => {
+        const key = Array.from(characterIconKeys.values()).find((k) => k.uuid === uuid);
+        chrome.runtime.sendMessage(
+          { action: 'getLocalSpeakerIcon', host, speakerUuid: uuid, styleId: key?.styleId },
+          (response: { status: string; icon?: string } | undefined) => {
+            if (chrome.runtime.lastError || !response || response.status !== 'success' || !response.icon) {
+              resolve(null);
+              return;
+            }
+            resolve(response.icon);
+          },
+        );
+      }),
+    ICON_FETCH_CONCURRENCY,
+  );
+}
+
+/**
+ * ヘッダーのキャラ名の左にアイコンを差し込む。取得できなかった場合は何もしない（今まで通りの表示）。
+ * 非同期で差し込むため、再描画で古いヘッダーが外れていたら何もしない。
+ */
+function attachCharacterIcon(header: HTMLElement, nameEl: HTMLElement, charName: string): void {
+  const key = characterIconKeys.get(charName);
+  if (!key || !loadCharacterIcon) return;
+  loadCharacterIcon(key.uuid).then((src) => {
+    if (!src || !header.isConnected || nameEl.parentElement !== header) return;
+    if (header.querySelector('.char-icon')) return;
+    const img = document.createElement('img');
+    img.className = 'char-icon';
+    img.alt = '';
+    img.width = 24;
+    img.height = 24;
+    img.decoding = 'async';
+    img.draggable = false;
+    img.addEventListener('error', () => img.remove());
+    img.src = src;
+    header.insertBefore(img, nameEl);
+  });
+}
 
 // テスト再生結果リスナーを初期化
 initTestSpeakResultListener();
@@ -103,11 +157,22 @@ function fetchSpeakers(localHost: string): void {
   } else if (currentEngine === 'local-voicevox') {
     chrome.runtime.sendMessage(
       { action: 'getLocalSpeakers', host: localHost },
-      (response: { status: string; speakers?: Array<{ name: string; styles: Array<{ id: number; name: string }> }>; message?: string }) => {
+      (response: {
+        status: string;
+        speakers?: Array<{ name: string; speaker_uuid?: string; styles: Array<{ id: number; name: string; type?: string }> }>;
+        message?: string;
+      }) => {
         if (chrome.runtime.lastError || !response || response.status !== 'success' || !response.speakers) {
           showError('ローカル VOICEVOX から話者リストを取得できませんでした。エンジンが起動しているか確認してください。');
           return;
         }
+        characterIconKeys = new Map();
+        for (const sp of response.speakers) {
+          if (!sp.speaker_uuid || characterIconKeys.has(sp.name)) continue;
+          const talkStyle = sp.styles.find((st) => !st.type || st.type === 'talk') ?? sp.styles[0];
+          characterIconKeys.set(sp.name, { uuid: sp.speaker_uuid, styleId: talkStyle?.id });
+        }
+        setupIconLoader(localHost);
         allSpeakers = parseLocalSpeakers(response.speakers);
         defaultSpeakerIds = allSpeakers.map((s) => s.id);
         loadAllowedAndRender();
@@ -226,6 +291,7 @@ function render(): void {
     header.appendChild(name);
     header.appendChild(count);
     header.appendChild(arrow);
+    attachCharacterIcon(header, name, charName);
 
     header.addEventListener('click', (e) => {
       if ((e.target as HTMLElement).classList.contains('char-checkbox')) return;

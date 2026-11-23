@@ -83,6 +83,14 @@ export interface GetLocalSpeakersMessage {
   host: string;
 }
 
+export interface GetLocalSpeakerIconMessage {
+  action: 'getLocalSpeakerIcon';
+  host: string;
+  speakerUuid: string;
+  /** 優先して使うスタイル ID（なければ最初のスタイルのアイコン） */
+  styleId?: number;
+}
+
 export interface UpdateLocalVoicevoxHostMessage {
   action: 'updateLocalVoicevoxHost';
   host: string;
@@ -242,6 +250,7 @@ export type IncomingMessage =
   | UpdateParallelSynthesisMessage
   | TestLocalVoicevoxMessage
   | GetLocalSpeakersMessage
+  | GetLocalSpeakerIconMessage
   | TestSpeakMessage
   | GetStatsMessage
   | GetTimelineStateMessage
@@ -256,4 +265,6 @@ export interface MessageResponse {
   details?: string;
   commentCount?: number;
   speakers?: Array<{ name: string; styles: Array<{ id: number; name: string }> }>;
+  /** getLocalSpeakerIcon の結果（<img src> にそのまま使える URL または data URL） */
+  icon?: string;
 }
