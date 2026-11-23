@@ -419,6 +419,45 @@
         color: #e74c3c;
         margin-bottom: 8px;
       }
+      .preset-undo-bar {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        padding: 6px 8px;
+        margin-bottom: 8px;
+        border: 1px solid var(--accent-color);
+        border-radius: 4px;
+        background: var(--bg-section);
+        color: var(--text-primary);
+      }
+      .preset-undo-bar[hidden] {
+        display: none;
+      }
+      .preset-undo-message {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .preset-undo-bar button {
+        padding: 2px 8px;
+        font-size: 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+      .preset-undo-bar button:hover {
+        background: var(--border-color);
+      }
+      #presetUndoBtn {
+        border-color: var(--accent-color);
+        font-weight: bold;
+      }
       .preset-list {
         display: flex;
         flex-direction: column;
@@ -670,6 +709,11 @@
             <button type="button" id="savePresetBtn">保存</button>
           </div>
           <div id="presetError" class="preset-error" style="display:none"></div>
+          <div id="presetUndoBar" class="preset-undo-bar" role="status" hidden>
+            <span id="presetUndoMessage" class="preset-undo-message"></span>
+            <button type="button" id="presetUndoBtn">元に戻す</button>
+            <button type="button" id="presetUndoCloseBtn" title="閉じる" aria-label="閉じる">✕</button>
+          </div>
           <div class="preset-list" id="presetList"></div>
         </div>
       </div>

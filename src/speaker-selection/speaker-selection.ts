@@ -954,11 +954,74 @@ function applyRandomPreset(preset: RandomSpeakerPreset): void {
   }
 }
 
+// --- Undo (上書き・削除の取り消し) ---
+const UNDO_TIMEOUT_MS = 10000;
+let pendingUndo: (() => void) | null = null;
+let undoTimer: ReturnType<typeof setTimeout> | null = null;
+
+function hideUndoBar(): void {
+  pendingUndo = null;
+  if (undoTimer) clearTimeout(undoTimer);
+  undoTimer = null;
+  document.getElementById('presetUndoBar')!.hidden = true;
+}
+
+/** 実行直後に「元に戻す」バーを表示する。一定時間で自動的に消える */
+function showUndoBar(message: string, undo: () => void): void {
+  pendingUndo = undo;
+  document.getElementById('presetUndoMessage')!.textContent = message;
+  document.getElementById('presetUndoMessage')!.title = message;
+  document.getElementById('presetUndoBar')!.hidden = false;
+  if (undoTimer) clearTimeout(undoTimer);
+  undoTimer = setTimeout(hideUndoBar, UNDO_TIMEOUT_MS);
+}
+
+document.getElementById('presetUndoBtn')!.addEventListener('click', () => {
+  const undo = pendingUndo;
+  hideUndoBar();
+  undo?.();
+});
+document.getElementById('presetUndoCloseBtn')!.addEventListener('click', hideUndoBar);
+
+/** 削除したプリセットを元の位置に戻す */
+function restoreDeletedPreset(preset: RandomSpeakerPreset, index: number): void {
+  chrome.storage.sync.get(['randomSpeakerPresets'], (data) => {
+    const presets = (data.randomSpeakerPresets as RandomSpeakerPreset[] | undefined) ?? [];
+    if (presets.some((p) => p.id === preset.id)) return;
+    const errorEl = document.getElementById('presetError')!;
+    if (presets.length >= MAX_PRESETS) {
+      errorEl.textContent = `プリセットが${MAX_PRESETS}件あるため元に戻せません。`;
+      errorEl.style.display = 'block';
+      return;
+    }
+    errorEl.style.display = 'none';
+    presets.splice(Math.min(index, presets.length), 0, preset);
+    chrome.storage.sync.set({ randomSpeakerPresets: presets }, () => loadRandomPresets());
+  });
+}
+
+/** 上書き前の内容に戻す（名前・並び順など他の変更はそのまま） */
+function restoreOverwrittenPreset(previous: RandomSpeakerPreset): void {
+  chrome.storage.sync.get(['randomSpeakerPresets'], (data) => {
+    const presets = (data.randomSpeakerPresets as RandomSpeakerPreset[] | undefined) ?? [];
+    const idx = presets.findIndex((p) => p.id === previous.id);
+    if (idx < 0) return;
+    presets[idx] = { ...presets[idx], engine: previous.engine, allowedIds: previous.allowedIds };
+    chrome.storage.sync.set({ randomSpeakerPresets: presets }, () => loadRandomPresets());
+  });
+}
+
 function deleteRandomPreset(id: string): void {
   chrome.storage.sync.get(['randomSpeakerPresets'], (data) => {
     const presets = (data.randomSpeakerPresets as RandomSpeakerPreset[] | undefined) ?? [];
+    const index = presets.findIndex((p) => p.id === id);
+    if (index < 0) return;
+    const removed = presets[index];
     const updated = presets.filter((p) => p.id !== id);
-    chrome.storage.sync.set({ randomSpeakerPresets: updated }, () => loadRandomPresets());
+    chrome.storage.sync.set({ randomSpeakerPresets: updated }, () => {
+      loadRandomPresets();
+      showUndoBar(`「${removed.name}」を削除しました`, () => restoreDeletedPreset(removed, index));
+    });
   });
 }
 
@@ -1004,8 +1067,14 @@ function overwriteRandomPreset(id: string): void {
       const presets = (d2.randomSpeakerPresets as RandomSpeakerPreset[] | undefined) ?? [];
       const idx = presets.findIndex((p) => p.id === id);
       if (idx < 0) return;
-      presets[idx] = { ...presets[idx], engine, allowedIds: newAllowedIds };
-      chrome.storage.sync.set({ randomSpeakerPresets: presets }, () => loadRandomPresets());
+      const previous = presets[idx];
+      presets[idx] = { ...previous, engine, allowedIds: newAllowedIds };
+      chrome.storage.sync.set({ randomSpeakerPresets: presets }, () => {
+        loadRandomPresets();
+        showUndoBar(`「${previous.name}」を上書きしました`, () =>
+          restoreOverwrittenPreset(previous),
+        );
+      });
     });
   });
 }
