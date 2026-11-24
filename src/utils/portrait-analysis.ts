@@ -169,55 +169,105 @@ export function analyzePortraitPixels(
 }
 
 /**
- * 公式キャラクターのうち、自動推定では目元を外してしまう立ち絵の補正値（画像サイズに対する割合）。
+ * 公式キャラクターの立ち絵の補正値（画像サイズに対する割合）。
+ * - faceWidth: 顔の幅（頬から頬）。全キャラの顔を同じ大きさで表示するために全員分そろえてある
+ * - eyeY / faceX: 自動推定では目元を外してしまうキャラだけ指定する
  * VOICEVOX 同梱の立ち絵（キャラ共通の portrait）を見て目測したもの。画像そのものは同梱しない。
- * キーは speaker_uuid。ここにないキャラは analyzePortraitPixels の推定をそのまま使う。
+ * キーは speaker_uuid。ここにないキャラ（新キャラ等）は analyzePortraitPixels の推定をそのまま使う。
  */
-export const PORTRAIT_FACE_HINTS: Record<string, { eyeY: number; faceX: number; faceWidth: number }> = {
+export const PORTRAIT_FACE_HINTS: Record<string, { eyeY?: number; faceX?: number; faceWidth?: number }> = {
+  // No7
+  '044830d2-f23b-44d6-ac0d-b5d733caa900': { faceWidth: 0.208 },
+  // Voidoll
+  '0ebe2c7d-96f3-4f0e-a2e3-ae13fe27c403': { eyeY: 0.35, faceX: 0.39, faceWidth: 0.17 },
+  // WhiteCUL
+  '67d5d8da-acd7-4207-bb10-b5542d3a663b': { faceWidth: 0.144 },
+  // あいえるたん
+  'dda44ade-5f9c-4a3a-9d2c-2a976c7476d9': { eyeY: 0.122, faceX: 0.53, faceWidth: 0.19 },
+  // あんこもん
+  '3be49e15-34bb-48a0-9e2f-9b80c96e9905': { faceWidth: 0.168 },
   // ずんだもん
-  '388f246b-8c41-4ac1-8e2d-5d79f3ff56d9': { eyeY: 0.235, faceX: 0.47, faceWidth: 0.22 },
+  '388f246b-8c41-4ac1-8e2d-5d79f3ff56d9': { eyeY: 0.235, faceX: 0.47, faceWidth: 0.19 },
   // ぞん子
-  '0156da66-4300-474a-a398-49eb2e8dd853': { eyeY: 0.31, faceX: 0.49, faceWidth: 0.3 },
-  // 剣崎雌雄
-  '1a17ca16-7ee5-4ea5-b191-2f02ace24d21': { eyeY: 0.12, faceX: 0.52, faceWidth: 0.15 },
-  // 小夜/SAYO
-  'a8cc6d22-aad0-4ab8-bf1e-2f843924164a': { eyeY: 0.235, faceX: 0.5, faceWidth: 0.25 },
-  // 東北きりたん
-  '1bd6b32b-d650-4072-bbe5-1d0ef4aaa28b': { eyeY: 0.25, faceX: 0.52, faceWidth: 0.15 },
+  '0156da66-4300-474a-a398-49eb2e8dd853': { eyeY: 0.31, faceX: 0.49, faceWidth: 0.36 },
+  // ちび式じい
+  '468b8e94-9da4-4f7a-8715-a22a48844f9e': { eyeY: 0.32, faceX: 0.49, faceWidth: 0.45 },
+  // もち子さん
+  '9f3ee141-26ad-437e-97bd-d22298d02ad2': { faceWidth: 0.145 },
+  // ナースロボタイプＴ
+  '882a636f-3bac-431a-966d-c5e6bba9f949': { eyeY: 0.13, faceX: 0.54, faceWidth: 0.19 },
+  // ブイブイ・コバコ
+  '0d1745d9-ba28-4bf1-b792-3e670ee980ee': { eyeY: 0.29, faceX: 0.49, faceWidth: 0.44 },
+  // ユーレイちゃん
+  '462cd6b4-c088-42b0-b357-3816e24f112e': { faceWidth: 0.185 },
   // 中国うさぎ
   '1f18ffc3-47ea-4ce0-9829-0576d03a7ec8': { eyeY: 0.24, faceX: 0.51, faceWidth: 0.15 },
-  // 春歌ナナ
-  'ba5d2428-f7e0-4c20-ac41-9dd56e9178b4': { eyeY: 0.195, faceX: 0.51, faceWidth: 0.2 },
-  // 栗田まろん
-  '04dbd989-32d0-40b4-9e71-17c920f2a8a9': { eyeY: 0.18, faceX: 0.5, faceWidth: 0.17 },
-  // 猫使アル
-  '00a5c10c-d3bd-459f-83fd-43180b521a44': { eyeY: 0.21, faceX: 0.49, faceWidth: 0.17 },
-  // 猫使ビィ
-  'c20a2254-0349-4470-9fc8-e5c0f8cf3404': { eyeY: 0.21, faceX: 0.51, faceWidth: 0.12 },
-  // 黒沢冴白
-  '0b466290-f9b6-4718-8d37-6c0c81e824ac': { eyeY: 0.112, faceX: 0.46, faceWidth: 0.16 },
-  // Voidoll
-  '0ebe2c7d-96f3-4f0e-a2e3-ae13fe27c403': { eyeY: 0.35, faceX: 0.39, faceWidth: 0.15 },
-  // ちび式じい
-  '468b8e94-9da4-4f7a-8715-a22a48844f9e': { eyeY: 0.32, faceX: 0.49, faceWidth: 0.4 },
-  // 満別花丸
-  '287aa49f-e56b-4530-a469-855776c84a8d': { eyeY: 0.17, faceX: 0.49, faceWidth: 0.2 },
-  // †聖騎士 紅桜†
-  '471e39d2-fb11-4c8c-8d89-4b322d2498e0': { eyeY: 0.155, faceX: 0.46, faceWidth: 0.09 },
+  // 中部つるぎ
+  '4614a7de-9829-465d-9791-97eb8a5f9b86': { faceWidth: 0.12 },
+  // 九州そら
+  '481fb609-6446-4870-9f46-90c4dd623403': { faceWidth: 0.155 },
+  // 冥鳴ひまり
+  '8eaad775-3119-417e-8cf4-2a10bfd592c8': { faceWidth: 0.18 },
+  // 剣崎雌雄
+  '1a17ca16-7ee5-4ea5-b191-2f02ace24d21': { eyeY: 0.12, faceX: 0.52, faceWidth: 0.16 },
+  // 四国めたん
+  '7ffcb7ce-00ec-4bdc-82cd-45a8889e43ff': { faceWidth: 0.206 },
+  // 夜語トバリ
+  'd3be2066-205b-47f6-8818-1d93a9ca9cef': { faceWidth: 0.116 },
+  // 小夜SAYO
+  'a8cc6d22-aad0-4ab8-bf1e-2f843924164a': { eyeY: 0.235, faceX: 0.5, faceWidth: 0.25 },
+  // 後鬼
+  '0f56c2f2-644c-49c9-8989-94e11f7129d0': { faceWidth: 0.109 },
   // 春日部つむぎ
-  '35b2c544-660e-401e-b503-0e14c635303a': { eyeY: 0.15, faceX: 0.61, faceWidth: 0.15 },
-  // ブイブイ・コバコ
-  '0d1745d9-ba28-4bf1-b792-3e670ee980ee': { eyeY: 0.29, faceX: 0.49, faceWidth: 0.32 },
-  // あいえるたん
-  'dda44ade-5f9c-4a3a-9d2c-2a976c7476d9': { eyeY: 0.122, faceX: 0.53, faceWidth: 0.15 },
+  '35b2c544-660e-401e-b503-0e14c635303a': { eyeY: 0.15, faceX: 0.61, faceWidth: 0.19 },
+  // 春歌ナナ
+  'ba5d2428-f7e0-4c20-ac41-9dd56e9178b4': { eyeY: 0.195, faceX: 0.51, faceWidth: 0.3 },
+  // 暁記ミタマ
+  'aca7de06-9ff9-49a3-9f08-9d3bc19689e5': { faceWidth: 0.125 },
+  // 東北きりたん
+  '1bd6b32b-d650-4072-bbe5-1d0ef4aaa28b': { eyeY: 0.25, faceX: 0.52, faceWidth: 0.206 },
+  // 東北ずん子
+  '80802b2d-8c75-4429-978b-515105017010': { faceWidth: 0.115 },
   // 東北イタコ
-  'ab4c31a3-8769-422a-b412-708f5ae637e8': { eyeY: 0.21, faceX: 0.55, faceWidth: 0.1 },
+  'ab4c31a3-8769-422a-b412-708f5ae637e8': { eyeY: 0.21, faceX: 0.55, faceWidth: 0.125 },
+  // 栗田まろん
+  '04dbd989-32d0-40b4-9e71-17c920f2a8a9': { eyeY: 0.18, faceX: 0.5, faceWidth: 0.234 },
+  // 櫻歌ミコ
+  '0693554c-338e-4790-8982-b9c6d476dc69': { faceWidth: 0.2 },
+  // 波音リツ
+  'b1a81618-b27b-40d2-b0ea-27a9ad408c4b': { faceWidth: 0.128 },
+  // 満別花丸
+  '287aa49f-e56b-4530-a469-855776c84a8d': { eyeY: 0.17, faceX: 0.49, faceWidth: 0.275 },
+  // 猫使アル
+  '00a5c10c-d3bd-459f-83fd-43180b521a44': { eyeY: 0.21, faceX: 0.49, faceWidth: 0.21 },
+  // 猫使ビィ
+  'c20a2254-0349-4470-9fc8-e5c0f8cf3404': { eyeY: 0.21, faceX: 0.51, faceWidth: 0.165 },
+  // 玄野武宏
+  'c30dc15a-0992-4f8d-8bb8-ad3b314e6a6f': { faceWidth: 0.158 },
+  // 琴詠ニア
+  '97a4af4b-086e-4efd-b125-7ae2da85e697': { faceWidth: 0.21 },
+  // 白上虎太郎
+  'e5020595-5c5d-4e87-b849-270a518d0dcf': { faceWidth: 0.256 },
+  // 聖騎士紅桜
+  '471e39d2-fb11-4c8c-8d89-4b322d2498e0': { eyeY: 0.17, faceX: 0.47, faceWidth: 0.11 },
+  // 里石ユカ
+  'cc7baa71-6c74-4399-803b-b60576176a08': { faceWidth: 0.109 },
+  // 雀松朱司
+  '0acebdee-a4a5-4e12-a695-e19609728e30': { faceWidth: 0.19 },
+  // 離途
+  '3b91e034-e028-4acb-a08d-fbdcd207ea63': { faceWidth: 0.22 },
+  // 雨晴はう
+  '3474ee95-c274-47f9-aa1a-8322163d96f1': { faceWidth: 0.26 },
+  // 青山龍星
+  '4f51116a-d9ee-4516-925d-21f183e2afad': { faceWidth: 0.217 },
   // 麒ヶ島宗麟
-  '7d1e7ba7-f957-40e5-a3fc-da49f769ab65': { eyeY: 0.13, faceX: 0.5, faceWidth: 0.16 },
+  '7d1e7ba7-f957-40e5-a3fc-da49f769ab65': { eyeY: 0.13, faceX: 0.5, faceWidth: 0.18 },
+  // 黒沢冴白
+  '0b466290-f9b6-4718-8d37-6c0c81e824ac': { eyeY: 0.112, faceX: 0.46, faceWidth: 0.18 },
 };
 
 /** 自動推定の結果に、既知キャラの補正値があれば上書きする */
 export function applyFaceHint(analysis: PortraitAnalysis, speakerUuid?: string): PortraitAnalysis {
   const hint = speakerUuid ? PORTRAIT_FACE_HINTS[speakerUuid] : undefined;
-  return hint ? { ...analysis, ...hint, faceFound: true } : analysis;
+  return hint ? { ...analysis, ...hint } : analysis;
 }

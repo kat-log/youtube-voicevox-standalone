@@ -59,10 +59,24 @@ describe('applyFaceHint', () => {
   };
 
   it('既知キャラは補正値で上書きし、範囲はそのまま', () => {
-    const uuid = Object.keys(PORTRAIT_FACE_HINTS)[0];
-    const a = applyFaceHint(base, uuid);
-    expect(a.eyeY).toBe(PORTRAIT_FACE_HINTS[uuid].eyeY);
+    const zundamon = '388f246b-8c41-4ac1-8e2d-5d79f3ff56d9';
+    const a = applyFaceHint(base, zundamon);
+    expect(a.eyeY).toBe(PORTRAIT_FACE_HINTS[zundamon].eyeY);
+    expect(a.faceWidth).toBe(PORTRAIT_FACE_HINTS[zundamon].faceWidth);
     expect(a.contentBottom).toBe(1);
+  });
+
+  it('顔の幅だけの補正値なら目元は自動推定のまま', () => {
+    const no7 = '044830d2-f23b-44d6-ac0d-b5d733caa900';
+    expect(PORTRAIT_FACE_HINTS[no7].eyeY).toBeUndefined();
+    const a = applyFaceHint(base, no7);
+    expect(a.eyeY).toBe(base.eyeY);
+    expect(a.faceWidth).toBe(PORTRAIT_FACE_HINTS[no7].faceWidth);
+  });
+
+  it('公式キャラ全員の顔の幅がそろえてある', () => {
+    expect(Object.keys(PORTRAIT_FACE_HINTS)).toHaveLength(44);
+    for (const hint of Object.values(PORTRAIT_FACE_HINTS)) expect(hint.faceWidth).toBeGreaterThan(0);
   });
 
   it('未知のキャラはそのまま', () => {

@@ -124,16 +124,21 @@ describe('computePortraitLayout', () => {
   const face = { contentTop: 0.05, contentBottom: 0.95, eyeY: 0.2, faceX: 0.5, faceWidth: 0.2 };
   const base = { faceTargetX: 300, naturalWidth: 500, naturalHeight: 1000, face };
 
-  it('表示領域が低いときは顔を十分な大きさにして目元を縦中央に置く', () => {
-    const l = computePortraitLayout({ ...base, containerHeight: 40, naturalWidth: 1000, naturalHeight: 2000 })!;
-    expect(l.width * face.faceWidth).toBeCloseTo(PORTRAIT_FACE_DISPLAY_WIDTH);
+  it('表示領域の高さに関係なく顔の大きさをそろえる', () => {
+    const short = computePortraitLayout({ ...base, containerHeight: 40 })!;
+    const tall = computePortraitLayout({ ...base, containerHeight: 400 })!;
+    expect(short.width * face.faceWidth).toBeCloseTo(PORTRAIT_FACE_DISPLAY_WIDTH);
+    expect(tall.width).toBeCloseTo(short.width);
+  });
+
+  it('表示領域が低いときは目元を縦中央に置く', () => {
+    const l = computePortraitLayout({ ...base, containerHeight: 40 })!;
     expect(l.top + face.eyeY * l.height).toBeCloseTo(20);
   });
 
-  it('表示領域が高いときはキャラの上端を領域の上端に揃える', () => {
+  it('表示領域が高いときはキャラの頭を上端に揃える', () => {
     const l = computePortraitLayout({ ...base, containerHeight: 400 })!;
     expect(l.top).toBeCloseTo(-face.contentTop * l.height);
-    expect((face.contentBottom - face.contentTop) * l.height).toBeGreaterThanOrEqual(400);
   });
 
   it('顔の中心を faceTargetX に合わせる', () => {

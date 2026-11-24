@@ -62,17 +62,13 @@ export function pickPortrait(info: SpeakerInfoResponse, preferredStyleId?: numbe
   return null;
 }
 
-/** スタイルが少ない（表示領域が低い）ときの顔の表示幅(px)。目元がはっきり分かる大きさ */
-export const PORTRAIT_FACE_DISPLAY_WIDTH = 110;
 /**
- * 顔の表示幅を保証する表示領域の高さ(px)。これより高い領域では保証する幅を高さに反比例して小さくし、
- * スタイルが多いキャラは顔のアップではなく全身寄りで見せる。
+ * 顔の表示幅(px)。スタイルの数に関係なく全キャラでこの大きさにそろえる
+ * （スタイルが多いキャラも少ないキャラも同じ倍率感で並ぶ）。
  */
-export const PORTRAIT_FACE_FOCUS_HEIGHT = 60;
-/** 表示領域の高さに対するキャラ全体の表示高さの倍率（スタイルが多いときにどこまで写すか） */
-export const PORTRAIT_CONTENT_SCALE = 1.3;
+export const PORTRAIT_FACE_DISPLAY_WIDTH = 80;
 /** 拡大しすぎ防止（立ち絵は 500px 程度なので、これ以上はぼやける） */
-export const PORTRAIT_MAX_SCALE = 2.5;
+export const PORTRAIT_MAX_SCALE = 2;
 
 /** 立ち絵の中のキャラの範囲と顔の位置（画像サイズに対する割合） */
 export interface PortraitFaceInfo {
@@ -94,10 +90,10 @@ export interface PortraitLayout {
 
 /**
  * スタイル一覧の背景に置く立ち絵の大きさと位置を決める。
+ * - 大きさ: 顔の幅が全キャラで PORTRAIT_FACE_DISPLAY_WIDTH になるようにする
  * - 横: 顔の中心を faceTargetX（スタイル名と試聴ボタンの間）に合わせる
- * - 表示領域が高い（スタイルが多い）: キャラの頭を上端に揃え、領域いっぱいに大きく出す
- * - 表示領域が低い（スタイルが少ない）: 顔を十分な大きさにして、目元を縦中央に置く
- * 両者は連続的に切り替わる（上下にキャラのいない隙間ができる位置には動かさない）。
+ * - 縦: 目元を領域の縦中央に置く。ただしキャラの頭より上に余白ができる場合は頭を上端に揃える
+ *   （スタイルが多い＝領域が高いキャラは頭から下が、少ないキャラは目元が見える）
  */
 export function computePortraitLayout(params: {
   containerHeight: number;
@@ -108,20 +104,15 @@ export function computePortraitLayout(params: {
 }): PortraitLayout | null {
   const { containerHeight: c, faceTargetX, naturalWidth: w, naturalHeight: h, face } = params;
   if (!(c > 0 && w > 0 && h > 0)) return null;
-  const contentPx = Math.max(1, (face.contentBottom - face.contentTop) * h);
   const facePx = Math.max(1, face.faceWidth * w);
-  const faceDisplay = PORTRAIT_FACE_DISPLAY_WIDTH * Math.min(1, PORTRAIT_FACE_FOCUS_HEIGHT / c);
-  const scale = Math.min(
-    PORTRAIT_MAX_SCALE,
-    Math.max((c * PORTRAIT_CONTENT_SCALE) / contentPx, faceDisplay / facePx),
-  );
+  const scale = Math.min(PORTRAIT_MAX_SCALE, PORTRAIT_FACE_DISPLAY_WIDTH / facePx);
   const width = w * scale;
   const height = h * scale;
   const eyeCentered = c / 2 - face.eyeY * height;
-  // キャラの上端より下には下げない／キャラの下端が領域より上に来ないようにする
+  // キャラの頭より上に余白を作らない（キャラが領域より短い場合も頭を上端に揃える）
   const maxTop = -face.contentTop * height;
   const minTop = c - face.contentBottom * height;
-  const top = minTop > maxTop ? maxTop : Math.min(maxTop, Math.max(minTop, eyeCentered));
+  const top = Math.min(maxTop, Math.max(minTop, eyeCentered));
   const left = faceTargetX - face.faceX * width;
   return { width, height, top, left };
 }
