@@ -104,6 +104,7 @@
       }
       .speaker-row label {
         min-width: 56px;
+        margin-bottom: 0;
         font-size: 13px;
         font-weight: 600;
       }
@@ -386,6 +387,154 @@
         text-align: center;
         padding: 8px 0;
       }
+      /* ローカル VOICEVOX から実行時に取得したアイコン（同梱しない） */
+      .char-icon-slot {
+        width: 28px;
+        height: 28px;
+        flex: 0 0 28px;
+        border-radius: 4px;
+        background: var(--border-color);
+        overflow: hidden;
+      }
+      .char-icon-slot[hidden] {
+        display: none;
+      }
+      .char-icon {
+        display: block;
+        width: 28px;
+        height: 28px;
+        object-fit: cover;
+        pointer-events: none;
+      }
+      .main-speaker-row {
+        padding-bottom: 8px;
+        margin-bottom: 10px;
+        border-bottom: 1px dashed var(--border-color);
+      }
+      .speaker-row label {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+      }
+      .main-speaker-badge {
+        font-size: 10px;
+        font-weight: normal;
+        padding: 0 6px;
+        border-radius: 8px;
+        border: 1px solid var(--accent-color);
+        color: var(--accent-color);
+        white-space: nowrap;
+      }
+      .assign-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 6px;
+      }
+      .assign-title {
+        font-weight: 600;
+        font-size: 13px;
+      }
+      .applied-preset {
+        font-size: 12px;
+        padding: 2px 8px;
+        border-radius: 10px;
+        border: 1px solid var(--border-color);
+        color: var(--text-secondary);
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .applied-preset.active {
+        border-color: var(--accent-color);
+        background: var(--accent-color);
+        color: #fff;
+      }
+      .test-text-input.needs-text {
+        border-color: #e74c3c;
+      }
+      .preset-undo-bar {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        padding: 6px 8px;
+        margin-bottom: 8px;
+        border: 1px solid var(--accent-color);
+        border-radius: 4px;
+        background: var(--bg-section);
+        color: var(--text-primary);
+      }
+      .preset-undo-bar[hidden] {
+        display: none;
+      }
+      .preset-undo-message {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .preset-undo-bar button {
+        padding: 2px 8px;
+        font-size: 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+      .preset-undo-bar button:hover {
+        background: var(--border-color);
+      }
+      #rrPresetUndoBtn {
+        border-color: var(--accent-color);
+        font-weight: bold;
+      }
+      .preset-item.active {
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 1px var(--accent-color) inset;
+      }
+      .preset-active-badge {
+        flex-shrink: 0;
+        font-size: 10px;
+        padding: 1px 6px;
+        border-radius: 8px;
+        background: var(--accent-color);
+        color: #fff;
+        white-space: nowrap;
+      }
+      .preset-detail summary {
+        font-size: 11px;
+        color: var(--text-secondary);
+        cursor: pointer;
+        user-select: none;
+      }
+      .preset-detail summary:hover {
+        color: var(--text-primary);
+      }
+      .preset-detail-list {
+        margin: 4px 0 0;
+        padding: 6px 8px;
+        list-style: none;
+        border-radius: 4px;
+        background: var(--bg-section);
+        font-size: 11px;
+        line-height: 1.6;
+        max-height: 200px;
+        overflow-y: auto;
+      }
+      .preset-detail-char {
+        font-weight: 600;
+      }
+      .preset-detail-styles {
+        color: var(--text-secondary);
+      }
     </style>
   </head>
   <body>
@@ -433,7 +582,14 @@
 
           <div id="speaker-assignments">
             <div class="config-section">
-              <p class="info-text" style="margin-top: 0">話者1: メインの話者選択で設定したキャラクター</p>
+              <div class="assign-header">
+                <span class="assign-title">話者の割り当て</span>
+                <span class="applied-preset" id="appliedPreset" style="display: none"></span>
+              </div>
+              <p class="info-text" style="margin-top: 0">
+                話者1はメインの話者設定と共通です（ここで変えるとポップアップの話者も変わります）。<br />
+                お気に入りプリセットには話者数と話者2以降が保存されます。
+              </p>
               <div id="speaker-list">
                 <div class="loading">話者リストを取得中...</div>
               </div>
@@ -459,6 +615,11 @@
             <button type="button" id="rrSavePresetBtn">保存</button>
           </div>
           <div id="rrPresetError" class="preset-error" style="display:none"></div>
+          <div id="rrPresetUndoBar" class="preset-undo-bar" role="status" hidden>
+            <span id="rrPresetUndoMessage" class="preset-undo-message"></span>
+            <button type="button" id="rrPresetUndoBtn">元に戻す</button>
+            <button type="button" id="rrPresetUndoCloseBtn" title="閉じる" aria-label="閉じる">✕</button>
+          </div>
           <div class="preset-list" id="rrPresetList"></div>
         </div>
       </div>

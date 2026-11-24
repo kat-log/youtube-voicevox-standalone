@@ -63,3 +63,23 @@ export function isRoundRobinPresetApplicable(preset: RoundRobinPreset, engine: T
   if (preset.engine) return preset.engine === engine;
   return true;
 }
+
+/**
+ * 現在の話者数・話者2以降の割り当てがプリセットと一致するか（「適用中」表示用）。
+ * 話者1はメインの話者設定のためプリセットに含まれず、比較しない。
+ * プリセット側の未設定（短い配列）は空として扱う。
+ */
+export function isRoundRobinPresetActive(
+  preset: RoundRobinPreset,
+  engine: TtsEngine,
+  speakerCount: number,
+  speakerIds: string[],
+): boolean {
+  if (!isRoundRobinPresetApplicable(preset, engine)) return false;
+  if (preset.roundRobinSpeakerCount !== speakerCount) return false;
+  const slots = Math.max(0, speakerCount - 1);
+  for (let i = 0; i < slots; i++) {
+    if ((preset.speakerIds[i] ?? '') !== (speakerIds[i] ?? '')) return false;
+  }
+  return true;
+}
