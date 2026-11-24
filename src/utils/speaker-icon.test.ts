@@ -5,8 +5,7 @@ import {
   pickPortrait,
   computePortraitLayout,
   createCachedLimitedLoader,
-  PORTRAIT_EYE_RATIO,
-  PORTRAIT_MIN_HEIGHT,
+  PORTRAIT_FACE_DISPLAY_WIDTH,
 } from './speaker-icon';
 
 describe('toIconSrc', () => {
@@ -110,11 +109,10 @@ describe('createCachedLimitedLoader', () => {
 });
 
 describe('pickPortrait', () => {
-  it('スタイル固有の立ち絵を優先し、なければ共通の立ち絵', () => {
-    const info = { portrait: 'http://h/p', style_infos: [{ id: 1, portrait: 'http://h/p1' }, { id: 2 }] };
-    expect(pickPortrait(info, 1)).toBe('http://h/p1');
-    expect(pickPortrait(info, 2)).toBe('http://h/p');
-    expect(pickPortrait(info)).toBe('http://h/p');
+  it('キャラ共通の立ち絵を優先し、なければスタイル固有の立ち絵', () => {
+    const info = { portrait: 'http://h/p', style_infos: [{ id: 1, portrait: 'http://h/p1' }] };
+    expect(pickPortrait(info, 1)).toBe('http://h/p');
+    expect(pickPortrait({ style_infos: [{ id: 1, portrait: 'http://h/p1' }] }, 1)).toBe('http://h/p1');
   });
 
   it('立ち絵がなければ null', () => {
@@ -123,26 +121,28 @@ describe('pickPortrait', () => {
 });
 
 describe('computePortraitLayout', () => {
-  it('表示領域が低いときは目元が縦中央に来る', () => {
-    const l = computePortraitLayout(40, 500, 1000)!;
-    expect(l.height).toBe(PORTRAIT_MIN_HEIGHT);
-    expect(l.width).toBe(PORTRAIT_MIN_HEIGHT / 2);
-    expect(l.top + PORTRAIT_EYE_RATIO * l.height).toBeCloseTo(20);
+  const face = { contentTop: 0.05, contentBottom: 0.95, eyeY: 0.2, faceX: 0.5, faceWidth: 0.2 };
+  const base = { faceTargetX: 300, naturalWidth: 500, naturalHeight: 1000, face };
+
+  it('表示領域が低いときは顔を十分な大きさにして目元を縦中央に置く', () => {
+    const l = computePortraitLayout({ ...base, containerHeight: 40, naturalWidth: 1000, naturalHeight: 2000 })!;
+    expect(l.width * face.faceWidth).toBeCloseTo(PORTRAIT_FACE_DISPLAY_WIDTH);
+    expect(l.top + face.eyeY * l.height).toBeCloseTo(20);
   });
 
-  it('表示領域が高いときは頭を上端に揃え、領域より大きく表示する', () => {
-    const l = computePortraitLayout(400, 500, 1000)!;
-    expect(l.top).toBe(0);
-    expect(l.height).toBeGreaterThan(400);
+  it('表示領域が高いときはキャラの上端を領域の上端に揃える', () => {
+    const l = computePortraitLayout({ ...base, containerHeight: 400 })!;
+    expect(l.top).toBeCloseTo(-face.contentTop * l.height);
+    expect((face.contentBottom - face.contentTop) * l.height).toBeGreaterThanOrEqual(400);
   });
 
-  it('下端に隙間を作らない', () => {
-    const l = computePortraitLayout(40, 500, 1000)!;
-    expect(l.top + l.height).toBeGreaterThanOrEqual(40);
+  it('顔の中心を faceTargetX に合わせる', () => {
+    const l = computePortraitLayout({ ...base, containerHeight: 100 })!;
+    expect(l.left + face.faceX * l.width).toBeCloseTo(300);
   });
 
   it('不正な値なら null', () => {
-    expect(computePortraitLayout(0, 500, 1000)).toBeNull();
-    expect(computePortraitLayout(100, 0, 0)).toBeNull();
+    expect(computePortraitLayout({ ...base, containerHeight: 0 })).toBeNull();
+    expect(computePortraitLayout({ ...base, containerHeight: 100, naturalWidth: 0 })).toBeNull();
   });
 });

@@ -91,6 +91,14 @@ export interface GetLocalSpeakerIconMessage {
   styleId?: number;
 }
 
+export interface AnalyzeLocalPortraitMessage {
+  action: 'analyzeLocalPortrait';
+  /** 立ち絵の URL（getLocalSpeakerIcon の portrait） */
+  url: string;
+  /** 既知キャラの目元補正に使う */
+  speakerUuid?: string;
+}
+
 export interface UpdateLocalVoicevoxHostMessage {
   action: 'updateLocalVoicevoxHost';
   host: string;
@@ -251,6 +259,7 @@ export type IncomingMessage =
   | TestLocalVoicevoxMessage
   | GetLocalSpeakersMessage
   | GetLocalSpeakerIconMessage
+  | AnalyzeLocalPortraitMessage
   | TestSpeakMessage
   | GetStatsMessage
   | GetTimelineStateMessage

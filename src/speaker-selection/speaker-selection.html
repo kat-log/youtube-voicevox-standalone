@@ -209,24 +209,43 @@
         position: relative;
         overflow: hidden;
       }
-      .char-portrait {
+      .char-portrait-layer {
         position: absolute;
-        right: 0;
-        top: 0;
-        max-width: none;
-        opacity: 0;
+        inset: 0;
+        overflow: hidden;
         pointer-events: none;
         user-select: none;
-        /* 左側（スタイル名）にいくほど薄くして文字を読みやすくする */
-        -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 45%);
-        mask-image: linear-gradient(to right, transparent 0%, #000 45%);
+        /* スタイル名・ID・試聴ボタンには被せず、その間に立ち絵が見えるようにする */
+        --portrait-fade-in-start: 0px;
+        --portrait-fade-in-end: 30%;
+        --portrait-fade-out-start: 70%;
+        --portrait-fade-out-end: 100%;
+        -webkit-mask-image: linear-gradient(
+          to right,
+          transparent var(--portrait-fade-in-start),
+          #000 var(--portrait-fade-in-end),
+          #000 var(--portrait-fade-out-start),
+          transparent var(--portrait-fade-out-end)
+        );
+        mask-image: linear-gradient(
+          to right,
+          transparent var(--portrait-fade-in-start),
+          #000 var(--portrait-fade-in-end),
+          #000 var(--portrait-fade-out-start),
+          transparent var(--portrait-fade-out-end)
+        );
+      }
+      .char-portrait {
+        position: absolute;
+        max-width: none;
+        opacity: 0;
         transition: opacity 0.3s;
       }
       .char-portrait.ready {
-        opacity: 0.28;
+        opacity: 0.35;
       }
       body.dark-mode .char-portrait.ready {
-        opacity: 0.22;
+        opacity: 0.28;
       }
       .style-item {
         position: relative;

@@ -9,7 +9,7 @@ import {
 } from '@/utils/speaker-parser';
 import { createTestSpeakButton, initTestSpeakResultListener } from '@/utils/test-speak-ui';
 import { getDefaultBrowserVoiceNames } from '@/utils/browser-voices';
-import { createCachedLimitedLoader, computePortraitLayout } from '@/utils/speaker-icon';
+import { createCachedLimitedLoader, computePortraitLayout, type PortraitFaceInfo } from '@/utils/speaker-icon';
 
 let allSpeakers: ParsedSpeaker[] = [];
 let currentEngine: TtsEngine = 'voicevox';
@@ -85,19 +85,78 @@ function attachCharacterIcon(header: HTMLElement, nameEl: HTMLElement, charName:
   });
 }
 
-/** 立ち絵の位置合わせ用。スタイル一覧の高さ（絞り込み・幅変更）が変わるたびに再計算する */
+/** 立ち絵の解析に失敗したときの目安（頭が上端付近にある縦長の立ち絵を想定） */
+const FALLBACK_FACE: PortraitFaceInfo = { contentTop: 0, contentBottom: 1, eyeY: 0.18, faceX: 0.5, faceWidth: 0.3 };
+/** speaker_uuid → 立ち絵の解析結果（キャラの範囲・目元の位置） */
+const portraitFaceCache = new Map<string, Promise<PortraitFaceInfo>>();
+const portraitFaces = new WeakMap<HTMLElement, PortraitFaceInfo>();
+
+function analyzePortrait(url: string, speakerUuid: string): Promise<PortraitFaceInfo> {
+  const cached = portraitFaceCache.get(speakerUuid);
+  if (cached) return cached;
+  const promise = new Promise<PortraitFaceInfo>((resolve) => {
+    chrome.runtime.sendMessage(
+      { action: 'analyzeLocalPortrait', url, speakerUuid },
+      (response: { status: string; analysis?: PortraitFaceInfo } | undefined) => {
+        if (chrome.runtime.lastError || !response || response.status !== 'success' || !response.analysis) {
+          resolve(FALLBACK_FACE);
+          return;
+        }
+        resolve(response.analysis);
+      },
+    );
+  });
+  portraitFaceCache.set(speakerUuid, promise);
+  return promise;
+}
+
+/** 立ち絵の位置合わせ用。スタイル一覧の大きさ（絞り込み・ウィンドウ幅）が変わるたびに再計算する */
 const portraitResizeObserver = new ResizeObserver((entries) => {
   for (const entry of entries) layoutPortrait(entry.target as HTMLElement);
 });
 
+/**
+ * スタイル名の右端と ID・試聴ボタンの左端を測る（表示中の行のみ）。
+ * 立ち絵はこの間に顔が来るように置き、両側はフェードさせて文字やボタンに被せない。
+ */
+function measureStyleColumns(stylesList: HTMLElement): { labelRight: number; buttonsLeft: number } {
+  const base = stylesList.getBoundingClientRect().left;
+  let labelRight = 0;
+  let buttonsLeft = stylesList.clientWidth;
+  for (const item of stylesList.querySelectorAll<HTMLElement>('.style-item:not(.hidden)')) {
+    const label = item.querySelector('.style-label');
+    const id = item.querySelector('.style-id');
+    if (label) labelRight = Math.max(labelRight, label.getBoundingClientRect().right - base);
+    if (id) buttonsLeft = Math.min(buttonsLeft, id.getBoundingClientRect().left - base);
+  }
+  return { labelRight, buttonsLeft };
+}
+
 function layoutPortrait(stylesList: HTMLElement): void {
-  const img = stylesList.querySelector<HTMLImageElement>('.char-portrait');
-  if (!img || !img.naturalWidth) return;
-  const layout = computePortraitLayout(stylesList.clientHeight, img.naturalWidth, img.naturalHeight);
+  const layer = stylesList.querySelector<HTMLElement>('.char-portrait-layer');
+  const img = layer?.querySelector<HTMLImageElement>('.char-portrait');
+  const face = layer && portraitFaces.get(layer);
+  if (!layer || !img || !face || !img.naturalWidth || !stylesList.clientHeight) return;
+
+  const { labelRight, buttonsLeft } = measureStyleColumns(stylesList);
+  const gap = buttonsLeft - labelRight;
+  const layout = computePortraitLayout({
+    containerHeight: stylesList.clientHeight,
+    faceTargetX: gap > 0 ? (labelRight + buttonsLeft) / 2 : stylesList.clientWidth / 2,
+    naturalWidth: img.naturalWidth,
+    naturalHeight: img.naturalHeight,
+    face,
+  });
   if (!layout) return;
+  // スタイル名の少し手前から現れ、ID の手前で消える
+  layer.style.setProperty('--portrait-fade-in-start', `${Math.max(0, labelRight - 24)}px`);
+  layer.style.setProperty('--portrait-fade-in-end', `${labelRight + 32}px`);
+  layer.style.setProperty('--portrait-fade-out-start', `${Math.max(labelRight + 32, buttonsLeft - 32)}px`);
+  layer.style.setProperty('--portrait-fade-out-end', `${Math.max(labelRight + 40, buttonsLeft + 8)}px`);
   img.style.width = `${layout.width}px`;
   img.style.height = `${layout.height}px`;
   img.style.top = `${layout.top}px`;
+  img.style.left = `${layout.left}px`;
   img.classList.add('ready');
 }
 
@@ -110,23 +169,30 @@ function attachCharacterPortrait(stylesList: HTMLElement, charName: string): voi
   const key = characterIconKeys.get(charName);
   if (!key || !loadCharacterIcon) return;
   stylesList.dataset.portrait = 'loading';
-  loadCharacterIcon(key.uuid).then((images) => {
-    const src = images?.portrait;
-    if (!src || !stylesList.isConnected || stylesList.querySelector('.char-portrait')) return;
-    const img = document.createElement('img');
-    img.className = 'char-portrait';
-    img.alt = '';
-    img.decoding = 'async';
-    img.draggable = false;
-    img.setAttribute('aria-hidden', 'true');
-    img.addEventListener('error', () => img.remove());
-    img.addEventListener('load', () => {
-      layoutPortrait(stylesList);
-      portraitResizeObserver.observe(stylesList);
+  loadCharacterIcon(key.uuid)
+    .then(async (images) => {
+      const src = images?.portrait;
+      if (!src) return;
+      const face = await analyzePortrait(src, key.uuid);
+      if (!stylesList.isConnected || stylesList.querySelector('.char-portrait-layer')) return;
+      const layer = document.createElement('div');
+      layer.className = 'char-portrait-layer';
+      layer.setAttribute('aria-hidden', 'true');
+      portraitFaces.set(layer, face);
+      const img = document.createElement('img');
+      img.className = 'char-portrait';
+      img.alt = '';
+      img.decoding = 'async';
+      img.draggable = false;
+      img.addEventListener('error', () => layer.remove());
+      img.addEventListener('load', () => {
+        layoutPortrait(stylesList);
+        portraitResizeObserver.observe(stylesList);
+      });
+      img.src = src;
+      layer.appendChild(img);
+      stylesList.prepend(layer);
     });
-    img.src = src;
-    stylesList.prepend(img);
-  });
 }
 
 // テスト再生結果リスナーを初期化

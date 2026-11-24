@@ -49,49 +49,81 @@ export function pickStyleIcon(info: SpeakerInfoResponse, preferredStyleId?: numb
 }
 
 /**
- * 立ち絵を選ぶ。指定スタイル固有の立ち絵があればそれを、なければキャラクター共通の立ち絵を返す。
+ * 立ち絵を選ぶ。キャラクター共通の立ち絵を優先し（目元の補正値はこれに合わせてある）、
+ * なければ指定スタイル固有の立ち絵を返す。
  */
 export function pickPortrait(info: SpeakerInfoResponse, preferredStyleId?: number): string | null {
+  const common = toIconSrc(info.portrait);
+  if (common) return common;
   if (preferredStyleId !== undefined && Array.isArray(info.style_infos)) {
     const preferred = info.style_infos.find((s) => s.id === preferredStyleId);
-    const src = toIconSrc(preferred?.portrait);
-    if (src) return src;
+    return toIconSrc(preferred?.portrait);
   }
-  return toIconSrc(info.portrait);
+  return null;
 }
 
-/** 立ち絵の中で目のあたりが来る縦位置（画像の高さに対する割合）。立ち絵は頭が上端付近にある前提 */
-export const PORTRAIT_EYE_RATIO = 0.2;
-/** 立ち絵の最小表示高さ(px)。スタイルが少ない（表示領域が低い）ときはこの大きさで目元を切り出す */
-export const PORTRAIT_MIN_HEIGHT = 420;
-/** 表示領域の高さに対する立ち絵の表示高さの倍率（スタイルが多いときに顔〜上半身が収まる程度） */
-export const PORTRAIT_HEIGHT_SCALE = 1.6;
+/** スタイルが少ない（表示領域が低い）ときの顔の表示幅(px)。目元がはっきり分かる大きさ */
+export const PORTRAIT_FACE_DISPLAY_WIDTH = 110;
+/**
+ * 顔の表示幅を保証する表示領域の高さ(px)。これより高い領域では保証する幅を高さに反比例して小さくし、
+ * スタイルが多いキャラは顔のアップではなく全身寄りで見せる。
+ */
+export const PORTRAIT_FACE_FOCUS_HEIGHT = 60;
+/** 表示領域の高さに対するキャラ全体の表示高さの倍率（スタイルが多いときにどこまで写すか） */
+export const PORTRAIT_CONTENT_SCALE = 1.3;
+/** 拡大しすぎ防止（立ち絵は 500px 程度なので、これ以上はぼやける） */
+export const PORTRAIT_MAX_SCALE = 2.5;
+
+/** 立ち絵の中のキャラの範囲と顔の位置（画像サイズに対する割合） */
+export interface PortraitFaceInfo {
+  contentTop: number;
+  contentBottom: number;
+  eyeY: number;
+  faceX: number;
+  faceWidth: number;
+}
 
 export interface PortraitLayout {
   width: number;
   height: number;
   /** 表示領域上端からの位置（負の値で上にはみ出す） */
   top: number;
+  /** 表示領域左端からの位置 */
+  left: number;
 }
 
 /**
- * スタイル一覧の背景に置く立ち絵の大きさと縦位置を決める。
- * - 表示領域が高い（スタイルが多い）: 頭を上端に合わせ、顔〜上半身が見えるように大きく出す
- * - 表示領域が低い（スタイルが少ない）: 目元が領域の縦中央に来るように切り出す
- * 両者は連続的に切り替わる（目元を中央に置こうとして上端が空く場合は上端に揃える）。
+ * スタイル一覧の背景に置く立ち絵の大きさと位置を決める。
+ * - 横: 顔の中心を faceTargetX（スタイル名と試聴ボタンの間）に合わせる
+ * - 表示領域が高い（スタイルが多い）: キャラの頭を上端に揃え、領域いっぱいに大きく出す
+ * - 表示領域が低い（スタイルが少ない）: 顔を十分な大きさにして、目元を縦中央に置く
+ * 両者は連続的に切り替わる（上下にキャラのいない隙間ができる位置には動かさない）。
  */
-export function computePortraitLayout(
-  containerHeight: number,
-  naturalWidth: number,
-  naturalHeight: number,
-): PortraitLayout | null {
-  if (!(containerHeight > 0 && naturalWidth > 0 && naturalHeight > 0)) return null;
-  const height = Math.max(containerHeight * PORTRAIT_HEIGHT_SCALE, PORTRAIT_MIN_HEIGHT);
-  const width = (height * naturalWidth) / naturalHeight;
-  const eyeCentered = containerHeight / 2 - PORTRAIT_EYE_RATIO * height;
-  // 上端より下には下げない（上に隙間を作らない）／下端より上には上げない（下に隙間を作らない）
-  const top = Math.min(0, Math.max(containerHeight - height, eyeCentered));
-  return { width, height, top };
+export function computePortraitLayout(params: {
+  containerHeight: number;
+  faceTargetX: number;
+  naturalWidth: number;
+  naturalHeight: number;
+  face: PortraitFaceInfo;
+}): PortraitLayout | null {
+  const { containerHeight: c, faceTargetX, naturalWidth: w, naturalHeight: h, face } = params;
+  if (!(c > 0 && w > 0 && h > 0)) return null;
+  const contentPx = Math.max(1, (face.contentBottom - face.contentTop) * h);
+  const facePx = Math.max(1, face.faceWidth * w);
+  const faceDisplay = PORTRAIT_FACE_DISPLAY_WIDTH * Math.min(1, PORTRAIT_FACE_FOCUS_HEIGHT / c);
+  const scale = Math.min(
+    PORTRAIT_MAX_SCALE,
+    Math.max((c * PORTRAIT_CONTENT_SCALE) / contentPx, faceDisplay / facePx),
+  );
+  const width = w * scale;
+  const height = h * scale;
+  const eyeCentered = c / 2 - face.eyeY * height;
+  // キャラの上端より下には下げない／キャラの下端が領域より上に来ないようにする
+  const maxTop = -face.contentTop * height;
+  const minTop = c - face.contentBottom * height;
+  const top = minTop > maxTop ? maxTop : Math.min(maxTop, Math.max(minTop, eyeCentered));
+  const left = faceTargetX - face.faceX * width;
+  return { width, height, top, left };
 }
 
 /**
