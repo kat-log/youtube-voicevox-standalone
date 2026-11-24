@@ -4,6 +4,7 @@ import {
   getSpeakerIdsForEngine,
   withSpeakerIdsForEngine,
   isRoundRobinPresetApplicable,
+  isRoundRobinPresetActive,
 } from './round-robin';
 
 const legacy: ParallelSpeakersConfig = {
@@ -68,5 +69,36 @@ describe('isRoundRobinPresetApplicable', () => {
 
   it('ブラウザ内蔵音声ではどのプリセットも使えない', () => {
     expect(isRoundRobinPresetApplicable(base, 'browser')).toBe(false);
+  });
+});
+
+describe('isRoundRobinPresetActive', () => {
+  const preset: RoundRobinPreset = {
+    id: 'p',
+    name: 'p',
+    engine: 'local-voicevox',
+    speakerIds: ['3', '8'],
+    roundRobinSpeakerCount: 3,
+  };
+
+  it('話者数と話者2以降が一致すれば適用中', () => {
+    expect(isRoundRobinPresetActive(preset, 'local-voicevox', 3, ['3', '8'])).toBe(true);
+  });
+
+  it('話者数が違えば適用中ではない', () => {
+    expect(isRoundRobinPresetActive(preset, 'local-voicevox', 2, ['3'])).toBe(false);
+  });
+
+  it('割り当てが1つでも違えば適用中ではない', () => {
+    expect(isRoundRobinPresetActive(preset, 'local-voicevox', 3, ['3', '9'])).toBe(false);
+  });
+
+  it('話者数を超える余分な保存値は比較しない', () => {
+    const long = { ...preset, roundRobinSpeakerCount: 2, speakerIds: ['3', '8'] };
+    expect(isRoundRobinPresetActive(long, 'local-voicevox', 2, ['3'])).toBe(true);
+  });
+
+  it('別エンジン用のプリセットは一致していても適用中にしない', () => {
+    expect(isRoundRobinPresetActive(preset, 'voicevox', 3, ['3', '8'])).toBe(false);
   });
 });
