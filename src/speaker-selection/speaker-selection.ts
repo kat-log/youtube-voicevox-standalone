@@ -9,7 +9,7 @@ import {
 } from '@/utils/speaker-parser';
 import { createTestSpeakButton, initTestSpeakResultListener } from '@/utils/test-speak-ui';
 import { getDefaultBrowserVoiceNames } from '@/utils/browser-voices';
-import { createCachedLimitedLoader } from '@/utils/speaker-icon';
+import { createCachedLimitedLoader, computePortraitLayout } from '@/utils/speaker-icon';
 
 let allSpeakers: ParsedSpeaker[] = [];
 let currentEngine: TtsEngine = 'voicevox';
@@ -34,22 +34,26 @@ const ICON_FETCH_CONCURRENCY = 3;
  * ローカル VOICEVOX のときだけ埋まる（他エンジンは画像なし）。
  */
 let characterIconKeys = new Map<string, { uuid: string; styleId?: number }>();
-/** speaker_uuid → アイコン src のローダー（ページ内キャッシュ付き。失敗も null でキャッシュ） */
-let loadCharacterIcon: ((uuid: string) => Promise<string | null>) | null = null;
+interface CharacterImages {
+  icon?: string;
+  portrait?: string;
+}
+/** speaker_uuid → アイコン・立ち絵 src のローダー（ページ内キャッシュ付き。失敗も null でキャッシュ） */
+let loadCharacterIcon: ((uuid: string) => Promise<CharacterImages | null>) | null = null;
 
 function setupIconLoader(host: string): void {
-  loadCharacterIcon = createCachedLimitedLoader<string>(
+  loadCharacterIcon = createCachedLimitedLoader<CharacterImages>(
     (uuid) =>
       new Promise((resolve) => {
         const key = Array.from(characterIconKeys.values()).find((k) => k.uuid === uuid);
         chrome.runtime.sendMessage(
           { action: 'getLocalSpeakerIcon', host, speakerUuid: uuid, styleId: key?.styleId },
-          (response: { status: string; icon?: string } | undefined) => {
-            if (chrome.runtime.lastError || !response || response.status !== 'success' || !response.icon) {
+          (response: { status: string; icon?: string; portrait?: string } | undefined) => {
+            if (chrome.runtime.lastError || !response || response.status !== 'success') {
               resolve(null);
               return;
             }
-            resolve(response.icon);
+            resolve({ icon: response.icon, portrait: response.portrait });
           },
         );
       }),
@@ -64,7 +68,8 @@ function setupIconLoader(host: string): void {
 function attachCharacterIcon(header: HTMLElement, nameEl: HTMLElement, charName: string): void {
   const key = characterIconKeys.get(charName);
   if (!key || !loadCharacterIcon) return;
-  loadCharacterIcon(key.uuid).then((src) => {
+  loadCharacterIcon(key.uuid).then((images) => {
+    const src = images?.icon;
     if (!src || !header.isConnected || nameEl.parentElement !== header) return;
     if (header.querySelector('.char-icon')) return;
     const img = document.createElement('img');
@@ -77,6 +82,50 @@ function attachCharacterIcon(header: HTMLElement, nameEl: HTMLElement, charName:
     img.addEventListener('error', () => img.remove());
     img.src = src;
     header.insertBefore(img, nameEl);
+  });
+}
+
+/** 立ち絵の位置合わせ用。スタイル一覧の高さ（絞り込み・幅変更）が変わるたびに再計算する */
+const portraitResizeObserver = new ResizeObserver((entries) => {
+  for (const entry of entries) layoutPortrait(entry.target as HTMLElement);
+});
+
+function layoutPortrait(stylesList: HTMLElement): void {
+  const img = stylesList.querySelector<HTMLImageElement>('.char-portrait');
+  if (!img || !img.naturalWidth) return;
+  const layout = computePortraitLayout(stylesList.clientHeight, img.naturalWidth, img.naturalHeight);
+  if (!layout) return;
+  img.style.width = `${layout.width}px`;
+  img.style.height = `${layout.height}px`;
+  img.style.top = `${layout.top}px`;
+  img.classList.add('ready');
+}
+
+/**
+ * 開いたスタイル一覧の背景にキャラの立ち絵を薄く敷く（ローカル VOICEVOX のときだけ）。
+ * 立ち絵は大きいので、アコーディオンを初めて開いたときに読み込む。
+ */
+function attachCharacterPortrait(stylesList: HTMLElement, charName: string): void {
+  if (stylesList.dataset.portrait) return;
+  const key = characterIconKeys.get(charName);
+  if (!key || !loadCharacterIcon) return;
+  stylesList.dataset.portrait = 'loading';
+  loadCharacterIcon(key.uuid).then((images) => {
+    const src = images?.portrait;
+    if (!src || !stylesList.isConnected || stylesList.querySelector('.char-portrait')) return;
+    const img = document.createElement('img');
+    img.className = 'char-portrait';
+    img.alt = '';
+    img.decoding = 'async';
+    img.draggable = false;
+    img.setAttribute('aria-hidden', 'true');
+    img.addEventListener('error', () => img.remove());
+    img.addEventListener('load', () => {
+      layoutPortrait(stylesList);
+      portraitResizeObserver.observe(stylesList);
+    });
+    img.src = src;
+    stylesList.prepend(img);
   });
 }
 
@@ -296,12 +345,14 @@ function render(): void {
     header.addEventListener('click', (e) => {
       if ((e.target as HTMLElement).classList.contains('char-checkbox')) return;
       group.classList.toggle('open');
+      if (group.classList.contains('open')) attachCharacterPortrait(stylesList, charName);
       updateExpandToggleLabel();
     });
 
     // Styles list
     const stylesList = document.createElement('div');
     stylesList.className = 'char-styles';
+    if (group.classList.contains('open')) attachCharacterPortrait(stylesList, charName);
 
     for (const speaker of speakers) {
       const item = document.createElement('div');
@@ -480,7 +531,11 @@ document.getElementById('toggleExpandBtn')!.addEventListener('click', () => {
   if (areAllVisibleOpen()) {
     document.querySelectorAll<HTMLElement>('.char-group').forEach((g) => g.classList.remove('open'));
   } else {
-    getVisibleGroups().forEach((g) => g.classList.add('open'));
+    getVisibleGroups().forEach((g) => {
+      g.classList.add('open');
+      const stylesList = g.querySelector<HTMLElement>('.char-styles');
+      if (stylesList && g.dataset.character) attachCharacterPortrait(stylesList, g.dataset.character);
+    });
   }
   updateExpandToggleLabel();
 });

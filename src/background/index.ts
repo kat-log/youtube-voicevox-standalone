@@ -15,7 +15,7 @@ import { loadRandomSpeakerConfigFromStorage, setRandomSpeakerEnabled, setRandomS
 import { initSpeakerNames, initLocalSpeakerNames, setSpeakerNameEngine } from './speaker-names';
 import { handleTestSpeak, isTestAudioId, handleTestAudioEnded, handleTestAudioError } from './test-speak';
 import { fetchWithTimeout } from '@/utils/fetchWithTimeout';
-import { pickStyleIcon, type SpeakerInfoResponse } from '@/utils/speaker-icon';
+import { pickStyleIcon, pickPortrait, type SpeakerInfoResponse } from '@/utils/speaker-icon';
 import type { IncomingMessage } from '@/types/messages';
 import { getAllLifecycles } from './lifecycle-tracker';
 import { initSettingsSync, loadTtsEngineConfigFromStorage } from './settings-sync';
@@ -483,8 +483,9 @@ chrome.runtime.onMessage.addListener(
           })
           .then((info) => {
             const icon = pickStyleIcon(info, styleId);
-            if (!icon) throw new Error('icon not found');
-            sendResponse({ status: 'success', icon });
+            const portrait = pickPortrait(info, styleId);
+            if (!icon && !portrait) throw new Error('icon not found');
+            sendResponse({ status: 'success', icon: icon ?? undefined, portrait: portrait ?? undefined });
           })
           .catch((error: Error) => {
             sendResponse({ status: 'error', message: error.message });

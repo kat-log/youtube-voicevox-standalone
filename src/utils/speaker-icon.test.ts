@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { toIconSrc, pickStyleIcon, createCachedLimitedLoader } from './speaker-icon';
+import {
+  toIconSrc,
+  pickStyleIcon,
+  pickPortrait,
+  computePortraitLayout,
+  createCachedLimitedLoader,
+  PORTRAIT_EYE_RATIO,
+  PORTRAIT_MIN_HEIGHT,
+} from './speaker-icon';
 
 describe('toIconSrc', () => {
   it('URL はそのまま返す', () => {
@@ -98,5 +106,43 @@ describe('createCachedLimitedLoader', () => {
     }, 1);
     const results = await Promise.all([load('bad'), load('ok1'), load('ok2')]);
     expect(results).toEqual([null, 'ok1', 'ok2']);
+  });
+});
+
+describe('pickPortrait', () => {
+  it('スタイル固有の立ち絵を優先し、なければ共通の立ち絵', () => {
+    const info = { portrait: 'http://h/p', style_infos: [{ id: 1, portrait: 'http://h/p1' }, { id: 2 }] };
+    expect(pickPortrait(info, 1)).toBe('http://h/p1');
+    expect(pickPortrait(info, 2)).toBe('http://h/p');
+    expect(pickPortrait(info)).toBe('http://h/p');
+  });
+
+  it('立ち絵がなければ null', () => {
+    expect(pickPortrait({ style_infos: [{ id: 1, icon: 'x' }] }, 1)).toBeNull();
+  });
+});
+
+describe('computePortraitLayout', () => {
+  it('表示領域が低いときは目元が縦中央に来る', () => {
+    const l = computePortraitLayout(40, 500, 1000)!;
+    expect(l.height).toBe(PORTRAIT_MIN_HEIGHT);
+    expect(l.width).toBe(PORTRAIT_MIN_HEIGHT / 2);
+    expect(l.top + PORTRAIT_EYE_RATIO * l.height).toBeCloseTo(20);
+  });
+
+  it('表示領域が高いときは頭を上端に揃え、領域より大きく表示する', () => {
+    const l = computePortraitLayout(400, 500, 1000)!;
+    expect(l.top).toBe(0);
+    expect(l.height).toBeGreaterThan(400);
+  });
+
+  it('下端に隙間を作らない', () => {
+    const l = computePortraitLayout(40, 500, 1000)!;
+    expect(l.top + l.height).toBeGreaterThanOrEqual(40);
+  });
+
+  it('不正な値なら null', () => {
+    expect(computePortraitLayout(0, 500, 1000)).toBeNull();
+    expect(computePortraitLayout(100, 0, 0)).toBeNull();
   });
 });

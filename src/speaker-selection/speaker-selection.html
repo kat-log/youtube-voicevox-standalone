@@ -204,7 +204,32 @@
       .char-group.open .char-styles {
         display: block;
       }
+      /* ローカル VOICEVOX から実行時に取得した立ち絵をスタイル一覧の背景に薄く敷く（同梱しない） */
+      .char-styles {
+        position: relative;
+        overflow: hidden;
+      }
+      .char-portrait {
+        position: absolute;
+        right: 0;
+        top: 0;
+        max-width: none;
+        opacity: 0;
+        pointer-events: none;
+        user-select: none;
+        /* 左側（スタイル名）にいくほど薄くして文字を読みやすくする */
+        -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 45%);
+        mask-image: linear-gradient(to right, transparent 0%, #000 45%);
+        transition: opacity 0.3s;
+      }
+      .char-portrait.ready {
+        opacity: 0.28;
+      }
+      body.dark-mode .char-portrait.ready {
+        opacity: 0.22;
+      }
       .style-item {
+        position: relative;
         display: flex;
         align-items: center;
         gap: 8px;

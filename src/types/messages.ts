@@ -267,4 +267,6 @@ export interface MessageResponse {
   speakers?: Array<{ name: string; styles: Array<{ id: number; name: string }> }>;
   /** getLocalSpeakerIcon の結果（<img src> にそのまま使える URL または data URL） */
   icon?: string;
+  /** getLocalSpeakerIcon の結果（立ち絵。<img src> にそのまま使える URL または data URL） */
+  portrait?: string;
 }
