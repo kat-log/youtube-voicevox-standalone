@@ -15,7 +15,8 @@ import { loadRandomSpeakerConfigFromStorage, setRandomSpeakerEnabled, setRandomS
 import { initSpeakerNames, initLocalSpeakerNames, setSpeakerNameEngine } from './speaker-names';
 import { handleTestSpeak, isTestAudioId, handleTestAudioEnded, handleTestAudioError } from './test-speak';
 import { fetchWithTimeout } from '@/utils/fetchWithTimeout';
-import { pickStyleIcon, type SpeakerInfoResponse } from '@/utils/speaker-icon';
+import { pickStyleIcon, pickPortrait, type SpeakerInfoResponse } from '@/utils/speaker-icon';
+import { analyzePortraitPixels, applyFaceHint } from '@/utils/portrait-analysis';
 import type { IncomingMessage } from '@/types/messages';
 import { getAllLifecycles } from './lifecycle-tracker';
 import { initSettingsSync, loadTtsEngineConfigFromStorage } from './settings-sync';
@@ -483,8 +484,40 @@ chrome.runtime.onMessage.addListener(
           })
           .then((info) => {
             const icon = pickStyleIcon(info, styleId);
-            if (!icon) throw new Error('icon not found');
-            sendResponse({ status: 'success', icon });
+            const portrait = pickPortrait(info, styleId);
+            if (!icon && !portrait) throw new Error('icon not found');
+            sendResponse({ status: 'success', icon: icon ?? undefined, portrait: portrait ?? undefined });
+          })
+          .catch((error: Error) => {
+            sendResponse({ status: 'error', message: error.message });
+          });
+        return true;
+      }
+
+      case 'analyzeLocalPortrait': {
+        // 立ち絵の画素からキャラの範囲と目元の位置を推定する。
+        // ページ側からはローカルエンジンの画像（別オリジン）の画素を読めないため、ここで読む。
+        const { url, speakerUuid } = request;
+        if (!/^(https?:|data:image\/)/i.test(url)) {
+          sendResponse({ status: 'error', message: 'unsupported url' });
+          return false;
+        }
+        fetchWithTimeout(url, 10_000)
+          .then((res) => {
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.blob();
+          })
+          .then((blob) => createImageBitmap(blob))
+          .then((bitmap) => {
+            const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+            const ctx = canvas.getContext('2d');
+            if (!ctx) throw new Error('canvas unavailable');
+            ctx.drawImage(bitmap, 0, 0);
+            const { data } = ctx.getImageData(0, 0, bitmap.width, bitmap.height);
+            bitmap.close();
+            const analysis = analyzePortraitPixels(data, canvas.width, canvas.height);
+            if (!analysis) throw new Error('empty portrait');
+            sendResponse({ status: 'success', analysis: applyFaceHint(analysis, speakerUuid) });
           })
           .catch((error: Error) => {
             sendResponse({ status: 'error', message: error.message });

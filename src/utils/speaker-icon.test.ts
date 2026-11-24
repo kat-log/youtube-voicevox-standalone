@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { toIconSrc, pickStyleIcon, createCachedLimitedLoader } from './speaker-icon';
+import {
+  toIconSrc,
+  pickStyleIcon,
+  pickPortrait,
+  computePortraitLayout,
+  createCachedLimitedLoader,
+  PORTRAIT_FACE_DISPLAY_WIDTH,
+} from './speaker-icon';
 
 describe('toIconSrc', () => {
   it('URL はそのまま返す', () => {
@@ -98,5 +105,49 @@ describe('createCachedLimitedLoader', () => {
     }, 1);
     const results = await Promise.all([load('bad'), load('ok1'), load('ok2')]);
     expect(results).toEqual([null, 'ok1', 'ok2']);
+  });
+});
+
+describe('pickPortrait', () => {
+  it('キャラ共通の立ち絵を優先し、なければスタイル固有の立ち絵', () => {
+    const info = { portrait: 'http://h/p', style_infos: [{ id: 1, portrait: 'http://h/p1' }] };
+    expect(pickPortrait(info, 1)).toBe('http://h/p');
+    expect(pickPortrait({ style_infos: [{ id: 1, portrait: 'http://h/p1' }] }, 1)).toBe('http://h/p1');
+  });
+
+  it('立ち絵がなければ null', () => {
+    expect(pickPortrait({ style_infos: [{ id: 1, icon: 'x' }] }, 1)).toBeNull();
+  });
+});
+
+describe('computePortraitLayout', () => {
+  const face = { contentTop: 0.05, contentBottom: 0.95, eyeY: 0.2, faceX: 0.5, faceWidth: 0.2 };
+  const base = { faceTargetX: 300, naturalWidth: 500, naturalHeight: 1000, face };
+
+  it('表示領域の高さに関係なく顔の大きさをそろえる', () => {
+    const short = computePortraitLayout({ ...base, containerHeight: 40 })!;
+    const tall = computePortraitLayout({ ...base, containerHeight: 400 })!;
+    expect(short.width * face.faceWidth).toBeCloseTo(PORTRAIT_FACE_DISPLAY_WIDTH);
+    expect(tall.width).toBeCloseTo(short.width);
+  });
+
+  it('表示領域が低いときは目元を縦中央に置く', () => {
+    const l = computePortraitLayout({ ...base, containerHeight: 40 })!;
+    expect(l.top + face.eyeY * l.height).toBeCloseTo(20);
+  });
+
+  it('表示領域が高いときはキャラの頭を上端に揃える', () => {
+    const l = computePortraitLayout({ ...base, containerHeight: 400 })!;
+    expect(l.top).toBeCloseTo(-face.contentTop * l.height);
+  });
+
+  it('顔の中心を faceTargetX に合わせる', () => {
+    const l = computePortraitLayout({ ...base, containerHeight: 100 })!;
+    expect(l.left + face.faceX * l.width).toBeCloseTo(300);
+  });
+
+  it('不正な値なら null', () => {
+    expect(computePortraitLayout({ ...base, containerHeight: 0 })).toBeNull();
+    expect(computePortraitLayout({ ...base, containerHeight: 100, naturalWidth: 0 })).toBeNull();
   });
 });

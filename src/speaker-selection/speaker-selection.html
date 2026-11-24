@@ -204,7 +204,51 @@
       .char-group.open .char-styles {
         display: block;
       }
+      /* ローカル VOICEVOX から実行時に取得した立ち絵をスタイル一覧の背景に薄く敷く（同梱しない） */
+      .char-styles {
+        position: relative;
+        overflow: hidden;
+      }
+      .char-portrait-layer {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        pointer-events: none;
+        user-select: none;
+        /* スタイル名・ID・試聴ボタンには被せず、その間に立ち絵が見えるようにする */
+        --portrait-fade-in-start: 0px;
+        --portrait-fade-in-end: 30%;
+        --portrait-fade-out-start: 70%;
+        --portrait-fade-out-end: 100%;
+        -webkit-mask-image: linear-gradient(
+          to right,
+          transparent var(--portrait-fade-in-start),
+          #000 var(--portrait-fade-in-end),
+          #000 var(--portrait-fade-out-start),
+          transparent var(--portrait-fade-out-end)
+        );
+        mask-image: linear-gradient(
+          to right,
+          transparent var(--portrait-fade-in-start),
+          #000 var(--portrait-fade-in-end),
+          #000 var(--portrait-fade-out-start),
+          transparent var(--portrait-fade-out-end)
+        );
+      }
+      .char-portrait {
+        position: absolute;
+        max-width: none;
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+      .char-portrait.ready {
+        opacity: 0.35;
+      }
+      body.dark-mode .char-portrait.ready {
+        opacity: 0.28;
+      }
       .style-item {
+        position: relative;
         display: flex;
         align-items: center;
         gap: 8px;
